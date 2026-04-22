@@ -101,14 +101,92 @@ export function validateConfig(values) {
 
   // --- Teensy 4.x requires STEP_WAVE_FORM=SQUARE (hard constraint in
   //     OnStepX Validate.h). PULSE compiles fine on ESP32/STM32 but the
-  //     Teensy 4.x step engine needs the SQUARE waveform. Upstream fires
-  //     '#error "Setting STEP_WAVE_FORM SQUARE is required for the
-  //     Teensy4.0 and 4.1"' otherwise.
+  //     Teensy 4.x step engine needs the SQUARE waveform.
   if ((values.COMPILE_ENV === 'teensy40' || values.COMPILE_ENV === 'teensy41') &&
       values.STEP_WAVE_FORM && values.STEP_WAVE_FORM !== 'SQUARE') {
     add('error', 'STEP_WAVE_FORM',
       `Teensy 4.x requires STEP_WAVE_FORM=SQUARE (currently ${values.STEP_WAVE_FORM}). ` +
       `Fix on the Controller tab, or the compile will fail with Validate.h #error.`);
+  }
+
+  // --- Mirrors of commonly-hit OnStepX Validate.h #error conditions.
+  //     Not exhaustive (Validate.h has 306 #errors) — these are the ones
+  //     most likely to surface from the form alone.
+
+  // AXIS1 and AXIS2 driver models must both be OFF or both set.
+  const a1 = values.AXIS1_DRIVER_MODEL || 'OFF';
+  const a2 = values.AXIS2_DRIVER_MODEL || 'OFF';
+  if ((a1 === 'OFF') !== (a2 === 'OFF')) {
+    add('error', 'AXIS1_DRIVER_MODEL',
+      'AXIS1_DRIVER_MODEL and AXIS2_DRIVER_MODEL must both be OFF or both set to a driver. ' +
+      'OnStepX refuses to activate the mount with one axis configured and the other not.');
+  }
+
+  // Motor current (IRUN / IHOLD) must be OFF or 0–3000 mA.
+  for (const axis of [1, 2, 3, 4]) {
+    for (const which of ['IRUN', 'IHOLD']) {
+      const key = `AXIS${axis}_DRIVER_${which}`;
+      const v = values[key];
+      if (!v || v === 'OFF') continue;
+      const n = Number(v);
+      if (!Number.isFinite(n) || n < 0 || n > 3000) {
+        add('error', key, `${key}=${v} is out of range. Use OFF or 0–3000 (mA).`);
+      }
+    }
+  }
+
+  // Axis range limits — Validate.h enforces these specific windows.
+  const rangeChecks = [
+    { id: 'AXIS1_LIMIT_MIN', lo: -360, hi: -90,  hint: '-90 to -360 degrees' },
+    { id: 'AXIS1_LIMIT_MAX', lo: 90,   hi: 360,  hint: '90 to 360 degrees' },
+    { id: 'AXIS2_LIMIT_MIN', lo: -90,  hi: 0,    hint: '-90 to 0 degrees' },
+    { id: 'AXIS2_LIMIT_MAX', lo: 0,    hi: 90,   hint: '0 to 90 degrees' },
+  ];
+  for (const r of rangeChecks) {
+    const v = values[r.id];
+    if (v === undefined || v === '') continue;
+    const n = Number(v);
+    if (!Number.isFinite(n) || n < r.lo || n > r.hi) {
+      add('error', r.id, `${r.id}=${v} is outside the valid range (${r.hint}).`);
+    }
+  }
+
+  // SERIAL_RADIO requires an ESP32 build (BLUETOOTH/WIFI_* aren't implemented
+  // on Teensy / STM32). OnStepX Validate.h fires a more specific pinmap
+  // error, but catching it here saves the round-trip.
+  if (values.SERIAL_RADIO && values.SERIAL_RADIO !== 'OFF' &&
+      values.COMPILE_ENV && values.COMPILE_ENV !== 'esp32') {
+    add('error', 'SERIAL_RADIO',
+      `SERIAL_RADIO=${values.SERIAL_RADIO} requires an ESP32 build target (current: ${values.COMPILE_ENV}). ` +
+      `BLUETOOTH / WIFI_ACCESS_POINT / WIFI_STATION aren't supported on Teensy or STM32.`);
+  }
+
+  // Simple ON/OFF whitelist — Validate.h errors if these are anything else.
+  const onOffFields = [
+    'STATUS_LED', 'RETICLE_LED_MEMORY', 'RETICLE_LED_INVERT',
+    'AXIS1_REVERSE', 'AXIS2_REVERSE',
+    'AXIS1_POWER_DOWN', 'AXIS2_POWER_DOWN',
+    'MOUNT_COORDS_MEMORY', 'MOUNT_ENABLE_IN_STANDBY',
+    'TRACK_AUTOSTART', 'ST4_INTERFACE', 'ST4_HAND_CONTROL',
+    'GUIDE_DISABLE_BACKLASH', 'GOTO_FEATURE',
+  ];
+  for (const f of onOffFields) {
+    const v = values[f];
+    if (v !== undefined && v !== '' && v !== 'ON' && v !== 'OFF') {
+      add('warn', f, `${f}=${v} is probably wrong. OnStepX Validate.h expects ON or OFF.`);
+    }
+  }
+
+  // Microsteps should be a power of two (Validate.h emits a warning, we
+  // promote to a warn here too).
+  for (const axis of [1, 2, 3, 4]) {
+    const key = `AXIS${axis}_DRIVER_MICROSTEPS`;
+    const v = values[key];
+    if (!v || v === 'OFF') continue;
+    const n = Number(v);
+    if (Number.isFinite(n) && n >= 1 && n <= 256 && (n & (n - 1)) !== 0) {
+      add('warn', key, `${key}=${n} isn't a power of 2 (1/2/4/8/16/32/64/128/256). Most drivers ignore non-binary microstep modes.`);
+    }
   }
 
   const counts = {
