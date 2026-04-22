@@ -14,7 +14,13 @@
 // Optional:
 //   RATE_LIMIT    — a KV namespace binding; if present, enforces 10 builds/hr/IP
 
-const ALLOWED_BOARDS = new Set(['esp32', 'teensy40', 'teensy41', 'blackpill_f411']);
+const ALLOWED_BOARDS = new Set([
+  // OnStepX (mount controller) build environments
+  'esp32', 'teensy40', 'teensy41', 'blackpill_f411',
+  // SmartHandController (hand pendant) build environments
+  'shc_esp32', 'shc_teensy40', 'shc_teensy32',
+]);
+const ALLOWED_PROJECTS = new Set(['onstepx', 'shc']);
 const MAX_CONFIG_BYTES = 200_000;
 const WORKFLOW_FILE = 'build.yml';
 
@@ -61,12 +67,24 @@ async function handleCompile(request, env) {
   if (!body) return json({ error: 'invalid JSON' }, 400);
 
   const { config, board } = body;
+  const project = (body.project || 'onstepx').toString();
   const onstepxRef = (body.ref || 'main').toString();
   if (typeof config !== 'string' || !config.length) {
     return json({ error: 'config missing' }, 400);
   }
+  if (!ALLOWED_PROJECTS.has(project)) {
+    return json({ error: `project must be one of ${[...ALLOWED_PROJECTS].join(', ')}` }, 400);
+  }
   if (!ALLOWED_BOARDS.has(board)) {
     return json({ error: `board must be one of ${[...ALLOWED_BOARDS].join(', ')}` }, 400);
+  }
+  // Sanity: SHC envs must come with project=shc and vice versa.
+  const isShcEnv = board.startsWith('shc_');
+  if (isShcEnv && project !== 'shc') {
+    return json({ error: `board ${board} requires project=shc` }, 400);
+  }
+  if (!isShcEnv && project === 'shc') {
+    return json({ error: `project=shc requires an SHC board (shc_esp32, shc_teensy40, shc_teensy32)` }, 400);
   }
   if (new TextEncoder().encode(config).length > MAX_CONFIG_BYTES) {
     return json({ error: 'config too large' }, 413);
@@ -103,10 +121,11 @@ async function handleCompile(request, env) {
       body: JSON.stringify({
         ref: 'main', // which branch of the BUILD-SERVICE repo runs the workflow
         inputs: {
+          project,                 // 'onstepx' | 'shc' — picks upstream repo
           config_h: configB64,
           environment: board,
           request_id: requestId,
-          onstepx_ref: onstepxRef, // which ref of hjd1964/OnStepX to compile
+          onstepx_ref: onstepxRef, // ref of the chosen upstream repo
         },
       }),
     }

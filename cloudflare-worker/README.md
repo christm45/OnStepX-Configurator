@@ -46,7 +46,12 @@ and proxies the firmware artifact back to the browser.
 
 ## Endpoints
 
-- `POST /compile` — body `{config, board}` → `{request_id}`
+- `POST /compile` — body `{config, board, ref?, project?}` → `{request_id}`
+  - `project`: `'onstepx'` (default) or `'shc'`. Picks `hjd1964/OnStepX`
+    vs `hjd1964/SmartHandController` as the upstream source.
+  - `board`: PlatformIO env. OnStepX: `esp32 | teensy40 | teensy41 |
+    blackpill_f411`. SHC: `shc_esp32 | shc_teensy40 | shc_teensy32`.
+  - `ref`: branch / tag / commit SHA of the chosen project (default `'main'`).
 - `GET /status?id=<request_id>` → `{state, run_id?, conclusion?}`
 - `GET /firmware?run_id=<run_id>` → `application/zip`
 

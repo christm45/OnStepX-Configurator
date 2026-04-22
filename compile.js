@@ -35,13 +35,15 @@ export const ENV_LABELS = {
 
 /**
  * Kick off a compile. Returns a request_id.
- * `ref` is a branch / tag / commit SHA of hjd1964/OnStepX (default 'main').
+ * `ref` is a branch / tag / commit SHA of the chosen upstream repo (default 'main').
+ * `project` is 'onstepx' (default) or 'shc' — picks hjd1964/OnStepX vs
+ * hjd1964/SmartHandController as the source.
  */
-export async function startCompile(configText, board, ref = 'main') {
+export async function startCompile(configText, board, ref = 'main', project = 'onstepx') {
   const res = await fetch(`${WORKER_URL}/compile`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ config: configText, board, ref }),
+    body: JSON.stringify({ config: configText, board, ref, project }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
@@ -138,13 +140,14 @@ export function inferEnvFromPinmap(pinmap) {
 }
 
 /**
- * Resolve a git ref of hjd1964/OnStepX to a concrete commit via the public
+ * Resolve a git ref of an upstream repo to a concrete commit via the public
  * GitHub API. Unauthenticated — 60 req/hr/IP, plenty for page-load use.
+ * `repo` defaults to 'hjd1964/OnStepX'; pass 'hjd1964/SmartHandController' for SHC.
  * Returns {sha, shortSha, authorName, dateIso, relative, message} or throws.
  */
-export async function resolveOnStepXRef(ref) {
+export async function resolveOnStepXRef(ref, repo = 'hjd1964/OnStepX') {
   const r = await fetch(
-    `https://api.github.com/repos/hjd1964/OnStepX/commits/${encodeURIComponent(ref)}`,
+    `https://api.github.com/repos/${repo}/commits/${encodeURIComponent(ref)}`,
     { headers: { Accept: 'application/vnd.github+json' } }
   );
   if (!r.ok) {

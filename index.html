@@ -266,6 +266,46 @@
     }
   }
 
+  /* Mode switch (OnStepX / SHC) */
+  .mode-switch {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin: 0 auto 16px;
+    max-width: 600px;
+    padding: 6px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 10px 14px;
+    background: transparent;
+    color: var(--label);
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .mode-btn:hover { background: var(--accent); color: var(--text); }
+  .mode-btn.active {
+    background: var(--highlight);
+    color: #fff;
+    font-weight: bold;
+    border-color: var(--highlight);
+  }
+  .mode-btn .mode-sub {
+    display: block;
+    font-size: 0.75em;
+    font-weight: normal;
+    opacity: 0.85;
+    margin-top: 2px;
+  }
+  .tab-btn[data-mode-hidden="true"] { display: none; }
+
   /* Help tab */
   .help-body { line-height: 1.6; color: var(--text); }
   .help-body p { margin-bottom: 10px; }
@@ -331,21 +371,35 @@
 <body>
 <canvas id="matrixCanvas"></canvas>
 
-<h1>OnStepX Configuration Generator</h1>
-<p class="subtitle">Generate Config.h for OnStepX telescope controller &mdash; based on OnStep Calculations v1.34</p>
+<h1 id="pageTitle">OnStep Configuration Generator</h1>
+<p class="subtitle" id="pageSubtitle">Generate Config.h, compile online, and flash over USB</p>
+
+<div class="mode-switch" role="tablist" aria-label="Project selector">
+  <button type="button" class="mode-btn active" id="modeBtn-onstepx" onclick="setMode('onstepx')" role="tab">
+    OnStepX
+    <span class="mode-sub">Mount controller firmware</span>
+  </button>
+  <button type="button" class="mode-btn" id="modeBtn-shc" onclick="setMode('shc')" role="tab">
+    SmartHandController
+    <span class="mode-sub">Hand pendant firmware</span>
+  </button>
+</div>
 
 <div class="tabs" id="tabs">
-  <button class="tab-btn active" onclick="showTab('calculator')">Calculator</button>
-  <button class="tab-btn" onclick="showTab('controller')">Controller</button>
-  <button class="tab-btn" onclick="showTab('axis1')">Axis1 RA/Azm</button>
-  <button class="tab-btn" onclick="showTab('axis2')">Axis2 Dec/Alt</button>
-  <button class="tab-btn" onclick="showTab('mount')">Mount</button>
-  <button class="tab-btn" onclick="showTab('rotator')">Rotator</button>
-  <button class="tab-btn" onclick="showTab('focuser')">Focuser</button>
-  <button class="tab-btn" onclick="showTab('auxiliary')">Auxiliary</button>
-  <button class="tab-btn" onclick="showTab('output')">Output</button>
-  <button class="tab-btn" onclick="showTab('compile')">Compile &amp; Flash</button>
-  <button class="tab-btn" onclick="showTab('help')" title="User Guide">? Help</button>
+  <button class="tab-btn active" data-modes="onstepx" onclick="showTab('calculator')">Calculator</button>
+  <button class="tab-btn" data-modes="onstepx" onclick="showTab('controller')">Controller</button>
+  <button class="tab-btn" data-modes="onstepx" onclick="showTab('axis1')">Axis1 RA/Azm</button>
+  <button class="tab-btn" data-modes="onstepx" onclick="showTab('axis2')">Axis2 Dec/Alt</button>
+  <button class="tab-btn" data-modes="onstepx" onclick="showTab('mount')">Mount</button>
+  <button class="tab-btn" data-modes="onstepx" onclick="showTab('rotator')">Rotator</button>
+  <button class="tab-btn" data-modes="onstepx" onclick="showTab('focuser')">Focuser</button>
+  <button class="tab-btn" data-modes="onstepx" onclick="showTab('auxiliary')">Auxiliary</button>
+  <button class="tab-btn" data-modes="shc" onclick="showTab('shc-controller')">Hand Controller</button>
+  <button class="tab-btn" data-modes="shc" onclick="showTab('shc-comm')">Communication</button>
+  <button class="tab-btn" data-modes="shc" onclick="showTab('shc-aux')">Sensors &amp; Aux</button>
+  <button class="tab-btn" data-modes="onstepx,shc" onclick="showTab('output')">Output</button>
+  <button class="tab-btn" data-modes="onstepx,shc" onclick="showTab('compile')">Compile &amp; Flash</button>
+  <button class="tab-btn" data-modes="onstepx,shc" onclick="showTab('help')" title="User Guide">? Help</button>
 </div>
 
 <!-- ==================== CALCULATOR TAB ==================== -->
@@ -1512,6 +1566,164 @@
   <div id="features-container"></div>
 </div>
 
+<!-- ==================== SHC: HAND CONTROLLER TAB ==================== -->
+<div class="tab-content" id="tab-shc-controller">
+  <div class="section">
+    <div class="section-title">Display</div>
+    <div class="field-row">
+      <label class="field-label">DISPLAY_LANGUAGE <span class="hint-tag hint-adjust">Adjust</span></label>
+      <select id="SHC_DISPLAY_LANGUAGE">
+        <option value="L_en" selected>L_en (English)</option>
+        <option value="L_de">L_de (German)</option>
+        <option value="L_es">L_es (Spanish)</option>
+        <option value="L_fr">L_fr (French)</option>
+        <option value="L_it">L_it (Italian)</option>
+        <option value="L_pt">L_pt (Portuguese)</option>
+      </select>
+      <span class="field-hint">UI language (must be one supported by the SHC source)</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">DISPLAY_OLED <span class="hint-tag hint-reqd">Req'd</span></label>
+      <select id="SHC_DISPLAY_OLED">
+        <option value="SH1106" selected>SH1106 (1.3" I2C, common)</option>
+        <option value="SSD1306">SSD1306 (0.96" I2C)</option>
+        <option value="SSD1309">SSD1309 (1.54" / 2.3" I2C)</option>
+      </select>
+      <span class="field-hint">OLED model in your hand controller</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">DISPLAY_AMBIENT_CONDITIONS <span class="hint-tag hint-infreq">Infreq</span></label>
+      <select id="SHC_DISPLAY_AMBIENT_CONDITIONS">
+        <option value="OFF" selected>OFF</option>
+        <option value="ON">ON</option>
+      </select>
+      <span class="field-hint">Show weather (temp/pressure/humidity) in display rotation</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">DISPLAY_WRAP_MENUS <span class="hint-tag hint-infreq">Infreq</span></label>
+      <select id="SHC_DISPLAY_WRAP_MENUS">
+        <option value="OFF" selected>OFF</option>
+        <option value="ON">ON</option>
+      </select>
+      <span class="field-hint">Allow menus to wrap around (bottom &rarr; top)</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">DISPLAY_24HR_TIME <span class="hint-tag hint-adjust">Adjust</span></label>
+      <select id="SHC_DISPLAY_24HR_TIME">
+        <option value="ON" selected>ON (24-hour)</option>
+        <option value="OFF">OFF (12-hour)</option>
+      </select>
+      <span class="field-hint">Time entry / display format</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">DISPLAY_CONTRAST_DEFAULT <span class="hint-tag hint-infreq">Infreq</span></label>
+      <select id="SHC_DISPLAY_CONTRAST_DEFAULT">
+        <option value="0">0 (Min)</option>
+        <option value="1" selected>1 (Low)</option>
+        <option value="2">2 (High)</option>
+        <option value="3">3 (Max)</option>
+      </select>
+      <span class="field-hint">Initial OLED contrast (user can change in-menu later)</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Keypad</div>
+    <div class="field-row">
+      <label class="field-label">KEYPAD_JOYSTICK_ANALOG <span class="hint-tag hint-infreq">Infreq</span></label>
+      <select id="SHC_KEYPAD_JOYSTICK_ANALOG">
+        <option value="OFF" selected>OFF</option>
+        <option value="JS1">JS1 (Jerry's analog joystick)</option>
+      </select>
+      <span class="field-hint">Optional analog joystick add-on</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">KEYPAD_JOYSTICK_HYSTERESIS <span class="hint-tag hint-infreq">Infreq</span></label>
+      <input type="number" id="SHC_KEYPAD_JOYSTICK_HYSTERESIS" value="200" min="0" max="2048" step="10">
+      <span class="field-hint">Joystick deadband in ADC counts (larger = less sensitive)</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SHC: COMMUNICATION TAB ==================== -->
+<div class="tab-content" id="tab-shc-comm">
+  <div class="section">
+    <div class="section-title">Connection to OnStep mount</div>
+    <p style="color:var(--label);font-size:0.9em;margin-bottom:10px;">
+      The SHC needs to talk to your OnStep/OnStepX mount controller. Pick whichever cabling
+      matches your hardware. <b>SERIAL_ST4</b> is the simplest (single short cable to OnStep's
+      ST4 port). Standard async serial (Serial / Serial1) works if you wire UART. Radio is
+      cleanest for ESP32 builds.
+    </p>
+    <div class="field-row">
+      <label class="field-label">SERIAL_ONSTEP <span class="hint-tag hint-reqd">Req'd</span></label>
+      <select id="SHC_SERIAL_ONSTEP">
+        <option value="SERIAL_ST4" selected>SERIAL_ST4 (synchronous via ST4 port)</option>
+        <option value="Serial">Serial (USB CDC)</option>
+        <option value="Serial1">Serial1 (UART1)</option>
+        <option value="Serial2">Serial2 (UART2)</option>
+        <option value="OFF">OFF (radio only)</option>
+      </select>
+      <span class="field-hint">Wired link to the mount controller</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">SERIAL_ONSTEP_BAUD_DEFAULT <span class="hint-tag hint-infreq">Infreq</span></label>
+      <select id="SHC_SERIAL_ONSTEP_BAUD_DEFAULT">
+        <option value="9600" selected>9600</option>
+        <option value="19200">19200</option>
+        <option value="57600">57600</option>
+        <option value="115200">115200</option>
+      </select>
+      <span class="field-hint">Baud rate for async serial mode (ignored for SERIAL_ST4)</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">SERIAL_RADIO <span class="hint-tag hint-adjust">Adjust</span></label>
+      <select id="SHC_SERIAL_RADIO">
+        <option value="OFF" selected>OFF</option>
+        <option value="BLUETOOTH">BLUETOOTH (ESP32 only)</option>
+        <option value="WIFI_STATION">WIFI_STATION (ESP32 only)</option>
+        <option value="BOTH">BOTH (ESP32 only)</option>
+      </select>
+      <span class="field-hint">Wireless link to OnStep (ESP32 builds only)</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SHC: SENSORS & AUX TAB ==================== -->
+<div class="tab-content" id="tab-shc-aux">
+  <div class="section">
+    <div class="section-title">Weather sensor</div>
+    <div class="field-row">
+      <label class="field-label">WEATHER <span class="hint-tag hint-infreq">Infreq</span></label>
+      <select id="SHC_WEATHER">
+        <option value="OFF" selected>OFF</option>
+        <option value="BME280">BME280 (I2C 0x77, T+P+H)</option>
+        <option value="BME280_0x76">BME280_0x76 (I2C 0x76, T+P+H)</option>
+        <option value="BMP280">BMP280 (I2C 0x77, T+P)</option>
+        <option value="BMP280_0x76">BMP280_0x76 (I2C 0x76, T+P)</option>
+      </select>
+      <span class="field-hint">Optional ambient sensor on the I2C bus</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Auxiliary</div>
+    <div class="field-row">
+      <label class="field-label">UTILITY_LIGHT <span class="hint-tag hint-infreq">Infreq</span></label>
+      <input type="text" id="SHC_UTILITY_LIGHT" value="OFF" maxlength="5" pattern="OFF|[0-9]+">
+      <span class="field-hint">OFF, or 0&ndash;255 brightness (0&ndash;100%) for the utility LED</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">ST4_AUX_INTERFACE <span class="hint-tag hint-infreq">Infreq</span></label>
+      <select id="SHC_ST4_AUX_INTERFACE">
+        <option value="OFF" selected>OFF</option>
+        <option value="ON">ON</option>
+      </select>
+      <span class="field-hint">Pass-through ST4 jack for autoguider</span>
+    </div>
+  </div>
+</div>
+
 <!-- ==================== OUTPUT TAB ==================== -->
 <div class="tab-content" id="tab-output">
   <div class="btn-row">
@@ -1549,13 +1761,12 @@
       <span class="field-hint" id="pinmap-hint">Auto-selected from your PINMAP choice</span>
     </div>
     <div class="field-row">
-      <label class="field-label">OnStepX source <span class="hint-tag hint-adjust">Adjust</span></label>
+      <label class="field-label" id="onstepxRefLabel">Source ref <span class="hint-tag hint-adjust">Adjust</span></label>
       <input type="text" id="ONSTEPX_REF" value="main" maxlength="64" placeholder="main, v10.24, or commit SHA"
              pattern="[A-Za-z0-9._/-]{1,64}" spellcheck="false"
              style="font-family:Consolas,monospace;">
-      <span class="field-hint">
-        From <a href="https://github.com/hjd1964/OnStepX" target="_blank" style="color:var(--green);">hjd1964/OnStepX</a>.
-        Leave as <code style="background:var(--input-bg);padding:1px 4px;border-radius:3px;">main</code> for latest, or pin to a tag/commit.
+      <span class="field-hint" id="onstepxRefHint">
+        Branch / tag / commit SHA of the upstream repo. Leave as <code style="background:var(--input-bg);padding:1px 4px;border-radius:3px;">main</code> for latest.
       </span>
     </div>
     <div id="refResolved" style="margin-top:4px;margin-bottom:10px;padding:8px 10px;background:var(--input-bg);border:1px solid var(--border);border-radius:4px;font-family:Consolas,monospace;font-size:0.8em;color:var(--label);">
@@ -1631,6 +1842,7 @@
     <h3>Contents</h3>
     <ol class="help-toc">
       <li><a href="#help-how">How it works (behind the curtain)</a></li>
+      <li><a href="#help-shc">OnStepX vs SmartHandController &mdash; the mode switch</a></li>
       <li><a href="#help-quickstart">Quick start &mdash; board to firmware in 8 steps</a></li>
       <li><a href="#help-tabs">What each tab does</a></li>
       <li><a href="#help-essentials">The settings you actually have to change</a></li>
@@ -1763,6 +1975,46 @@
       inspect the configurator source (GitHub Pages serves it), the Worker source, the build workflow, the
       PlatformIO config. If the whole thing disappeared tomorrow, you could clone all three repos and deploy
       your own in under an hour &mdash; see <code>SETUP-COMPILE-SERVICE.md</code> in the configurator repo.
+    </div>
+  </div>
+
+  <div class="section help-body" id="help-shc">
+    <div class="section-title">1b &middot; OnStepX vs SmartHandController &mdash; the mode switch</div>
+
+    <p>The big toggle at the top of the page picks which firmware you're building:</p>
+    <ul>
+      <li><b>OnStepX (Mount controller firmware)</b> &mdash; the brain of the telescope. Runs on the
+        controller board attached to the mount, drives the stepper drivers, talks LX200 to your client app
+        (SkySafari, KStars, etc.). This is the default and what most people want.</li>
+      <li><b>SmartHandController (Hand pendant firmware)</b> &mdash; a separate small device with an OLED
+        screen and physical buttons that you hold while observing. Talks to the OnStep mount over a short
+        cable (ST4 port), serial, WiFi, or Bluetooth. Lets you slew, pick targets, and adjust settings
+        without a phone or laptop.</li>
+    </ul>
+
+    <p>The two firmwares run on <b>separate MCUs</b> &mdash; you don't combine them onto one chip. A typical
+      setup is one ESP32 (or Teensy) running OnStepX inside the mount controller, plus a second ESP32
+      (recommended) running SHC inside the hand pendant. They communicate at runtime over whatever link you
+      configure.</p>
+
+    <p>When you flip the mode switch:</p>
+    <ul>
+      <li>The configurator tabs change &mdash; you see Calculator/Axis/Mount in OnStepX mode, or Hand
+        Controller / Communication / Sensors in SHC mode.</li>
+      <li>Your form values are preserved <i>per mode</i>: switching from OnStepX to SHC and back doesn't
+        lose your work in either.</li>
+      <li>The Compile &amp; Flash tab's MCU target list changes (SHC supports ESP32 / Teensy 4.0 / Teensy
+        3.2; OnStepX adds STM32 BlackPill F411).</li>
+      <li>The "Source ref" field resolves against the right upstream repo
+        (<a href="https://github.com/hjd1964/OnStepX" target="_blank">hjd1964/OnStepX</a> or
+        <a href="https://github.com/hjd1964/SmartHandController" target="_blank">hjd1964/SmartHandController</a>).</li>
+      <li>The Output tab shows the Config.h for the currently-selected firmware.</li>
+    </ul>
+
+    <div class="help-tip">
+      <b>Building both?</b> Configure OnStepX in OnStepX mode &rarr; Compile &amp; Flash to your mount
+      controller board. Then flip to SHC mode, configure the hand pendant, Compile &amp; Flash to your SHC
+      board. Two separate flashes, one site.
     </div>
   </div>
 
@@ -2878,31 +3130,152 @@ import * as teensyFlasher from './flash/teensy.js';
 // Latest compile result ({runId, env, files, configHash})
 let lastBuild = null;
 
+// --- Project mode (OnStepX mount controller / SmartHandController pendant) --
+const MODE_KEY = 'onstepx-configurator-mode-v1';
+window.currentMode = (() => {
+  try { return localStorage.getItem(MODE_KEY) || 'onstepx'; } catch { return 'onstepx'; }
+})();
+
+function setMode(mode) {
+  if (mode !== 'onstepx' && mode !== 'shc') return;
+  window.currentMode = mode;
+  try { localStorage.setItem(MODE_KEY, mode); } catch {}
+
+  // Mode buttons
+  for (const m of ['onstepx', 'shc']) {
+    document.getElementById(`modeBtn-${m}`)?.classList.toggle('active', m === mode);
+  }
+
+  // Title + subtitle
+  const title = document.getElementById('pageTitle');
+  const sub = document.getElementById('pageSubtitle');
+  if (mode === 'shc') {
+    if (title) title.textContent = 'SmartHandController Configuration Generator';
+    if (sub) sub.textContent = 'Generate Config.h for the OnStep SHC hand pendant — compile and flash online';
+  } else {
+    if (title) title.textContent = 'OnStepX Configuration Generator';
+    if (sub) sub.textContent = 'Generate Config.h for OnStepX telescope controller — based on OnStep Calculations v1.34';
+  }
+
+  // Tab visibility
+  for (const btn of document.querySelectorAll('.tab-btn[data-modes]')) {
+    const modes = (btn.dataset.modes || '').split(',');
+    const hidden = !modes.includes(mode);
+    btn.dataset.modeHidden = hidden ? 'true' : 'false';
+  }
+
+  // If the active tab is now hidden, jump to the first visible one for this mode.
+  const activeTab = document.querySelector('.tab-content.active');
+  if (activeTab) {
+    const activeId = activeTab.id.replace(/^tab-/, '');
+    const activeBtn = [...document.querySelectorAll('.tab-btn')].find((b) =>
+      (b.getAttribute('onclick') || '').includes(`'${activeId}'`)
+    );
+    if (activeBtn && activeBtn.dataset.modeHidden === 'true') {
+      const firstVisible = document.querySelector('.tab-btn:not([data-mode-hidden="true"])');
+      firstVisible?.click();
+    }
+  }
+
+  // Compile-tab board list reflects the selected project
+  updateCompileBoardOptions();
+  // Recompute preflight + ref resolution for the new mode
+  try { runPreflight(); } catch {}
+  try { refreshRef(); } catch {}
+}
+window.setMode = setMode;
+
+function updateCompileBoardOptions() {
+  const sel = document.getElementById('COMPILE_ENV');
+  if (!sel) return;
+  const previous = sel.value;
+  const isShc = window.currentMode === 'shc';
+  const options = isShc
+    ? [
+        ['shc_esp32', 'ESP32 (recommended for SHC)'],
+        ['shc_teensy40', 'Teensy 4.0'],
+        ['shc_teensy32', 'Teensy 3.2'],
+      ]
+    : [
+        ['esp32', 'ESP32 (MaxESP3, MaxESP4, FYSETC_E4, …)'],
+        ['teensy40', 'Teensy 4.0'],
+        ['teensy41', 'Teensy 4.1 / MaxPCB4'],
+        ['blackpill_f411', 'STM32 BlackPill F411CE / MaxSTM3'],
+      ];
+  sel.innerHTML = '';
+  for (const [val, label] of options) {
+    const opt = document.createElement('option');
+    opt.value = val;
+    opt.textContent = label;
+    sel.appendChild(opt);
+  }
+  if ([...sel.options].some((o) => o.value === previous)) sel.value = previous;
+  // Hint text for SHC since PINMAP doesn't drive the env there
+  const hint = document.getElementById('pinmap-hint');
+  if (hint && isShc) hint.textContent = 'SHC builds — pick the MCU in your hand controller';
+}
+
 // --- LocalStorage auto-save / restore ---------------------------------------
-const STORAGE_KEY = 'onstepx-configurator-v1';
+// Versioned to v2 to accommodate per-mode field state.
+const STORAGE_KEY = 'onstepx-configurator-v2';
+const STORAGE_KEY_LEGACY = 'onstepx-configurator-v1'; // single-mode (OnStepX) legacy
 const VOLATILE_IDS = new Set(['configOutput', 'fileInput', 'preflightOverrideCheckbox']);
+const SHC_PREFIX = 'SHC_';
+
+// Form fields are split by ID prefix:
+//   SHC_*   → SmartHandController fields
+//   *       → OnStepX fields (and shared fields like COMPILE_ENV, ONSTEPX_REF)
+function isShcField(id) { return id.startsWith(SHC_PREFIX); }
 
 function collectFormState() {
-  const out = {};
+  const out = { onstepx: {}, shc: {}, shared: {} };
+  const sharedIds = new Set(['COMPILE_ENV', 'ONSTEPX_REF']); // visible in both modes
   for (const el of document.querySelectorAll('input[id], select[id], textarea[id]')) {
     if (VOLATILE_IDS.has(el.id)) continue;
-    if (el.type === 'checkbox') out[el.id] = el.checked;
-    else out[el.id] = el.value;
+    const value = el.type === 'checkbox' ? el.checked : el.value;
+    if (sharedIds.has(el.id)) out.shared[el.id] = value;
+    else if (isShcField(el.id)) out.shc[el.id] = value;
+    else out.onstepx[el.id] = value;
   }
   return out;
 }
+
+function applyFieldMap(map) {
+  if (!map) return;
+  for (const [id, val] of Object.entries(map)) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    if (el.type === 'checkbox') el.checked = !!val;
+    else el.value = val;
+  }
+}
+
 function restoreFormState() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    let raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      // One-time migration from v1 (flat OnStepX-only key)
+      const legacy = localStorage.getItem(STORAGE_KEY_LEGACY);
+      if (legacy) {
+        try {
+          const flat = JSON.parse(legacy);
+          const migrated = { onstepx: {}, shc: {}, shared: {} };
+          for (const [id, val] of Object.entries(flat)) {
+            if (id === 'COMPILE_ENV' || id === 'ONSTEPX_REF') migrated.shared[id] = val;
+            else if (isShcField(id)) migrated.shc[id] = val;
+            else migrated.onstepx[id] = val;
+          }
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+          localStorage.removeItem(STORAGE_KEY_LEGACY);
+          raw = JSON.stringify(migrated);
+        } catch {}
+      }
+    }
     if (!raw) return false;
     const state = JSON.parse(raw);
-    for (const [id, val] of Object.entries(state)) {
-      const el = document.getElementById(id);
-      if (!el) continue;
-      if (el.type === 'checkbox') el.checked = !!val;
-      else el.value = val;
-    }
-    // Re-run the calculators that depend on form state
+    applyFieldMap(state.onstepx);
+    applyFieldMap(state.shc);
+    applyFieldMap(state.shared);
     try { calcAxis1(); calcAxis2(); calcAxis3(); calcSlew(); calcPEC(); } catch {}
     return true;
   } catch (e) {
@@ -2910,6 +3283,7 @@ function restoreFormState() {
     return false;
   }
 }
+
 let saveTimer = null;
 function queueSave() {
   clearTimeout(saveTimer);
@@ -2920,6 +3294,8 @@ function queueSave() {
 window.resetToDefaults = function () {
   if (!confirm('Clear all saved form state and reload the page?')) return;
   localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(STORAGE_KEY_LEGACY);
+  localStorage.removeItem(MODE_KEY);
   location.reload();
 };
 
@@ -2928,6 +3304,66 @@ const restored = restoreFormState();
 document.addEventListener('change', () => { queueSave(); runPreflight(); });
 document.addEventListener('input', queueSave);
 if (restored) showStatus?.('Restored saved form state.');
+
+// --- SHC Config.h generator -------------------------------------------------
+function generateSHCConfig() {
+  const v = (id, fallback = 'OFF') => {
+    const el = document.getElementById(id);
+    return (el?.value ?? fallback).trim() || fallback;
+  };
+  const lines = [];
+  lines.push('// ----------------------------------------------------------------------');
+  lines.push('// SmartHandController Config.h');
+  lines.push('// Generated by https://christm45.github.io/OnStepX-Configurator/');
+  lines.push('// Source: https://github.com/hjd1964/SmartHandController');
+  lines.push('// ----------------------------------------------------------------------');
+  lines.push('');
+  lines.push(`#define DISPLAY_LANGUAGE             ${v('SHC_DISPLAY_LANGUAGE', 'L_en')}`);
+  lines.push('// L_en, English. Specify language with two letter country code, if supported.');
+  lines.push('');
+  lines.push(`#define DISPLAY_OLED               ${v('SHC_DISPLAY_OLED', 'SH1106')}`);
+  lines.push('// SH1106 (1.3" I2C), SSD1306 (0.96" I2C), SSD1309 (1.54"/2.3" I2C).');
+  lines.push('');
+  lines.push(`#define SERIAL_ONSTEP          ${v('SHC_SERIAL_ONSTEP', 'SERIAL_ST4')}`);
+  lines.push('// SERIAL_ST4 (synchronous), Serial / Serial1 (async), or OFF.');
+  lines.push('');
+  lines.push(`#define SERIAL_ONSTEP_BAUD_DEFAULT   ${v('SHC_SERIAL_ONSTEP_BAUD_DEFAULT', '9600')}`);
+  lines.push('// 9600, 19200, 57600, or 115200 (async serial mode only).');
+  lines.push('');
+  lines.push(`#define SERIAL_RADIO                  ${v('SHC_SERIAL_RADIO', 'OFF')}`);
+  lines.push('// OFF, BLUETOOTH, WIFI_STATION, or BOTH (ESP32 only).');
+  lines.push('');
+  lines.push(`#define UTILITY_LIGHT                 ${v('SHC_UTILITY_LIGHT', 'OFF')}`);
+  lines.push('// OFF, or 0..255 (0..100%) brightness.');
+  lines.push('');
+  lines.push(`#define WEATHER                       ${v('SHC_WEATHER', 'OFF')}`);
+  lines.push('// OFF, BME280 / BME280_0x76 / BMP280 / BMP280_0x76 (I2C).');
+  lines.push('');
+  lines.push(`#define DISPLAY_AMBIENT_CONDITIONS    ${v('SHC_DISPLAY_AMBIENT_CONDITIONS', 'OFF')}`);
+  lines.push(`#define DISPLAY_WRAP_MENUS            ${v('SHC_DISPLAY_WRAP_MENUS', 'OFF')}`);
+  lines.push(`#define DISPLAY_24HR_TIME              ${v('SHC_DISPLAY_24HR_TIME', 'ON')}`);
+  lines.push(`#define DISPLAY_CONTRAST_DEFAULT        ${v('SHC_DISPLAY_CONTRAST_DEFAULT', '1')}`);
+  lines.push('');
+  lines.push(`#define KEYPAD_JOYSTICK_ANALOG        ${v('SHC_KEYPAD_JOYSTICK_ANALOG', 'OFF')}`);
+  lines.push(`#define KEYPAD_JOYSTICK_HYSTERESIS    ${v('SHC_KEYPAD_JOYSTICK_HYSTERESIS', '200')}`);
+  lines.push('');
+  lines.push(`#define ST4_AUX_INTERFACE             ${v('SHC_ST4_AUX_INTERFACE', 'OFF')}`);
+  lines.push('');
+  lines.push('#define FileVersionConfig 6');
+  lines.push('#include "Extended.config.h"');
+  const text = lines.join('\n');
+  const out = document.getElementById('configOutput');
+  if (out) out.value = text;
+  showStatus?.('SHC Config.h generated successfully!');
+  return text;
+}
+
+// Override generateConfig() (defined in the classic script) to dispatch by mode.
+const _generateOnStepXConfig = window.generateConfig;
+window.generateConfig = function () {
+  if (window.currentMode === 'shc') return generateSHCConfig();
+  return _generateOnStepXConfig?.();
+};
 
 // --- Preflight check --------------------------------------------------------
 const relevantIds = [
@@ -2943,6 +3379,35 @@ function snapshotForValidation() {
   }
   return s;
 }
+function snapshotForShcValidation() {
+  const env = document.getElementById('COMPILE_ENV')?.value || '';
+  return {
+    SHC_DISPLAY_OLED: document.getElementById('SHC_DISPLAY_OLED')?.value,
+    SHC_SERIAL_ONSTEP: document.getElementById('SHC_SERIAL_ONSTEP')?.value,
+    SHC_SERIAL_RADIO: document.getElementById('SHC_SERIAL_RADIO')?.value,
+    COMPILE_ENV: env,
+  };
+}
+
+function validateShcConfig(s) {
+  const issues = [];
+  if (!s.SHC_DISPLAY_OLED || s.SHC_DISPLAY_OLED === 'OFF') {
+    issues.push({ level: 'error', id: 'SHC_DISPLAY_OLED', message: 'Pick a display model on the Hand Controller tab.' });
+  }
+  if (!s.SHC_SERIAL_ONSTEP || s.SHC_SERIAL_ONSTEP === 'OFF') {
+    if (!s.SHC_SERIAL_RADIO || s.SHC_SERIAL_RADIO === 'OFF') {
+      issues.push({ level: 'error', id: 'SHC_SERIAL_ONSTEP', message: 'No way for SHC to talk to OnStep — set SERIAL_ONSTEP and/or SERIAL_RADIO.' });
+    }
+  }
+  if (s.SHC_SERIAL_RADIO && s.SHC_SERIAL_RADIO !== 'OFF' && s.COMPILE_ENV !== 'shc_esp32') {
+    issues.push({ level: 'warn', id: 'SHC_SERIAL_RADIO', message: 'SERIAL_RADIO requires the shc_esp32 build target — only ESP32 has WiFi/Bluetooth.' });
+  }
+  if (!s.COMPILE_ENV || !s.COMPILE_ENV.startsWith('shc_')) {
+    issues.push({ level: 'error', id: 'COMPILE_ENV', message: 'Pick an SHC build target (shc_esp32 / shc_teensy40 / shc_teensy32) on the Compile & Flash tab.' });
+  }
+  return { issues };
+}
+
 function runPreflight() {
   const summary = document.getElementById('preflightSummary');
   const list = document.getElementById('preflightList');
@@ -2950,7 +3415,9 @@ function runPreflight() {
   const compileBtn = document.getElementById('compileBtn');
   if (!summary || !list) return;
 
-  const { issues } = validateConfig(snapshotForValidation());
+  const { issues } = window.currentMode === 'shc'
+    ? validateShcConfig(snapshotForShcValidation())
+    : validateConfig(snapshotForValidation());
 
   // Also check for secrets in the currently-generated config (if any)
   const currentConfig = document.getElementById('configOutput')?.value || '';
@@ -3017,8 +3484,9 @@ function syncEnvFromPinmap() {
 }
 document.getElementById('PINMAP')?.addEventListener('change', () => { syncEnvFromPinmap(); runPreflight(); });
 document.getElementById('COMPILE_ENV')?.addEventListener('change', () => { refreshFlashSupportHint(); runPreflight(); });
+// Initialise mode (sets tab visibility, board options, title — also calls runPreflight)
+setMode(window.currentMode);
 syncEnvFromPinmap();
-runPreflight();
 
 // --- Live resolver for the OnStepX ref field --------------------------------
 const refInput = document.getElementById('ONSTEPX_REF');
@@ -3028,14 +3496,15 @@ let refRequestSeq = 0;
 async function refreshRef() {
   if (!refInput || !refBody) return;
   const ref = (refInput.value || 'main').trim() || 'main';
+  const repo = window.currentMode === 'shc' ? 'hjd1964/SmartHandController' : 'hjd1964/OnStepX';
   const mySeq = ++refRequestSeq;
-  refBody.innerHTML = `<span style="color:var(--label);">resolving <code>${escapeHtml(ref)}</code>…</span>`;
+  refBody.innerHTML = `<span style="color:var(--label);">resolving <code>${escapeHtml(ref)}</code> in ${escapeHtml(repo)}…</span>`;
   try {
-    const info = await resolveOnStepXRef(ref);
+    const info = await resolveOnStepXRef(ref, repo);
     if (mySeq !== refRequestSeq) return; // superseded
     refBody.innerHTML =
-      `<span style="color:var(--green);">hjd1964/OnStepX @ ${escapeHtml(ref)}</span>` +
-      ` &middot; <a href="https://github.com/hjd1964/OnStepX/commit/${info.sha}" target="_blank" style="color:var(--green);">${info.shortSha}</a>` +
+      `<span style="color:var(--green);">${escapeHtml(repo)} @ ${escapeHtml(ref)}</span>` +
+      ` &middot; <a href="https://github.com/${repo}/commit/${info.sha}" target="_blank" style="color:var(--green);">${info.shortSha}</a>` +
       ` &middot; ${escapeHtml(info.authorName)}` +
       ` &middot; ${escapeHtml(info.relative)}` +
       `<br><span style="color:var(--label);">${escapeHtml(info.message)}</span>`;
@@ -3113,9 +3582,10 @@ window.startCompileFlow = async function () {
       throw new Error('Compile service is not configured yet. The site owner must deploy the Cloudflare Worker and update WORKER_URL in compile.js.');
     }
 
-    setStatus(`Requesting compile (${env}, ref=${ref})…`);
-    appendLog('compileLog', `> POST ${WORKER_URL}/compile { board: ${env}, ref: ${ref} }`);
-    const requestId = await startCompile(config, env, ref);
+    const project = window.currentMode === 'shc' ? 'shc' : 'onstepx';
+    setStatus(`Requesting compile (${project} / ${env}, ref=${ref})…`);
+    appendLog('compileLog', `> POST ${WORKER_URL}/compile { project: ${project}, board: ${env}, ref: ${ref} }`);
+    const requestId = await startCompile(config, env, ref, project);
     appendLog('compileLog', `  request_id = ${requestId}`);
     setStatus('Build queued on GitHub Actions…');
 
