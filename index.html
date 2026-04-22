@@ -2022,8 +2022,13 @@
     <code>github.com/.../blob/...</code>). Leave empty to pull the FYSETC E4 reference config.
   </div>
   <div id="statusBar" class="status-bar"></div>
+  <div id="configOutputSource" style="display:none; margin-top:8px; padding:6px 10px; background:rgba(78,204,163,0.10); border-left:3px solid var(--green); border-radius:3px; color:var(--green); font-size:0.85em; font-family:Consolas,monospace;"></div>
   <div class="output-area">
-    <textarea id="configOutput" readonly placeholder="Click 'Generate Config.h' to generate the configuration file..."></textarea>
+    <textarea id="configOutput" placeholder="Click 'Generate Config.h' to generate the configuration file, or 'Import from URL' to fetch one..." spellcheck="false"></textarea>
+  </div>
+  <div style="margin-top:4px; color:var(--label); font-size:0.8em;">
+    <b>Compile uses whatever is in this textarea.</b> Imports and file loads preserve the raw source exactly.
+    Click <b>Generate Config.h</b> to rebuild from the form fields (overwrites whatever's here).
   </div>
 </div>
 
@@ -3306,7 +3311,12 @@ function loadConfig(event) {
         }
       }
     }
-    showStatus('Config.h loaded! Values populated from file.');
+    // Also preserve the raw loaded content in the Output textarea so Compile
+    // sends it byte-for-byte (including fields the form can't represent).
+    const out = document.getElementById('configOutput');
+    if (out) out.value = text;
+    if (typeof setConfigSource === 'function') setConfigSource('Loaded from file: ' + file.name);
+    showStatus('Config.h loaded! Form values populated, raw content preserved for compile.');
   };
   reader.readAsText(file);
 }
@@ -3674,17 +3684,17 @@ async function importConfigFromUrl(url, { promptUser = true, label } = {}) {
     }
     if (el.value !== next) changes.push({ id: name, current: el.value, next });
   }
-  if (changes.length === 0) {
-    showStatus?.('Form already matches this Config.h — nothing to import.');
-    return [];
-  }
   if (promptUser) {
+    const source = label ? label : url;
     const preview = changes.slice(0, 12).map((c) => `  ${c.id}: "${c.current || '(empty)'}" → "${c.next}"`).join('\n');
     const more = changes.length > 12 ? `\n  ...and ${changes.length - 12} more` : '';
-    const source = label ? label : url;
-    if (!confirm(`Apply ${changes.length} field change${changes.length === 1 ? '' : 's'} from ${source}?\n\n${preview}${more}`)) {
-      return [];
-    }
+    const msg = changes.length
+      ? `Apply ${changes.length} field change${changes.length === 1 ? '' : 's'} from ${source}?\n\n${preview}${more}\n\n` +
+        `The Output tab will also be filled with the RAW Config.h verbatim (including fields the form can't represent), ` +
+        `so Compile will send the exact upstream file byte-for-byte.`
+      : `Import ${source}?\n\nThe form matches the imported values already, but the Output tab will still be ` +
+        `filled with the RAW Config.h verbatim so Compile sends the exact upstream file.`;
+    if (!confirm(msg)) return [];
   }
   for (const { id, next } of changes) {
     const el = document.getElementById(id);
@@ -3692,8 +3702,23 @@ async function importConfigFromUrl(url, { promptUser = true, label } = {}) {
     el.value = next;
     el.dispatchEvent(new Event('change', { bubbles: true }));
   }
-  showStatus?.(`Imported ${changes.length} field${changes.length === 1 ? '' : 's'} from Config.h.`);
+  // Preserve the raw imported Config.h verbatim in the Output textarea so
+  // Compile can send exactly what was fetched — including fields the form
+  // doesn't represent (THERMISTOR1_*, LIMIT_SENSE_PIN, SERIAL_TMC_RX, etc.).
+  const output = document.getElementById('configOutput');
+  if (output) output.value = text;
+  setConfigSource(label || 'imported from ' + url);
+  showStatus?.(`Imported Config.h (${changes.length} form field${changes.length === 1 ? '' : 's'} synced, full raw content in Output).`);
   return changes;
+}
+
+// Banner above the Output textarea showing where the current content came from.
+function setConfigSource(label) {
+  const el = document.getElementById('configOutputSource');
+  if (!el) return;
+  if (!label) { el.style.display = 'none'; return; }
+  el.textContent = label;
+  el.style.display = 'block';
 }
 window.importConfigFromUrl = importConfigFromUrl;
 
@@ -4017,10 +4042,20 @@ function generateSWSConfig() {
 // Override generateConfig() (defined in the classic script) to dispatch by mode.
 const _generateOnStepXConfig = window.generateConfig;
 window.generateConfig = function () {
-  if (window.currentMode === 'shc') return generateSHCConfig();
-  if (window.currentMode === 'sws') return generateSWSConfig();
-  return _generateOnStepXConfig?.();
+  let result;
+  if (window.currentMode === 'shc') result = generateSHCConfig();
+  else if (window.currentMode === 'sws') result = generateSWSConfig();
+  else result = _generateOnStepXConfig?.();
+  // The classic script writes to configOutput directly; update the source banner
+  // so the user sees this came from the form (and not an import).
+  setConfigSource('Regenerated from form fields (' + (window.currentMode || 'onstepx') + ')');
+  return result;
 };
+
+// Clear the source banner when the user manually edits the textarea.
+document.getElementById('configOutput')?.addEventListener('input', () => {
+  setConfigSource('Manually edited — will be sent as-is on Compile');
+});
 
 // --- Preflight check --------------------------------------------------------
 const relevantIds = [
@@ -4388,9 +4423,11 @@ window.startCompileFlow = async function () {
   lastBuild = null;
 
   try {
-    // Ensure Config.h is generated
-    if (typeof generateConfig === 'function') generateConfig();
-    const config = document.getElementById('configOutput').value;
+    // Compile sends whatever is in the textarea as-is. Only auto-generate
+    // from the form if the textarea is currently empty (first-run convenience).
+    const outEl = document.getElementById('configOutput');
+    if (!outEl.value && typeof generateConfig === 'function') generateConfig();
+    const config = outEl.value;
     if (!config) throw new Error('Config.h is empty — generate it on the Output tab first.');
     const env = document.getElementById('COMPILE_ENV').value;
     const ref = (document.getElementById('ONSTEPX_REF')?.value || 'main').trim() || 'main';
