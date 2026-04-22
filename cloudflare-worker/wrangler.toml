@@ -1,0 +1,19 @@
+name = "onstepx-build-bridge"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+# Public (non-secret) configuration. Edit these before deploying.
+[vars]
+BUILD_OWNER = "christm45"
+BUILD_REPO = "onstepx-build-service"
+ALLOWED_ORIGIN = "https://christm45.github.io"
+
+# Optional KV namespace for rate limiting. Uncomment after creating with:
+#   wrangler kv:namespace create RATE_LIMIT
+# Then paste the id here.
+# [[kv_namespaces]]
+# binding = "RATE_LIMIT"
+# id = "<kv-namespace-id>"
+
+# Secrets (do NOT put these here — use `wrangler secret put`):
+#   GITHUB_TOKEN

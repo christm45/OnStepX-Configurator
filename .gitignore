@@ -1,0 +1,8 @@
+# Claude Code local state
+.claude/
+
+# Temporary / editor artifacts
+*.swp
+*.tmp
+.DS_Store
+Thumbs.db

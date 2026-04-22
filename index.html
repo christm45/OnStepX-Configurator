@@ -265,6 +265,67 @@
       grid-template-columns: 1fr;
     }
   }
+
+  /* Help tab */
+  .help-body { line-height: 1.6; color: var(--text); }
+  .help-body p { margin-bottom: 10px; }
+  .help-body h3 { color: var(--green); margin: 16px 0 8px; font-size: 1.05em; }
+  .help-body h4 { color: var(--highlight); margin: 12px 0 6px; font-size: 0.95em; }
+  .help-body ol, .help-body ul { margin-left: 22px; margin-bottom: 10px; }
+  .help-body li { margin-bottom: 6px; }
+  .help-body code {
+    background: var(--input-bg);
+    padding: 1px 6px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    color: var(--green);
+    font-family: Consolas, monospace;
+    font-size: 0.9em;
+  }
+  .help-body pre {
+    background: #000;
+    color: var(--green);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px;
+    overflow-x: auto;
+    font-family: Consolas, monospace;
+    font-size: 0.85em;
+    margin-bottom: 10px;
+  }
+  .help-body kbd {
+    background: var(--accent);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 6px;
+    font-family: Consolas, monospace;
+    font-size: 0.85em;
+    color: var(--text);
+  }
+  .help-body a { color: var(--green); }
+  .help-body a:hover { color: var(--highlight); }
+  .help-warn {
+    background: rgba(255, 107, 53, 0.1);
+    border-left: 3px solid var(--warn);
+    padding: 8px 12px;
+    margin: 10px 0;
+    border-radius: 3px;
+  }
+  .help-tip {
+    background: rgba(78, 204, 163, 0.08);
+    border-left: 3px solid var(--green);
+    padding: 8px 12px;
+    margin: 10px 0;
+    border-radius: 3px;
+  }
+  .help-toc {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 10px 10px 30px;
+    margin-bottom: 16px;
+  }
+  .help-toc li { margin-bottom: 4px; }
 </style>
 </head>
 <body>
@@ -283,6 +344,8 @@
   <button class="tab-btn" onclick="showTab('focuser')">Focuser</button>
   <button class="tab-btn" onclick="showTab('auxiliary')">Auxiliary</button>
   <button class="tab-btn" onclick="showTab('output')">Output</button>
+  <button class="tab-btn" onclick="showTab('compile')">Compile &amp; Flash</button>
+  <button class="tab-btn" onclick="showTab('help')" title="User Guide">? Help</button>
 </div>
 
 <!-- ==================== CALCULATOR TAB ==================== -->
@@ -1464,6 +1527,345 @@
   </div>
 </div>
 
+<!-- ==================== COMPILE & FLASH TAB ==================== -->
+<div class="tab-content" id="tab-compile">
+  <div class="section">
+    <div class="section-title">Compile Online</div>
+    <p style="color:var(--label);font-size:0.9em;margin-bottom:10px;">
+      The Config.h you've generated will be sent to a GitHub Actions runner that clones the latest
+      <a href="https://github.com/hjd1964/OnStepX" target="_blank" style="color:var(--green);">hjd1964/OnStepX</a>
+      source, replaces Config.h with your version, compiles with PlatformIO, and returns the firmware.
+      Builds typically take 1-3 minutes.
+    </p>
+    <div class="field-row">
+      <label class="field-label">Target MCU <span class="hint-tag hint-reqd">Req'd</span></label>
+      <select id="COMPILE_ENV">
+        <option value="esp32">ESP32 (MaxESP3, MaxESP4, FYSETC_E4, …)</option>
+        <option value="teensy40">Teensy 4.0</option>
+        <option value="teensy41">Teensy 4.1 / MaxPCB4</option>
+        <option value="blackpill_f411">STM32 BlackPill F411CE / MaxSTM3</option>
+      </select>
+      <span class="field-hint" id="pinmap-hint">Auto-selected from your PINMAP choice</span>
+    </div>
+    <div class="btn-row" style="margin-top:10px;">
+      <button class="btn btn-generate" id="compileBtn" onclick="startCompileFlow()">Compile Firmware</button>
+      <button class="btn btn-download" id="downloadFwBtn" onclick="downloadFirmware()" disabled>Download Firmware</button>
+    </div>
+    <div id="compileStatus" style="margin-top:10px;padding:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:4px;min-height:30px;font-family:Consolas,monospace;font-size:0.85em;color:var(--label);">
+      Idle — click "Compile Firmware" to begin.
+    </div>
+    <pre id="compileLog" style="margin-top:10px;padding:10px;background:#000;color:#4ecca3;border:1px solid var(--border);border-radius:4px;max-height:250px;overflow:auto;font-family:Consolas,monospace;font-size:0.8em;white-space:pre-wrap;display:none;"></pre>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Flash to Board via USB</div>
+    <p style="color:var(--label);font-size:0.9em;margin-bottom:10px;">
+      Connect your board via USB and put it into programming mode:
+    </p>
+    <ul style="color:var(--label);font-size:0.85em;margin-left:20px;margin-bottom:10px;">
+      <li><b>ESP32</b> — most boards auto-reset; if not, hold BOOT and tap EN/RST.</li>
+      <li><b>STM32 BlackPill</b> — hold BOOT0 and tap NRST. Board should appear as "STM32 BOOTLOADER".</li>
+      <li><b>Teensy 4.0/4.1</b> — no browser flashing yet; we'll download firmware.hex and hand it off to the Teensy Loader app.</li>
+    </ul>
+    <div class="btn-row">
+      <button class="btn btn-generate" id="flashBtn" onclick="flashBoard()" disabled>Flash to Board</button>
+    </div>
+    <div id="flashSupport" style="margin-top:8px;color:var(--warn);font-size:0.8em;"></div>
+    <pre id="flashLog" style="margin-top:10px;padding:10px;background:#000;color:#4ecca3;border:1px solid var(--border);border-radius:4px;max-height:250px;overflow:auto;font-family:Consolas,monospace;font-size:0.8em;white-space:pre-wrap;display:none;"></pre>
+  </div>
+</div>
+
+<!-- ==================== HELP TAB ==================== -->
+<div class="tab-content" id="tab-help">
+  <div class="section help-body">
+    <div class="section-title">User Guide</div>
+
+    <p>This site lets you generate an OnStepX <code>Config.h</code>, compile the firmware online using the latest
+    <a href="https://github.com/hjd1964/OnStepX" target="_blank">hjd1964/OnStepX</a> source, and flash it to your
+    board over USB &mdash; no Arduino IDE, no PlatformIO install, no toolchain on your machine.</p>
+
+    <div class="help-warn">
+      <b>Before you flash anything:</b> make sure your wiring and PINMAP selection match the board you're flashing.
+      A mismatched pinmap can drive step/enable pins that are tied to other things and damage stepper drivers,
+      limit switches, or the MCU. When in doubt, flash without motors connected the first time.
+    </div>
+
+    <h3>Contents</h3>
+    <ol class="help-toc">
+      <li><a href="#help-quickstart">Quick start</a></li>
+      <li><a href="#help-tabs">What each tab does</a></li>
+      <li><a href="#help-essentials">The settings you actually have to change</a></li>
+      <li><a href="#help-boards">Board-by-board USB preparation</a></li>
+      <li><a href="#help-browser">Browser requirements</a></li>
+      <li><a href="#help-troubleshoot">Troubleshooting</a></li>
+      <li><a href="#help-faq">FAQ</a></li>
+    </ol>
+  </div>
+
+  <div class="section help-body" id="help-quickstart">
+    <div class="section-title">1 &middot; Quick start</div>
+
+    <p>The fastest path from "fresh tab" to "firmware on my board":</p>
+    <ol>
+      <li>Open the <b>Controller</b> tab. Set <code>PINMAP</code> to whatever board you have
+        (e.g. <code>MaxPCB4</code>, <code>MaxESP4</code>, <code>MaxSTM3</code>).</li>
+      <li>Open the <b>Calculator</b> tab. Fill in your mount's worm teeth, motor steps/rev, and gear ratio
+        for each axis &mdash; the steps/deg values used by Axis1/Axis2 are calculated from this.</li>
+      <li>Open <b>Axis1</b> and <b>Axis2</b>. Set <code>AXIS_DRIVER_MODEL</code> to whatever you're using
+        (e.g. <code>TMC2209</code>, <code>TMC5160</code>, <code>DRV8825</code>) and pick the microstepping.
+        Review the pre-filled steps/deg values.</li>
+      <li>Open <b>Mount</b>. Pick <code>MOUNT_TYPE</code> (<code>GEM</code> for German Equatorial,
+        <code>FORK</code>, <code>ALTAZM</code>, etc.).</li>
+      <li>Optional: pick any extras on <b>Rotator</b>, <b>Focuser</b>, <b>Auxiliary</b>.</li>
+      <li>Click <b>Generate &amp; View Config.h</b> at the bottom. Skim the output; make sure
+        <code>#define PINMAP</code> and driver/mount lines look right.</li>
+      <li>Open <b>Compile &amp; Flash</b>. The MCU target is auto-selected from your PINMAP. Click
+        <b>Compile Firmware</b>. Wait 1&ndash;3 min.</li>
+      <li>Put the board in bootloader mode (see <a href="#help-boards">below</a>), plug in USB, click
+        <b>Flash to Board</b>, pick the device in the browser prompt. Done.</li>
+    </ol>
+
+    <div class="help-tip">
+      <b>First build is slower</b> (~2&ndash;3 min) because GitHub Actions has to download PlatformIO toolchains.
+      Subsequent builds of the same board are ~30&ndash;60 s thanks to caching.
+    </div>
+  </div>
+
+  <div class="section help-body" id="help-tabs">
+    <div class="section-title">2 &middot; What each tab does</div>
+
+    <ul>
+      <li><b>Calculator</b> &mdash; enter physical mount/motor numbers (worm teeth, motor full steps, gear ratio,
+        belt ratio). It computes steps/deg, PEC period, and maximum slew rate for each axis. Copy the results
+        into the Axis tabs.</li>
+      <li><b>Controller</b> &mdash; board-level settings: <code>PINMAP</code>, serial/WiFi, weather/IMU sensors,
+        GPS, display.</li>
+      <li><b>Axis1 / Axis2</b> &mdash; per-axis driver config. Steps/deg, microsteps, driver model,
+        motor current (for TMC drivers), soft limits, reverse direction, tracking compensation.</li>
+      <li><b>Mount</b> &mdash; mount type (GEM / FORK / ALTAZM), guide rates, parking, meridian flip behavior,
+        PEC, park/unpark.</li>
+      <li><b>Rotator / Focuser</b> &mdash; enable and configure up to one camera rotator and up to four focusers.</li>
+      <li><b>Auxiliary</b> &mdash; feature toggles (dew heaters, aux switches, TMC stall guard, etc.).</li>
+      <li><b>Output</b> &mdash; the generated <code>Config.h</code>. Copy, download, or load an existing one to
+        back-fill the form.</li>
+      <li><b>Compile &amp; Flash</b> &mdash; compile the current config online and flash over USB.</li>
+    </ul>
+  </div>
+
+  <div class="section help-body" id="help-essentials">
+    <div class="section-title">3 &middot; The settings you actually have to change</div>
+
+    <p>Most defaults are fine. These are the ones you almost always have to set:</p>
+
+    <h4>Required</h4>
+    <ul>
+      <li><code>PINMAP</code> (Controller) &mdash; pick the board you have. Wrong value = firmware drives wrong
+        pins.</li>
+      <li><code>MOUNT_TYPE</code> (Mount) &mdash; <code>GEM</code>, <code>FORK</code>, or <code>ALTAZM</code>.</li>
+      <li><code>AXIS1_STEPS_PER_DEGREE</code> and <code>AXIS2_STEPS_PER_DEGREE</code> (Axis1/Axis2) &mdash; from
+        the Calculator.</li>
+      <li><code>AXIS1_DRIVER_MODEL</code> / <code>AXIS2_DRIVER_MODEL</code> &mdash; e.g. <code>TMC2209</code>,
+        <code>TMC5160</code>, <code>DRV8825</code>, <code>A4988</code>, <code>LV8729</code>.</li>
+      <li><code>AXIS1_DRIVER_MICROSTEPS</code> / <code>AXIS2_DRIVER_MICROSTEPS</code> &mdash; 16, 32, 64, 128, 256.
+        Higher = smoother tracking but more step rate on slews.</li>
+    </ul>
+
+    <h4>Very common adjustments</h4>
+    <ul>
+      <li><code>AXIS*_DRIVER_REVERSE</code> &mdash; flip if the axis moves the wrong way.</li>
+      <li><code>AXIS*_LIMIT_MIN</code> / <code>_MAX</code> &mdash; soft limits in degrees.</li>
+      <li><code>AXIS*_DRIVER_IRUN</code> / <code>_IHOLD</code> &mdash; motor current (mA) for TMC drivers.
+        Start low; raise only as needed. Too high = hot driver, skipped steps, burned stepper.</li>
+      <li><code>TRACK_REFRACTION</code> (Mount) &mdash; refraction-compensated tracking. Fine to leave OFF
+        for visual use.</li>
+      <li><code>WIFI</code> (Controller, ESP32 only) &mdash; enable if you want SkySafari over WiFi.</li>
+    </ul>
+
+    <h4>Leave alone unless you know why</h4>
+    <ul>
+      <li>Serial baud rates &mdash; 9600 on <code>SERIAL_A</code> matches SkySafari defaults.</li>
+      <li>Guide rates &mdash; defaults match most autoguiders.</li>
+      <li>Meridian flip offsets &mdash; set <i>after</i> you have the mount tracking, using the hand
+        controller, not in Config.h.</li>
+    </ul>
+
+    <div class="help-tip">
+      You can <b>load an existing Config.h</b> on the Output tab (the "Load Existing Config.h" button).
+      The form fields will populate from the file, so you can take a working config from your current
+      firmware and tweak from there.
+    </div>
+  </div>
+
+  <div class="section help-body" id="help-boards">
+    <div class="section-title">4 &middot; Board-by-board USB preparation</div>
+
+    <h4>ESP32 (MaxESP3, MaxESP4, FYSETC_E4, generic ESP32 dev boards)</h4>
+    <ol>
+      <li>Connect USB. Most dev boards (and MaxESP*) auto-reset into bootloader when the tool grabs the port.</li>
+      <li>If auto-reset fails: hold <kbd>BOOT</kbd> / <kbd>IO0</kbd>, tap <kbd>EN</kbd> / <kbd>RST</kbd>,
+        release BOOT.</li>
+      <li>Click <b>Flash to Board</b>, pick the port (it'll be something like
+        <i>CP2102</i>, <i>CH340</i>, or <i>USB JTAG/serial debug unit</i>).</li>
+      <li>Flashing takes 15&ndash;40 s. Board auto-resets into firmware when done.</li>
+    </ol>
+    <p>Typical USB-serial chip vendor IDs you'll see in the picker: Silicon Labs <code>10C4</code>,
+      WCH <code>1A86</code>, FTDI <code>0403</code>, Espressif native USB <code>303A</code>.</p>
+
+    <h4>STM32 BlackPill F411CE (and MaxSTM3)</h4>
+    <ol>
+      <li>Connect USB (USB-C or micro, depending on the variant).</li>
+      <li>Hold <kbd>BOOT0</kbd>, tap <kbd>NRST</kbd>, release BOOT0. The board enumerates as
+        <i>STM32 BOOTLOADER</i> (VID <code>0483</code> / PID <code>DF11</code>).</li>
+      <li>Click <b>Flash to Board</b>, pick <i>STM32 BOOTLOADER</i> in the browser prompt.</li>
+      <li>Wait for "Flash complete", then tap <kbd>NRST</kbd> to run your firmware.</li>
+    </ol>
+    <div class="help-warn">
+      <b>Windows driver note:</b> on Windows you may need the <b>WinUSB</b> driver for the DFU device.
+      If the browser can't open the device, install <a href="https://zadig.akeo.ie/" target="_blank">Zadig</a>,
+      select "STM32 BOOTLOADER", and replace the driver with <b>WinUSB</b>.
+    </div>
+
+    <h4>Teensy 4.0 / 4.1 / MaxPCB4</h4>
+    <p>Browser flashing for Teensy isn't wired up yet (the HalfKay protocol has enough per-chip quirks that
+      a half-working version would be worse than Teensy's own loader). Instead:</p>
+    <ol>
+      <li>Click <b>Flash to Board</b> &mdash; it saves <code>firmware.hex</code>.</li>
+      <li>Install <a href="https://www.pjrc.com/teensy/td_download.html" target="_blank">Teensyduino</a>
+        (comes with the Teensy Loader app), or just the standalone
+        <a href="https://www.pjrc.com/teensy/loader.html" target="_blank">Teensy Loader</a>.</li>
+      <li>Open Teensy Loader, drop the saved <code>firmware.hex</code> onto the window.</li>
+      <li>Press the white <b>program</b> button on the Teensy &mdash; it flashes and reboots automatically.</li>
+    </ol>
+    <p>If you prefer CLI:</p>
+    <pre>teensy_loader_cli --mcu=TEENSY41 -w -v firmware.hex   # 4.1 / MaxPCB4
+teensy_loader_cli --mcu=TEENSY40 -w -v firmware.hex   # 4.0</pre>
+  </div>
+
+  <div class="section help-body" id="help-browser">
+    <div class="section-title">5 &middot; Browser requirements</div>
+
+    <table style="width:100%;border-collapse:collapse;margin-bottom:10px;">
+      <tr style="background:var(--accent);">
+        <th style="padding:6px;text-align:left;border:1px solid var(--border);">Browser</th>
+        <th style="padding:6px;text-align:left;border:1px solid var(--border);">Compile</th>
+        <th style="padding:6px;text-align:left;border:1px solid var(--border);">ESP32 flash</th>
+        <th style="padding:6px;text-align:left;border:1px solid var(--border);">STM32 DFU</th>
+        <th style="padding:6px;text-align:left;border:1px solid var(--border);">Teensy .hex DL</th>
+      </tr>
+      <tr>
+        <td style="padding:6px;border:1px solid var(--border);">Chrome, Edge, Opera, Brave</td>
+        <td style="padding:6px;border:1px solid var(--border);color:var(--green);">yes</td>
+        <td style="padding:6px;border:1px solid var(--border);color:var(--green);">yes (Web Serial)</td>
+        <td style="padding:6px;border:1px solid var(--border);color:var(--green);">yes (WebUSB)</td>
+        <td style="padding:6px;border:1px solid var(--border);color:var(--green);">yes</td>
+      </tr>
+      <tr>
+        <td style="padding:6px;border:1px solid var(--border);">Firefox</td>
+        <td style="padding:6px;border:1px solid var(--border);color:var(--green);">yes</td>
+        <td style="padding:6px;border:1px solid var(--border);color:var(--warn);">no</td>
+        <td style="padding:6px;border:1px solid var(--border);color:var(--warn);">no</td>
+        <td style="padding:6px;border:1px solid var(--border);color:var(--green);">yes</td>
+      </tr>
+      <tr>
+        <td style="padding:6px;border:1px solid var(--border);">Safari</td>
+        <td style="padding:6px;border:1px solid var(--border);color:var(--green);">yes</td>
+        <td style="padding:6px;border:1px solid var(--border);color:var(--warn);">no</td>
+        <td style="padding:6px;border:1px solid var(--border);color:var(--warn);">no</td>
+        <td style="padding:6px;border:1px solid var(--border);color:var(--green);">yes</td>
+      </tr>
+    </table>
+    <p>Firefox and Safari can generate a config and trigger a compile (and download the firmware), but flashing
+      needs Web Serial / WebUSB &mdash; which only Chromium-based browsers implement. If you can't switch,
+      download the firmware and use a desktop tool (esptool.py for ESP32, dfu-util for STM32).</p>
+  </div>
+
+  <div class="section help-body" id="help-troubleshoot">
+    <div class="section-title">6 &middot; Troubleshooting</div>
+
+    <h4>"Compile service is not configured yet"</h4>
+    <p>The operator hasn't deployed the build backend yet. Download the generated Config.h and build locally
+      with PlatformIO or the Arduino IDE for now.</p>
+
+    <h4>Compile starts but fails</h4>
+    <p>Click the <code>run URL</code> printed in the compile log. That opens the GitHub Actions page for your
+      build. The "PlatformIO build" step contains the compiler error. Usually it's one of:</p>
+    <ul>
+      <li>A PINMAP incompatible with the MCU target you picked (e.g. MaxESP4 selected but target is Teensy).</li>
+      <li>A driver model or feature enabled that the selected pinmap doesn't have pins for.</li>
+      <li>A required field left at <code>OFF</code> &mdash; scroll up in the log for
+        <code>#error</code> lines from <code>Validate.h</code>.</li>
+    </ul>
+
+    <h4>Build succeeded, Flash button is disabled</h4>
+    <p>The firmware artifact couldn't be downloaded. Reload the page, re-compile, and check the browser console
+      for a <code>firmware download failed</code> line. Usually means the artifact already expired (1 day
+      retention) or the Worker URL is wrong.</p>
+
+    <h4>Flashing ESP32: "Failed to connect"</h4>
+    <ol>
+      <li>Close any other program holding the port (Arduino Serial Monitor, screen, PuTTY).</li>
+      <li>Unplug USB, replug.</li>
+      <li>Hold <kbd>BOOT</kbd>, tap <kbd>EN</kbd>, release BOOT, <i>then</i> click Flash.</li>
+      <li>Try a different USB cable &mdash; a surprising number are charge-only.</li>
+    </ol>
+
+    <h4>Flashing STM32: device doesn't appear in the picker</h4>
+    <ol>
+      <li>Make sure you actually entered DFU: hold BOOT0, tap NRST, release BOOT0. Device should re-enumerate
+        with a different name.</li>
+      <li>On Windows: install the WinUSB driver via Zadig (see the BlackPill warning above).</li>
+      <li>Confirm with <code>lsusb</code> (Linux) or Device Manager (Windows) that VID:PID 0483:DF11 is present.</li>
+    </ol>
+
+    <h4>Teensy Loader doesn't see my .hex</h4>
+    <p>Drag the file onto the Teensy Loader window, or File &rarr; Open HEX File. If it opens but doesn't
+      flash, press the white program button on the Teensy &mdash; it flashes on button press, not on file
+      open.</p>
+
+    <h4>Firmware runs but axis moves wrong direction / doesn't move</h4>
+    <p>This is config, not firmware. Toggle <code>AXIS1_DRIVER_REVERSE</code> / <code>AXIS2_DRIVER_REVERSE</code>,
+      re-generate, re-compile, re-flash. Also check wiring &mdash; if step/dir pins aren't connected, the
+      firmware is fine but nothing moves.</p>
+
+    <h4>Rate limit hit</h4>
+    <p>If the service enforces rate limits (default: 10 builds/hour/IP), wait an hour. If you're iterating
+      heavily, set up a local PlatformIO checkout &mdash; clone
+      <a href="https://github.com/hjd1964/OnStepX" target="_blank">hjd1964/OnStepX</a>, drop your
+      <code>Config.h</code> in, <code>pio run -e &lt;env&gt;</code>.</p>
+  </div>
+
+  <div class="section help-body" id="help-faq">
+    <div class="section-title">7 &middot; FAQ</div>
+
+    <h4>Is my Config.h sent anywhere permanent?</h4>
+    <p>Each compile request base64-encodes your Config.h and sends it as a workflow input to a GitHub Actions
+      run. GitHub logs the workflow input, so treat anything in Config.h as visible to the build-service repo's
+      admin. Don't put WiFi passwords in PASSWORD fields if that matters to you &mdash; leave them <code>OFF</code>
+      and configure over the web interface after flashing.</p>
+
+    <h4>Which OnStepX version does this build?</h4>
+    <p>The workflow clones <code>hjd1964/OnStepX</code> <b>main</b> branch fresh on every build. Whatever's
+      at the tip of main when you hit Compile is what you get. No pinned version.</p>
+
+    <h4>Can I build for a board that's not in the list?</h4>
+    <p>Today, no &mdash; the backend has PlatformIO environments for ESP32, Teensy 4.0, Teensy 4.1, and
+      STM32F411 BlackPill only. If you need another (STM32F407, SKR Pro with full pinmap, etc.), it needs an
+      env added to the build-service repo's <code>platformio.ini</code>.</p>
+
+    <h4>Can I run this offline?</h4>
+    <p>You can generate Config.h offline (this page works fully offline once loaded). Compiling needs the
+      online build service. If you want an offline toolchain: install
+      <a href="https://platformio.org/install/cli" target="_blank">PlatformIO</a>, clone
+      <code>hjd1964/OnStepX</code>, and run <code>pio run -e esp32</code> (or whatever env you need).</p>
+
+    <h4>The configurator is broken / is giving weird output</h4>
+    <p>File an issue at <a href="https://github.com/christm45/OnStepX-Configurator/issues" target="_blank">the
+      configurator repo</a>. If the issue is with OnStepX itself (firmware behavior, missing features), use
+      <a href="https://onstep.groups.io/g/main" target="_blank">the OnStep group</a> or the
+      <a href="https://github.com/hjd1964/OnStepX/issues" target="_blank">upstream repo</a>.</p>
+  </div>
+</div>
+
 <!-- Persistent bottom bar -->
 <div class="btn-row" style="position:sticky;bottom:0;background:var(--bg);padding:10px 0;z-index:10;">
   <button class="btn btn-generate" onclick="generateConfig(); showTab('output');">Generate &amp; View Config.h</button>
@@ -2168,6 +2570,169 @@ calcPEC();
 
   setInterval(draw, 33); // ~30fps for that retro feel
 })();
+</script>
+
+<script type="module">
+// ==========================================================================
+// Compile & Flash glue — binds the ES modules to onclick handlers.
+// ==========================================================================
+import {
+  startCompile,
+  pollUntilDone,
+  fetchFirmware,
+  inferEnvFromPinmap,
+  downloadBlob,
+  WORKER_URL,
+} from './compile.js';
+import * as esp32Flasher from './flash/esp32.js';
+import * as stm32Flasher from './flash/stm32.js';
+import * as teensyFlasher from './flash/teensy.js';
+
+// Latest compile result ({runId, env, files})
+let lastBuild = null;
+
+// Auto-match Compile Target to the selected PINMAP.
+function syncEnvFromPinmap() {
+  const pinmap = document.getElementById('PINMAP')?.value;
+  const env = inferEnvFromPinmap(pinmap);
+  const sel = document.getElementById('COMPILE_ENV');
+  if (env && sel) {
+    sel.value = env;
+    document.getElementById('pinmap-hint').textContent = `Auto-selected from PINMAP=${pinmap}`;
+  } else if (sel) {
+    document.getElementById('pinmap-hint').textContent = `No default for PINMAP=${pinmap || 'OFF'} — pick manually`;
+  }
+  refreshFlashSupportHint();
+}
+document.getElementById('PINMAP')?.addEventListener('change', syncEnvFromPinmap);
+document.getElementById('COMPILE_ENV')?.addEventListener('change', refreshFlashSupportHint);
+syncEnvFromPinmap();
+
+function setStatus(msg, kind = 'info') {
+  const el = document.getElementById('compileStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = kind === 'err' ? 'var(--highlight)' : kind === 'ok' ? 'var(--green)' : 'var(--label)';
+}
+
+function appendLog(targetId, line) {
+  const el = document.getElementById(targetId);
+  if (!el) return;
+  el.style.display = 'block';
+  el.textContent += (el.textContent ? '\n' : '') + line;
+  el.scrollTop = el.scrollHeight;
+}
+
+function refreshFlashSupportHint() {
+  const env = document.getElementById('COMPILE_ENV')?.value;
+  const hint = document.getElementById('flashSupport');
+  if (!hint) return;
+  const msgs = [];
+  if (env === 'esp32' && !esp32Flasher.supported()) {
+    msgs.push('Your browser does not support Web Serial — ESP32 flashing needs Chrome/Edge/Opera.');
+  }
+  if (env === 'blackpill_f411' && !stm32Flasher.supported()) {
+    msgs.push('Your browser does not support WebUSB — STM32 flashing needs Chrome/Edge/Opera.');
+  }
+  if (env === 'teensy40' || env === 'teensy41') {
+    msgs.push('Teensy: clicking "Flash to Board" will save firmware.hex and open Teensy Loader instructions.');
+  }
+  hint.textContent = msgs.join(' ');
+  hint.style.color = msgs.length ? 'var(--warn)' : 'var(--label)';
+}
+
+window.startCompileFlow = async function () {
+  const compileBtn = document.getElementById('compileBtn');
+  const downloadBtn = document.getElementById('downloadFwBtn');
+  const flashBtn = document.getElementById('flashBtn');
+  const logEl = document.getElementById('compileLog');
+  logEl.textContent = '';
+  logEl.style.display = 'block';
+  compileBtn.disabled = true;
+  downloadBtn.disabled = true;
+  flashBtn.disabled = true;
+  lastBuild = null;
+
+  try {
+    // Ensure Config.h is generated
+    if (typeof generateConfig === 'function') generateConfig();
+    const config = document.getElementById('configOutput').value;
+    if (!config) throw new Error('Config.h is empty — generate it on the Output tab first.');
+    const env = document.getElementById('COMPILE_ENV').value;
+
+    if (WORKER_URL.includes('<your-subdomain>')) {
+      throw new Error('Compile service is not configured yet. The site owner must deploy the Cloudflare Worker and update WORKER_URL in compile.js.');
+    }
+
+    setStatus(`Requesting compile (${env})…`);
+    appendLog('compileLog', `> POST ${WORKER_URL}/compile { board: ${env} }`);
+    const requestId = await startCompile(config, env);
+    appendLog('compileLog', `  request_id = ${requestId}`);
+    setStatus('Build queued on GitHub Actions…');
+
+    const final = await pollUntilDone(requestId, (s) => {
+      if (s.state === 'queued') setStatus('Waiting for runner…');
+      else if (s.state === 'in_progress') setStatus('Compiling on GitHub Actions…');
+      else if (s.state === 'completed') setStatus(`Build ${s.conclusion}`, s.conclusion === 'success' ? 'ok' : 'err');
+    });
+
+    if (final.conclusion !== 'success') {
+      appendLog('compileLog', `! run failed — see ${final.html_url || 'Actions tab'}`);
+      throw new Error(`Build ${final.conclusion || 'failed'}`);
+    }
+    appendLog('compileLog', `  run_id = ${final.run_id}`);
+    appendLog('compileLog', `  run URL: ${final.html_url}`);
+
+    setStatus('Fetching firmware artifact…');
+    const files = await fetchFirmware(final.run_id);
+    const names = Object.keys(files);
+    appendLog('compileLog', `  fetched ${names.length} file(s): ${names.join(', ')}`);
+    lastBuild = { runId: final.run_id, env, files };
+    setStatus('Build complete. Firmware ready to download or flash.', 'ok');
+    downloadBtn.disabled = false;
+    flashBtn.disabled = false;
+  } catch (err) {
+    setStatus(`Error: ${err.message}`, 'err');
+    appendLog('compileLog', `! ${err.stack || err.message}`);
+  } finally {
+    compileBtn.disabled = false;
+  }
+};
+
+window.downloadFirmware = function () {
+  if (!lastBuild) return;
+  const { env, files } = lastBuild;
+  if (env === 'esp32') {
+    // Download the "application" binary users most commonly want
+    if (files['firmware.bin']) downloadBlob('firmware.bin', files['firmware.bin']);
+  } else if (env === 'teensy40' || env === 'teensy41') {
+    if (files['firmware.hex']) downloadBlob('firmware.hex', files['firmware.hex'], 'text/plain');
+  } else if (env === 'blackpill_f411') {
+    if (files['firmware.bin']) downloadBlob('firmware.bin', files['firmware.bin']);
+  }
+};
+
+window.flashBoard = async function () {
+  if (!lastBuild) return;
+  const flashBtn = document.getElementById('flashBtn');
+  flashBtn.disabled = true;
+  const logEl = document.getElementById('flashLog');
+  logEl.textContent = '';
+  logEl.style.display = 'block';
+  const log = (m) => appendLog('flashLog', m);
+
+  try {
+    const { env, files } = lastBuild;
+    if (env === 'esp32') await esp32Flasher.flash(files, log);
+    else if (env === 'blackpill_f411') await stm32Flasher.flash(files, log);
+    else if (env === 'teensy40' || env === 'teensy41') await teensyFlasher.flash(files, log);
+    else throw new Error(`no flasher for env ${env}`);
+  } catch (err) {
+    log(`! ${err.message}`);
+  } finally {
+    flashBtn.disabled = false;
+  }
+};
 </script>
 </body>
 </html>
