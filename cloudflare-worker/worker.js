@@ -19,8 +19,16 @@ const ALLOWED_BOARDS = new Set([
   'esp32', 'teensy40', 'teensy41', 'blackpill_f411',
   // SmartHandController (hand pendant) build environments
   'shc_esp32', 'shc_teensy40', 'shc_teensy32',
+  // SmartWebServer (web UI bridge) build environments
+  'sws_esp32', 'sws_esp8266',
 ]);
-const ALLOWED_PROJECTS = new Set(['onstepx', 'shc']);
+const ALLOWED_PROJECTS = new Set(['onstepx', 'shc', 'sws']);
+
+function envProject(board) {
+  if (board.startsWith('shc_')) return 'shc';
+  if (board.startsWith('sws_')) return 'sws';
+  return 'onstepx';
+}
 const MAX_CONFIG_BYTES = 200_000;
 const WORKFLOW_FILE = 'build.yml';
 
@@ -78,13 +86,14 @@ async function handleCompile(request, env) {
   if (!ALLOWED_BOARDS.has(board)) {
     return json({ error: `board must be one of ${[...ALLOWED_BOARDS].join(', ')}` }, 400);
   }
-  // Sanity: SHC envs must come with project=shc and vice versa.
-  const isShcEnv = board.startsWith('shc_');
-  if (isShcEnv && project !== 'shc') {
-    return json({ error: `board ${board} requires project=shc` }, 400);
-  }
-  if (!isShcEnv && project === 'shc') {
-    return json({ error: `project=shc requires an SHC board (shc_esp32, shc_teensy40, shc_teensy32)` }, 400);
+  // Sanity: the env and the project must agree on which upstream repo we
+  // clone. shc_* → project=shc, sws_* → project=sws, others → project=onstepx.
+  const expectedProject = envProject(board);
+  if (project !== expectedProject) {
+    return json(
+      { error: `board ${board} requires project=${expectedProject}` },
+      400
+    );
   }
   if (new TextEncoder().encode(config).length > MAX_CONFIG_BYTES) {
     return json({ error: 'config too large' }, 413);

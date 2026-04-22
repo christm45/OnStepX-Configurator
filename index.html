@@ -383,6 +383,10 @@
     SmartHandController
     <span class="mode-sub">Hand pendant firmware</span>
   </button>
+  <button type="button" class="mode-btn" id="modeBtn-sws" onclick="setMode('sws')" role="tab">
+    SmartWebServer
+    <span class="mode-sub">Web UI &amp; WiFi bridge firmware</span>
+  </button>
 </div>
 
 <div class="tabs" id="tabs">
@@ -397,9 +401,12 @@
   <button class="tab-btn" data-modes="shc" onclick="showTab('shc-controller')">Hand Controller</button>
   <button class="tab-btn" data-modes="shc" onclick="showTab('shc-comm')">Communication</button>
   <button class="tab-btn" data-modes="shc" onclick="showTab('shc-aux')">Sensors &amp; Aux</button>
-  <button class="tab-btn" data-modes="onstepx,shc" onclick="showTab('output')">Output</button>
-  <button class="tab-btn" data-modes="onstepx,shc" onclick="showTab('compile')">Compile &amp; Flash</button>
-  <button class="tab-btn" data-modes="onstepx,shc" onclick="showTab('help')" title="User Guide">? Help</button>
+  <button class="tab-btn" data-modes="sws" onclick="showTab('sws-network')">Network</button>
+  <button class="tab-btn" data-modes="sws" onclick="showTab('sws-display')">Web UI</button>
+  <button class="tab-btn" data-modes="sws" onclick="showTab('sws-encoders')">Encoders &amp; BLE</button>
+  <button class="tab-btn" data-modes="onstepx,shc,sws" onclick="showTab('output')">Output</button>
+  <button class="tab-btn" data-modes="onstepx,shc,sws" onclick="showTab('compile')">Compile &amp; Flash</button>
+  <button class="tab-btn" data-modes="onstepx,shc,sws" onclick="showTab('help')" title="User Guide">? Help</button>
 </div>
 
 <!-- ==================== CALCULATOR TAB ==================== -->
@@ -1724,6 +1731,267 @@
   </div>
 </div>
 
+<!-- ==================== SWS: NETWORK TAB ==================== -->
+<div class="tab-content" id="tab-sws-network">
+  <div class="section">
+    <div class="section-title">Network</div>
+    <div class="field-row">
+      <label class="field-label">HOST_NAME <span class="hint-tag hint-adjust">Adjust</span></label>
+      <input type="text" id="SWS_HOST_NAME" value="OnStep-SWS" maxlength="16">
+      <span class="field-hint">Device name (≤16 chars). Becomes mDNS "onstepsws.local"</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">OPERATIONAL_MODE <span class="hint-tag hint-reqd">Req'd</span></label>
+      <select id="SWS_OPERATIONAL_MODE">
+        <option value="WIFI" selected>WIFI (ESP32 / ESP8266)</option>
+        <option value="ETHERNET_W5100">ETHERNET_W5100 (SPI shield)</option>
+        <option value="ETHERNET_W5500">ETHERNET_W5500 (SPI shield)</option>
+      </select>
+      <span class="field-hint">Network stack. WIFI is the most common choice on ESP32/ESP8266.</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Serial link to OnStep</div>
+    <div class="field-row">
+      <label class="field-label">SERIAL_BAUD_DEFAULT <span class="hint-tag hint-infreq">Infreq</span></label>
+      <select id="SWS_SERIAL_BAUD_DEFAULT">
+        <option value="9600" selected>9600</option>
+        <option value="19200">19200</option>
+        <option value="57600">57600</option>
+        <option value="115200">115200</option>
+      </select>
+      <span class="field-hint">Startup baud used to talk to OnStep</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">SERIAL_BAUD <span class="hint-tag hint-infreq">Infreq</span></label>
+      <select id="SWS_SERIAL_BAUD">
+        <option value="19200">19200</option>
+        <option value="57600">57600</option>
+        <option value="115200" selected>115200</option>
+        <option value="230400">230400</option>
+        <option value="460800">460800</option>
+      </select>
+      <span class="field-hint">Negotiated baud after connection (not all devices support &gt; 115200)</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">SERIAL_SWAP <span class="hint-tag hint-infreq">Infreq</span></label>
+      <select id="SWS_SERIAL_SWAP">
+        <option value="AUTO" selected>AUTO (try both)</option>
+        <option value="ON">ON (swapped port)</option>
+        <option value="OFF">OFF (default port)</option>
+      </select>
+      <span class="field-hint">ESP8266-style TX/RX swap selection</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Status LED</div>
+    <div class="field-row">
+      <label class="field-label">LED_STATUS <span class="hint-tag hint-infreq">Infreq</span></label>
+      <select id="SWS_LED_STATUS">
+        <option value="ON" selected>ON</option>
+        <option value="OFF">OFF</option>
+      </select>
+      <span class="field-hint">Onboard LED blinks while connecting, steady once connected</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SWS: WEB UI TAB ==================== -->
+<div class="tab-content" id="tab-sws-display">
+  <div class="section">
+    <div class="section-title">Web UI appearance</div>
+    <div class="field-row">
+      <label class="field-label">DISPLAY_LANGUAGE <span class="hint-tag hint-adjust">Adjust</span></label>
+      <select id="SWS_DISPLAY_LANGUAGE">
+        <option value="L_en" selected>L_en (English)</option>
+        <option value="L_ca">L_ca (Catalan)</option>
+        <option value="L_cn">L_cn (Chinese)</option>
+        <option value="L_de">L_de (German)</option>
+        <option value="L_es">L_es (Spanish)</option>
+        <option value="L_fr">L_fr (French)</option>
+        <option value="L_it">L_it (Italian)</option>
+        <option value="L_jp">L_jp (Japanese)</option>
+        <option value="L_us">L_us (US English)</option>
+      </select>
+      <span class="field-hint">UI language &amp; default locale units</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">DISPLAY_WEATHER <span class="hint-tag hint-adjust">Adjust</span></label>
+      <select id="SWS_DISPLAY_WEATHER">
+        <option value="ON" selected>ON</option>
+        <option value="OFF">OFF</option>
+      </select>
+      <span class="field-hint">Show ambient conditions (temp / pressure / humidity)</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">DISPLAY_INTERNAL_TEMPERATURE <span class="hint-tag hint-infreq">Infreq</span></label>
+      <select id="SWS_DISPLAY_INTERNAL_TEMPERATURE">
+        <option value="OFF" selected>OFF</option>
+        <option value="ON">ON</option>
+      </select>
+      <span class="field-hint">Show MCU internal temperature</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">DISPLAY_RESET_CONTROLS <span class="hint-tag hint-adjust">Adjust</span></label>
+      <select id="SWS_DISPLAY_RESET_CONTROLS">
+        <option value="ON" selected>ON</option>
+        <option value="OFF">OFF</option>
+        <option value="FWU">FWU (STM32 firmware-upload)</option>
+      </select>
+      <span class="field-hint">Reset button on UI (FWU option exposes the STM32 bootloader pin)</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">DISPLAY_COORDINATE_ORIGIN <span class="hint-tag hint-infreq">Infreq</span></label>
+      <select id="SWS_DISPLAY_COORDINATE_ORIGIN">
+        <option value="OFF" selected>OFF</option>
+        <option value="ON">ON</option>
+      </select>
+      <span class="field-hint">Show coordinate-origin tile on Mount page</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">DISPLAY_SERVO_MONITOR <span class="hint-tag hint-infreq">Infreq</span></label>
+      <select id="SWS_DISPLAY_SERVO_MONITOR">
+        <option value="OFF" selected>OFF</option>
+        <option value="ON">ON</option>
+      </select>
+      <span class="field-hint">OnStepX servo monitor panel (any axis)</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SWS: ENCODERS & BLE TAB ==================== -->
+<div class="tab-content" id="tab-sws-encoders">
+  <div class="section">
+    <div class="section-title">Encoder global behaviour</div>
+    <div class="field-row">
+      <label class="field-label">ENC_AUTO_SYNC_DEFAULT <span class="hint-tag hint-adjust">Adjust</span></label>
+      <select id="SWS_ENC_AUTO_SYNC_DEFAULT">
+        <option value="ON" selected>ON</option>
+        <option value="OFF">OFF</option>
+      </select>
+      <span class="field-hint">Automatically sync encoders &rarr; OnStep</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">ENC_AUTO_SYNC_MEMORY <span class="hint-tag hint-infreq">Infreq</span></label>
+      <select id="SWS_ENC_AUTO_SYNC_MEMORY">
+        <option value="OFF" selected>OFF</option>
+        <option value="ON">ON</option>
+      </select>
+      <span class="field-hint">Persist auto-sync setting across power cycles</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">ENC_SYNC_DURING_GOTO <span class="hint-tag hint-infreq">Infreq</span></label>
+      <select id="SWS_ENC_SYNC_DURING_GOTO">
+        <option value="OFF" selected>OFF</option>
+        <option value="ON">ON</option>
+      </select>
+      <span class="field-hint">High-res encoders correct pointing mid-goto</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Axis 1 encoder (RA / Azm)</div>
+    <div class="field-row">
+      <label class="field-label">AXIS1_ENCODER <span class="hint-tag hint-adjust">Adjust</span></label>
+      <select id="SWS_AXIS1_ENCODER">
+        <option value="OFF" selected>OFF</option>
+        <option value="AB">AB</option>
+        <option value="AB_ESP32">AB_ESP32</option>
+        <option value="CW_CCW">CW_CCW</option>
+        <option value="PULSE_DIR">PULSE_DIR</option>
+        <option value="AS37_H39B_B">AS37_H39B_B</option>
+      </select>
+      <span class="field-hint">Axis 1 encoder type</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">AXIS1_ENCODER_TICKS_DEG <span class="hint-tag hint-adjust">Adjust</span></label>
+      <input type="number" step="0.00001" id="SWS_AXIS1_ENCODER_TICKS_DEG" value="22.22222">
+      <span class="field-hint">Ticks per degree</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">AXIS1_ENCODER_REVERSE <span class="hint-tag hint-infreq">Infreq</span></label>
+      <select id="SWS_AXIS1_ENCODER_REVERSE">
+        <option value="OFF" selected>OFF</option>
+        <option value="ON">ON</option>
+      </select>
+      <span class="field-hint">Flip count direction</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">AXIS1_ENCODER_DIFF_LIMIT_TO <span class="hint-tag hint-infreq">Infreq</span></label>
+      <input type="text" id="SWS_AXIS1_ENCODER_DIFF_LIMIT_TO" value="300" maxlength="10">
+      <span class="field-hint">arcsec: min diff to sync encoder &rarr; OnStep</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">AXIS1_ENCODER_DIFF_LIMIT_FROM <span class="hint-tag hint-infreq">Infreq</span></label>
+      <input type="text" id="SWS_AXIS1_ENCODER_DIFF_LIMIT_FROM" value="OFF" maxlength="10">
+      <span class="field-hint">arcsec or OFF: max diff to sync OnStep &rarr; encoder</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Axis 2 encoder (Dec / Alt)</div>
+    <div class="field-row">
+      <label class="field-label">AXIS2_ENCODER <span class="hint-tag hint-adjust">Adjust</span></label>
+      <select id="SWS_AXIS2_ENCODER">
+        <option value="OFF" selected>OFF</option>
+        <option value="AB">AB</option>
+        <option value="AB_ESP32">AB_ESP32</option>
+        <option value="CW_CCW">CW_CCW</option>
+        <option value="PULSE_DIR">PULSE_DIR</option>
+        <option value="AS37_H39B_B">AS37_H39B_B</option>
+      </select>
+      <span class="field-hint">Axis 2 encoder type</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">AXIS2_ENCODER_TICKS_DEG <span class="hint-tag hint-adjust">Adjust</span></label>
+      <input type="number" step="0.00001" id="SWS_AXIS2_ENCODER_TICKS_DEG" value="22.22222">
+      <span class="field-hint">Ticks per degree</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">AXIS2_ENCODER_REVERSE <span class="hint-tag hint-infreq">Infreq</span></label>
+      <select id="SWS_AXIS2_ENCODER_REVERSE">
+        <option value="OFF" selected>OFF</option>
+        <option value="ON">ON</option>
+      </select>
+      <span class="field-hint">Flip count direction</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">AXIS2_ENCODER_DIFF_LIMIT_TO <span class="hint-tag hint-infreq">Infreq</span></label>
+      <input type="text" id="SWS_AXIS2_ENCODER_DIFF_LIMIT_TO" value="300" maxlength="10">
+      <span class="field-hint">arcsec: min diff to sync encoder &rarr; OnStep</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">AXIS2_ENCODER_DIFF_LIMIT_FROM <span class="hint-tag hint-infreq">Infreq</span></label>
+      <input type="text" id="SWS_AXIS2_ENCODER_DIFF_LIMIT_FROM" value="OFF" maxlength="10">
+      <span class="field-hint">arcsec or OFF: max diff to sync OnStep &rarr; encoder</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">BLE gamepad (ESP32 only)</div>
+    <div class="field-row">
+      <label class="field-label">BLE_GAMEPAD <span class="hint-tag hint-infreq">Infreq</span></label>
+      <select id="SWS_BLE_GAMEPAD">
+        <option value="OFF" selected>OFF</option>
+        <option value="ON">ON</option>
+      </select>
+      <span class="field-hint">Enable BLE gamepad (ACGAM R1 etc.)</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">BLE_GP_ADDR <span class="hint-tag hint-adjust">Adjust</span></label>
+      <input type="text" id="SWS_BLE_GP_ADDR" value="ff:ff:de:09:f5:cf" maxlength="17" style="font-family:Consolas,monospace;">
+      <span class="field-hint">Gamepad #1 MAC address (colon-separated)</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">BLE_GP_ADDR1 <span class="hint-tag hint-adjust">Adjust</span></label>
+      <input type="text" id="SWS_BLE_GP_ADDR1" value="ff:ff:ff:ff:ff:ff" maxlength="17" style="font-family:Consolas,monospace;">
+      <span class="field-hint">Gamepad #2 MAC address (leave as ff:…:ff if unused)</span>
+    </div>
+  </div>
+</div>
+
 <!-- ==================== OUTPUT TAB ==================== -->
 <div class="tab-content" id="tab-output">
   <div class="btn-row">
@@ -1990,12 +2258,18 @@
         screen and physical buttons that you hold while observing. Talks to the OnStep mount over a short
         cable (ST4 port), serial, WiFi, or Bluetooth. Lets you slew, pick targets, and adjust settings
         without a phone or laptop.</li>
+      <li><b>SmartWebServer (Web UI &amp; WiFi bridge firmware)</b> &mdash; a third small device
+        (usually an ESP32 or ESP8266) that hosts the OnStep web interface and bridges a WiFi or Ethernet
+        connection into the mount. Lets you point a phone / tablet / laptop browser at the telescope and
+        control it without cables, and exposes the mount to ASCOM / INDI clients over the network.
+        Optional axis encoders plug into the SWS board for real-pointing feedback; optional BLE gamepad
+        works on ESP32.</li>
     </ul>
 
-    <p>The two firmwares run on <b>separate MCUs</b> &mdash; you don't combine them onto one chip. A typical
-      setup is one ESP32 (or Teensy) running OnStepX inside the mount controller, plus a second ESP32
-      (recommended) running SHC inside the hand pendant. They communicate at runtime over whatever link you
-      configure.</p>
+    <p>The three firmwares run on <b>separate MCUs</b> &mdash; you don't combine them onto one chip. A
+      typical full setup is: one board (ESP32 / Teensy / STM32) running OnStepX inside the mount, plus one
+      ESP32 running SWS for the web UI, plus (optionally) one ESP32 running SHC inside a hand pendant.
+      They all talk to each other at runtime over the links you configure (ST4 cable, serial, WiFi, BLE).</p>
 
     <p>When you flip the mode switch:</p>
     <ul>
@@ -3137,12 +3411,12 @@ window.currentMode = (() => {
 })();
 
 function setMode(mode) {
-  if (mode !== 'onstepx' && mode !== 'shc') return;
+  if (!['onstepx', 'shc', 'sws'].includes(mode)) return;
   window.currentMode = mode;
   try { localStorage.setItem(MODE_KEY, mode); } catch {}
 
   // Mode buttons
-  for (const m of ['onstepx', 'shc']) {
+  for (const m of ['onstepx', 'shc', 'sws']) {
     document.getElementById(`modeBtn-${m}`)?.classList.toggle('active', m === mode);
   }
 
@@ -3152,6 +3426,9 @@ function setMode(mode) {
   if (mode === 'shc') {
     if (title) title.textContent = 'SmartHandController Configuration Generator';
     if (sub) sub.textContent = 'Generate Config.h for the OnStep SHC hand pendant — compile and flash online';
+  } else if (mode === 'sws') {
+    if (title) title.textContent = 'SmartWebServer Configuration Generator';
+    if (sub) sub.textContent = 'Generate Config.h for the OnStep web server / WiFi bridge — compile and flash online';
   } else {
     if (title) title.textContent = 'OnStepX Configuration Generator';
     if (sub) sub.textContent = 'Generate Config.h for OnStepX telescope controller — based on OnStep Calculations v1.34';
@@ -3189,19 +3466,26 @@ function updateCompileBoardOptions() {
   const sel = document.getElementById('COMPILE_ENV');
   if (!sel) return;
   const previous = sel.value;
-  const isShc = window.currentMode === 'shc';
-  const options = isShc
-    ? [
-        ['shc_esp32', 'ESP32 (recommended for SHC)'],
-        ['shc_teensy40', 'Teensy 4.0'],
-        ['shc_teensy32', 'Teensy 3.2'],
-      ]
-    : [
-        ['esp32', 'ESP32 (MaxESP3, MaxESP4, FYSETC_E4, …)'],
-        ['teensy40', 'Teensy 4.0'],
-        ['teensy41', 'Teensy 4.1 / MaxPCB4'],
-        ['blackpill_f411', 'STM32 BlackPill F411CE / MaxSTM3'],
-      ];
+  let options;
+  if (window.currentMode === 'shc') {
+    options = [
+      ['shc_esp32', 'ESP32 (recommended for SHC)'],
+      ['shc_teensy40', 'Teensy 4.0'],
+      ['shc_teensy32', 'Teensy 3.2'],
+    ];
+  } else if (window.currentMode === 'sws') {
+    options = [
+      ['sws_esp32', 'ESP32 (recommended — WiFi + BLE)'],
+      ['sws_esp8266', 'ESP8266'],
+    ];
+  } else {
+    options = [
+      ['esp32', 'ESP32 (MaxESP3, MaxESP4, FYSETC_E4, …)'],
+      ['teensy40', 'Teensy 4.0'],
+      ['teensy41', 'Teensy 4.1 / MaxPCB4'],
+      ['blackpill_f411', 'STM32 BlackPill F411CE / MaxSTM3'],
+    ];
+  }
   sel.innerHTML = '';
   for (const [val, label] of options) {
     const opt = document.createElement('option');
@@ -3210,9 +3494,12 @@ function updateCompileBoardOptions() {
     sel.appendChild(opt);
   }
   if ([...sel.options].some((o) => o.value === previous)) sel.value = previous;
-  // Hint text for SHC since PINMAP doesn't drive the env there
+  // Hint text for SHC/SWS since PINMAP doesn't drive the env there
   const hint = document.getElementById('pinmap-hint');
-  if (hint && isShc) hint.textContent = 'SHC builds — pick the MCU in your hand controller';
+  if (hint) {
+    if (window.currentMode === 'shc') hint.textContent = 'SHC builds — pick the MCU in your hand controller';
+    else if (window.currentMode === 'sws') hint.textContent = 'SWS builds — pick the MCU hosting the web server';
+  }
 }
 
 // --- LocalStorage auto-save / restore ---------------------------------------
@@ -3221,20 +3508,24 @@ const STORAGE_KEY = 'onstepx-configurator-v2';
 const STORAGE_KEY_LEGACY = 'onstepx-configurator-v1'; // single-mode (OnStepX) legacy
 const VOLATILE_IDS = new Set(['configOutput', 'fileInput', 'preflightOverrideCheckbox']);
 const SHC_PREFIX = 'SHC_';
+const SWS_PREFIX = 'SWS_';
 
 // Form fields are split by ID prefix:
 //   SHC_*   → SmartHandController fields
+//   SWS_*   → SmartWebServer fields
 //   *       → OnStepX fields (and shared fields like COMPILE_ENV, ONSTEPX_REF)
 function isShcField(id) { return id.startsWith(SHC_PREFIX); }
+function isSwsField(id) { return id.startsWith(SWS_PREFIX); }
 
 function collectFormState() {
-  const out = { onstepx: {}, shc: {}, shared: {} };
-  const sharedIds = new Set(['COMPILE_ENV', 'ONSTEPX_REF']); // visible in both modes
+  const out = { onstepx: {}, shc: {}, sws: {}, shared: {} };
+  const sharedIds = new Set(['COMPILE_ENV', 'ONSTEPX_REF']); // visible in all modes
   for (const el of document.querySelectorAll('input[id], select[id], textarea[id]')) {
     if (VOLATILE_IDS.has(el.id)) continue;
     const value = el.type === 'checkbox' ? el.checked : el.value;
     if (sharedIds.has(el.id)) out.shared[el.id] = value;
     else if (isShcField(el.id)) out.shc[el.id] = value;
+    else if (isSwsField(el.id)) out.sws[el.id] = value;
     else out.onstepx[el.id] = value;
   }
   return out;
@@ -3259,10 +3550,11 @@ function restoreFormState() {
       if (legacy) {
         try {
           const flat = JSON.parse(legacy);
-          const migrated = { onstepx: {}, shc: {}, shared: {} };
+          const migrated = { onstepx: {}, shc: {}, sws: {}, shared: {} };
           for (const [id, val] of Object.entries(flat)) {
             if (id === 'COMPILE_ENV' || id === 'ONSTEPX_REF') migrated.shared[id] = val;
             else if (isShcField(id)) migrated.shc[id] = val;
+            else if (isSwsField(id)) migrated.sws[id] = val;
             else migrated.onstepx[id] = val;
           }
           localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
@@ -3275,6 +3567,7 @@ function restoreFormState() {
     const state = JSON.parse(raw);
     applyFieldMap(state.onstepx);
     applyFieldMap(state.shc);
+    applyFieldMap(state.sws);
     applyFieldMap(state.shared);
     try { calcAxis1(); calcAxis2(); calcAxis3(); calcSlew(); calcPEC(); } catch {}
     return true;
@@ -3358,10 +3651,71 @@ function generateSHCConfig() {
   return text;
 }
 
+// --- SWS Config.h generator -------------------------------------------------
+function generateSWSConfig() {
+  const v = (id, fallback = 'OFF') => {
+    const el = document.getElementById(id);
+    return (el?.value ?? fallback).toString().trim() || fallback;
+  };
+  const q = (id, fallback) => `"${v(id, fallback).replace(/"/g, '')}"`;
+  const lines = [];
+  lines.push('// ----------------------------------------------------------------------');
+  lines.push('// SmartWebServer Config.h');
+  lines.push('// Generated by https://christm45.github.io/OnStepX-Configurator/');
+  lines.push('// Source: https://github.com/hjd1964/SmartWebServer');
+  lines.push('// ----------------------------------------------------------------------');
+  lines.push('');
+  lines.push(`#define HOST_NAME            ${q('SWS_HOST_NAME', 'OnStep-SWS')}`);
+  lines.push(`#define OPERATIONAL_MODE             ${v('SWS_OPERATIONAL_MODE', 'WIFI')}`);
+  lines.push('// WIFI, ETHERNET_W5100, or ETHERNET_W5500');
+  lines.push('');
+  lines.push(`#define SERIAL_BAUD_DEFAULT          ${v('SWS_SERIAL_BAUD_DEFAULT', '9600')}`);
+  lines.push(`#define SERIAL_BAUD                ${v('SWS_SERIAL_BAUD', '115200')}`);
+  lines.push(`#define SERIAL_SWAP                  ${v('SWS_SERIAL_SWAP', 'AUTO')}`);
+  lines.push('');
+  lines.push(`#define BLE_GAMEPAD                   ${v('SWS_BLE_GAMEPAD', 'OFF')}`);
+  lines.push(`#define BLE_GP_ADDR   ${q('SWS_BLE_GP_ADDR', 'ff:ff:ff:ff:ff:ff')}`);
+  lines.push(`#define BLE_GP_ADDR1  ${q('SWS_BLE_GP_ADDR1', 'ff:ff:ff:ff:ff:ff')}`);
+  lines.push('');
+  lines.push(`#define LED_STATUS                     ${v('SWS_LED_STATUS', 'ON')}`);
+  lines.push('');
+  lines.push(`#define DISPLAY_LANGUAGE             ${v('SWS_DISPLAY_LANGUAGE', 'L_en')}`);
+  lines.push(`#define DISPLAY_WEATHER                ${v('SWS_DISPLAY_WEATHER', 'ON')}`);
+  lines.push(`#define DISPLAY_INTERNAL_TEMPERATURE  ${v('SWS_DISPLAY_INTERNAL_TEMPERATURE', 'OFF')}`);
+  lines.push(`#define DISPLAY_RESET_CONTROLS         ${v('SWS_DISPLAY_RESET_CONTROLS', 'ON')}`);
+  lines.push(`#define DISPLAY_COORDINATE_ORIGIN     ${v('SWS_DISPLAY_COORDINATE_ORIGIN', 'OFF')}`);
+  lines.push(`#define DISPLAY_SERVO_MONITOR         ${v('SWS_DISPLAY_SERVO_MONITOR', 'OFF')}`);
+  lines.push('');
+  lines.push(`#define ENC_AUTO_SYNC_DEFAULT          ${v('SWS_ENC_AUTO_SYNC_DEFAULT', 'ON')}`);
+  lines.push(`#define ENC_AUTO_SYNC_MEMORY          ${v('SWS_ENC_AUTO_SYNC_MEMORY', 'OFF')}`);
+  lines.push(`#define ENC_SYNC_DURING_GOTO          ${v('SWS_ENC_SYNC_DURING_GOTO', 'OFF')}`);
+  lines.push('');
+  lines.push(`#define AXIS1_ENCODER                 ${v('SWS_AXIS1_ENCODER', 'OFF')}`);
+  lines.push(`#define AXIS1_ENCODER_TICKS_DEG  ${v('SWS_AXIS1_ENCODER_TICKS_DEG', '22.22222')}`);
+  lines.push(`#define AXIS1_ENCODER_REVERSE         ${v('SWS_AXIS1_ENCODER_REVERSE', 'OFF')}`);
+  lines.push(`#define AXIS1_ENCODER_DIFF_LIMIT_TO   ${v('SWS_AXIS1_ENCODER_DIFF_LIMIT_TO', '300')}`);
+  lines.push(`#define AXIS1_ENCODER_DIFF_LIMIT_FROM ${v('SWS_AXIS1_ENCODER_DIFF_LIMIT_FROM', 'OFF')}`);
+  lines.push('');
+  lines.push(`#define AXIS2_ENCODER                 ${v('SWS_AXIS2_ENCODER', 'OFF')}`);
+  lines.push(`#define AXIS2_ENCODER_TICKS_DEG  ${v('SWS_AXIS2_ENCODER_TICKS_DEG', '22.22222')}`);
+  lines.push(`#define AXIS2_ENCODER_REVERSE         ${v('SWS_AXIS2_ENCODER_REVERSE', 'OFF')}`);
+  lines.push(`#define AXIS2_ENCODER_DIFF_LIMIT_TO   ${v('SWS_AXIS2_ENCODER_DIFF_LIMIT_TO', '300')}`);
+  lines.push(`#define AXIS2_ENCODER_DIFF_LIMIT_FROM ${v('SWS_AXIS2_ENCODER_DIFF_LIMIT_FROM', 'OFF')}`);
+  lines.push('');
+  lines.push('#define FileVersionConfig 6');
+  lines.push('#include "Extended.config.h"');
+  const text = lines.join('\n');
+  const out = document.getElementById('configOutput');
+  if (out) out.value = text;
+  showStatus?.('SWS Config.h generated successfully!');
+  return text;
+}
+
 // Override generateConfig() (defined in the classic script) to dispatch by mode.
 const _generateOnStepXConfig = window.generateConfig;
 window.generateConfig = function () {
   if (window.currentMode === 'shc') return generateSHCConfig();
+  if (window.currentMode === 'sws') return generateSWSConfig();
   return _generateOnStepXConfig?.();
 };
 
@@ -3408,6 +3762,32 @@ function validateShcConfig(s) {
   return { issues };
 }
 
+function snapshotForSwsValidation() {
+  return {
+    SWS_OPERATIONAL_MODE: document.getElementById('SWS_OPERATIONAL_MODE')?.value,
+    SWS_BLE_GAMEPAD: document.getElementById('SWS_BLE_GAMEPAD')?.value,
+    SWS_HOST_NAME: document.getElementById('SWS_HOST_NAME')?.value,
+    COMPILE_ENV: document.getElementById('COMPILE_ENV')?.value || '',
+  };
+}
+
+function validateSwsConfig(s) {
+  const issues = [];
+  if (!s.COMPILE_ENV || !s.COMPILE_ENV.startsWith('sws_')) {
+    issues.push({ level: 'error', id: 'COMPILE_ENV', message: 'Pick an SWS build target (sws_esp32 / sws_esp8266) on the Compile & Flash tab.' });
+  }
+  if (!s.SWS_OPERATIONAL_MODE || s.SWS_OPERATIONAL_MODE === 'OFF') {
+    issues.push({ level: 'error', id: 'SWS_OPERATIONAL_MODE', message: 'Set OPERATIONAL_MODE (WIFI or ETHERNET_*) on the Network tab.' });
+  }
+  if (s.SWS_BLE_GAMEPAD === 'ON' && s.COMPILE_ENV !== 'sws_esp32') {
+    issues.push({ level: 'warn', id: 'SWS_BLE_GAMEPAD', message: 'BLE_GAMEPAD requires sws_esp32 — ESP8266 has no Bluetooth.' });
+  }
+  if (s.SWS_HOST_NAME && s.SWS_HOST_NAME.length > 16) {
+    issues.push({ level: 'warn', id: 'SWS_HOST_NAME', message: 'HOST_NAME is longer than 16 characters; SWS truncates.' });
+  }
+  return { issues };
+}
+
 function runPreflight() {
   const summary = document.getElementById('preflightSummary');
   const list = document.getElementById('preflightList');
@@ -3415,9 +3795,10 @@ function runPreflight() {
   const compileBtn = document.getElementById('compileBtn');
   if (!summary || !list) return;
 
-  const { issues } = window.currentMode === 'shc'
-    ? validateShcConfig(snapshotForShcValidation())
-    : validateConfig(snapshotForValidation());
+  let issues;
+  if (window.currentMode === 'shc') issues = validateShcConfig(snapshotForShcValidation()).issues;
+  else if (window.currentMode === 'sws') issues = validateSwsConfig(snapshotForSwsValidation()).issues;
+  else issues = validateConfig(snapshotForValidation()).issues;
 
   // Also check for secrets in the currently-generated config (if any)
   const currentConfig = document.getElementById('configOutput')?.value || '';
@@ -3496,7 +3877,9 @@ let refRequestSeq = 0;
 async function refreshRef() {
   if (!refInput || !refBody) return;
   const ref = (refInput.value || 'main').trim() || 'main';
-  const repo = window.currentMode === 'shc' ? 'hjd1964/SmartHandController' : 'hjd1964/OnStepX';
+  const repo = window.currentMode === 'shc' ? 'hjd1964/SmartHandController'
+             : window.currentMode === 'sws' ? 'hjd1964/SmartWebServer'
+             : 'hjd1964/OnStepX';
   const mySeq = ++refRequestSeq;
   refBody.innerHTML = `<span style="color:var(--label);">resolving <code>${escapeHtml(ref)}</code> in ${escapeHtml(repo)}…</span>`;
   try {
@@ -3582,7 +3965,9 @@ window.startCompileFlow = async function () {
       throw new Error('Compile service is not configured yet. The site owner must deploy the Cloudflare Worker and update WORKER_URL in compile.js.');
     }
 
-    const project = window.currentMode === 'shc' ? 'shc' : 'onstepx';
+    const project = window.currentMode === 'shc' ? 'shc'
+                  : window.currentMode === 'sws' ? 'sws'
+                  : 'onstepx';
     setStatus(`Requesting compile (${project} / ${env}, ref=${ref})…`);
     appendLog('compileLog', `> POST ${WORKER_URL}/compile { project: ${project}, board: ${env}, ref: ${ref} }`);
     const requestId = await startCompile(config, env, ref, project);
