@@ -816,12 +816,12 @@
     <div class="field-row">
       <label class="field-label">AXIS1_DRIVER_MODEL <span class="hint-tag hint-often">Often</span></label>
       <select id="AXIS1_DRIVER_MODEL">
-        <option value="OFF">OFF</option>
+        <option value="OFF" selected>OFF</option>
         <option value="A4988">A4988</option>
         <option value="DRV8825">DRV8825</option>
         <option value="LV8729">LV8729</option>
         <option value="S109">S109</option>
-        <option value="TMC2130" selected>TMC2130</option>
+        <option value="TMC2130">TMC2130</option>
         <option value="TMC5160">TMC5160</option>
         <option value="TMC2209">TMC2209</option>
         <option value="TMC2226">TMC2226</option>
@@ -944,9 +944,9 @@
     <div class="field-row">
       <label class="field-label">AXIS2_DRIVER_MODEL <span class="hint-tag hint-often">Often</span></label>
       <select id="AXIS2_DRIVER_MODEL">
-        <option value="OFF">OFF</option><option value="A4988">A4988</option>
+        <option value="OFF" selected>OFF</option><option value="A4988">A4988</option>
         <option value="DRV8825">DRV8825</option><option value="LV8729">LV8729</option>
-        <option value="S109">S109</option><option value="TMC2130" selected>TMC2130</option>
+        <option value="S109">S109</option><option value="TMC2130">TMC2130</option>
         <option value="TMC5160">TMC5160</option><option value="TMC2209">TMC2209</option>
         <option value="TMC2226">TMC2226</option>
       </select>
@@ -1362,9 +1362,9 @@
     <div class="field-row">
       <label class="field-label">AXIS3_DRIVER_MODEL <span class="hint-tag hint-option">Option</span></label>
       <select id="AXIS3_DRIVER_MODEL">
-        <option value="OFF">OFF</option><option value="A4988">A4988</option>
+        <option value="OFF" selected>OFF</option><option value="A4988">A4988</option>
         <option value="DRV8825">DRV8825</option><option value="LV8729">LV8729</option>
-        <option value="S109">S109</option><option value="TMC2130" selected>TMC2130</option>
+        <option value="S109">S109</option><option value="TMC2130">TMC2130</option>
         <option value="TMC5160">TMC5160</option><option value="TMC2209">TMC2209</option>
         <option value="TMC2226">TMC2226</option>
       </select>
@@ -1474,9 +1474,9 @@
     <div class="field-row">
       <label class="field-label">AXIS4_DRIVER_MODEL <span class="hint-tag hint-option">Option</span></label>
       <select id="AXIS4_DRIVER_MODEL">
-        <option value="OFF">OFF</option><option value="A4988">A4988</option>
+        <option value="OFF" selected>OFF</option><option value="A4988">A4988</option>
         <option value="DRV8825">DRV8825</option><option value="LV8729">LV8729</option>
-        <option value="S109">S109</option><option value="TMC2130" selected>TMC2130</option>
+        <option value="S109">S109</option><option value="TMC2130">TMC2130</option>
         <option value="TMC5160">TMC5160</option><option value="TMC2209">TMC2209</option>
         <option value="TMC2226">TMC2226</option>
       </select>
@@ -2120,6 +2120,7 @@
     </p>
     <ul style="color:var(--label);font-size:0.85em;margin-left:20px;margin-bottom:10px;">
       <li><b>ESP32</b> — most boards auto-reset; if not, hold BOOT and tap EN/RST.</li>
+      <li><b>ESP8266</b> (NodeMCU / Wemos D1) — most boards auto-reset. Bare ESP-01 modules: pull GPIO0 to GND, power cycle.</li>
       <li><b>STM32 BlackPill</b> — hold BOOT0 and tap NRST. Board should appear as "STM32 BOOTLOADER".</li>
       <li><b>Teensy 4.0/4.1</b> — no browser flashing yet; we'll download firmware.hex and hand it off to the Teensy Loader app.</li>
     </ul>
@@ -2511,6 +2512,19 @@
       <li>Flashing takes 15&ndash;40 s. Board auto-resets into firmware when done.</li>
     </ol>
 
+    <h4>ESP8266 (NodeMCU, Wemos D1 mini, ESP-01 &mdash; SWS only)</h4>
+    <ol>
+      <li>Connect USB.</li>
+      <li>NodeMCU / Wemos D1 mini auto-reset into the ROM bootloader (DTR/RTS wiring on their USB bridge).
+        Bare ESP-01 modules don't — you need to pull <kbd>GPIO0</kbd> to GND, power cycle, and release.</li>
+      <li>Click <b>Flash to Board</b>, pick the port (same USB-UART families as ESP32: CP2102, CH340, FTDI).</li>
+      <li>ESP8266 flash is a single <code>firmware.bin</code> written at <code>0x0</code> — much simpler than
+        ESP32's four-partition layout. Takes 20&ndash;60 s.</li>
+      <li>If you see <i>"Failed to connect"</i>, drop the baud: most ESP8266 modules prefer 460 800 or
+        115 200. Our flasher already uses 460 800 by default; if that fails, the chip itself is the issue
+        (check USB cable, try the boot procedure manually).</li>
+    </ol>
+
     <h4>STM32 BlackPill F411CE (and MaxSTM3)</h4>
     <ol>
       <li>Connect USB.</li>
@@ -2545,7 +2559,7 @@ teensy_loader_cli --mcu=TEENSY40 -w -v firmware.hex   # 4.0</pre>
       <tr style="background:var(--accent);">
         <th style="padding:6px;text-align:left;border:1px solid var(--border);">Browser</th>
         <th style="padding:6px;text-align:left;border:1px solid var(--border);">Configurator &amp; Compile</th>
-        <th style="padding:6px;text-align:left;border:1px solid var(--border);">ESP32 flash</th>
+        <th style="padding:6px;text-align:left;border:1px solid var(--border);">ESP32 / ESP8266 flash</th>
         <th style="padding:6px;text-align:left;border:1px solid var(--border);">STM32 DFU flash</th>
         <th style="padding:6px;text-align:left;border:1px solid var(--border);">Teensy .hex download</th>
       </tr>

@@ -1,6 +1,7 @@
-// ESP32 flasher — uses esptool-js over the Web Serial API.
+// ESP32 / ESP8266 flasher — uses esptool-js over the Web Serial API.
 // Loads esptool-js from a pinned version on esm.sh so the Pages site stays
-// fully static.
+// fully static. esptool-js auto-detects the chip, so the same flash()
+// function handles both ESP32 and ESP8266 — only the file layout differs.
 
 const ESPTOOL_MODULE = 'https://esm.sh/esptool-js@0.4.5';
 
@@ -9,8 +10,12 @@ export function supported() {
 }
 
 /**
- * Flash an ESP32 with firmware.bin + bootloader.bin + partitions.bin (and
- * optionally boot_app0.bin).
+ * Flash an ESP32 or ESP8266 from a firmware bundle.
+ *
+ * The bundle shape determines the flash layout:
+ *   - merged-firmware.bin at 0x0                         (ESP32, cleanest)
+ *   - bootloader.bin + partitions.bin + boot_app0.bin + firmware.bin  (ESP32, classic)
+ *   - firmware.bin at 0x0 (no bootloader.bin in bundle)  (ESP8266 — single image)
  *
  * files: {[filename]: Uint8Array}  (as returned by fetchFirmware)
  * log:   function(string)          progress/log callback
@@ -18,10 +23,6 @@ export function supported() {
 export async function flash(files, log = console.log) {
   if (!supported()) throw new Error('Web Serial not supported — use Chrome, Edge, or Opera');
 
-  // Three layouts in descending preference:
-  //   1. merged-firmware.bin at 0x0                      (ESP32 with merge_bin.py — cleanest)
-  //   2. bootloader + partitions + (boot_app0) + app    (ESP32 classic 4-file layout)
-  //   3. firmware.bin at 0x0                             (ESP8266 — single self-contained image)
   const useMerged = !!files['merged-firmware.bin'];
   const useSingle = !useMerged && !files['bootloader.bin'] && !!files['firmware.bin'];
   if (!useMerged && !useSingle) {
@@ -34,19 +35,23 @@ export async function flash(files, log = console.log) {
   const { ESPLoader, Transport } = await import(ESPTOOL_MODULE);
 
   const port = await navigator.serial.requestPort({
-    // Common ESP32 USB-UART bridges; empty filter list also works on most browsers.
+    // Common USB-UART bridges used on ESP32 *and* ESP8266 dev boards
+    // (NodeMCU, Wemos D1, ESP-01, generic modules).
     filters: [
-      { usbVendorId: 0x10c4 }, // Silicon Labs CP210x
-      { usbVendorId: 0x1a86 }, // QinHeng CH340/CH341
-      { usbVendorId: 0x0403 }, // FTDI
-      { usbVendorId: 0x303a }, // Espressif native USB
+      { usbVendorId: 0x10c4 }, // Silicon Labs CP210x / CP2102 (NodeMCU, dev kits)
+      { usbVendorId: 0x1a86 }, // QinHeng CH340/CH341 (cheap modules)
+      { usbVendorId: 0x0403 }, // FTDI FT232 (Wemos, some ESP-01 adapters)
+      { usbVendorId: 0x303a }, // Espressif native USB (ESP32-S2/S3/C3)
     ],
   });
   const transport = new Transport(port, true);
 
+  // 460800 is a safe-for-both baud: reliable on NodeMCU/Wemos/ESP32 DevKit,
+  // and their USB-serial chips generally cope. 921600 works for most ESP32
+  // but has been reported to fail on cheaper ESP8266 modules.
   const flashOptions = {
     transport,
-    baudrate: 921600,
+    baudrate: 460800,
     romBaudrate: 115200,
     terminal: {
       clean() {},
@@ -56,9 +61,16 @@ export async function flash(files, log = console.log) {
   };
 
   const esploader = new ESPLoader(flashOptions);
-  log('Connecting to ESP chip…');
+  log('Connecting…');
   const chip = await esploader.main();
   log(`Detected: ${chip}`);
+  const isEsp8266 = /ESP8266/i.test(String(chip));
+  if (isEsp8266 && !useSingle) {
+    log('⚠ ESP8266 detected but firmware bundle looks like ESP32 — flashing anyway, but this may not boot.');
+  }
+  if (!isEsp8266 && useSingle && !useMerged) {
+    log('⚠ ESP32 detected but firmware bundle is single-image (ESP8266 style) — flashing at 0x0 may not boot.');
+  }
 
   const fileArray = useMerged
     ? [{ data: binaryString(files['merged-firmware.bin']), address: 0x0 }]
@@ -71,7 +83,7 @@ export async function flash(files, log = console.log) {
         { data: binaryString(files['firmware.bin']), address: 0x10000 },
       ];
 
-  log(`Writing ${fileArray.length} files…`);
+  log(`Writing ${fileArray.length} file${fileArray.length === 1 ? '' : 's'}…`);
   await esploader.writeFlash({
     fileArray,
     flashSize: 'keep',
@@ -88,7 +100,7 @@ export async function flash(files, log = console.log) {
   log('Resetting into application…');
   await esploader.after();
   await transport.disconnect();
-  log('Done. ESP32 is now running your firmware.');
+  log(`Done. ${chip} is now running your firmware.`);
 }
 
 function binaryString(u8) {
