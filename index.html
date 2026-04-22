@@ -2011,6 +2011,16 @@
     <input type="file" id="fileInput" accept=".h" style="display:none" onchange="loadConfig(event)">
     <button class="btn btn-copy" onclick="resetToDefaults()" title="Clear saved form state and reload the page">Reset to Defaults</button>
   </div>
+  <div class="btn-row" style="margin-top:8px; gap:8px;">
+    <input type="text" id="importConfigUrl"
+           placeholder="https://raw.githubusercontent.com/hjd1964/OnStepX/E4/Config.h"
+           style="flex:1; min-width:280px; padding:6px 10px; background:var(--input-bg); color:var(--text); border:1px solid var(--border); border-radius:4px; font-family:Consolas,monospace; font-size:0.85em;">
+    <button class="btn btn-load" onclick="importConfigFromUrlUi()" title="Fetch a Config.h from a raw URL and back-fill matching form fields">Import from URL</button>
+  </div>
+  <div style="margin-top:4px;color:var(--label);font-size:0.8em;">
+    Paste a <b>raw</b> GitHub URL (<code style="color:var(--green);">raw.githubusercontent.com/...</code>, not
+    <code>github.com/.../blob/...</code>). Leave empty to pull the FYSETC E4 reference config.
+  </div>
   <div id="statusBar" class="status-bar"></div>
   <div class="output-area">
     <textarea id="configOutput" readonly placeholder="Click 'Generate Config.h' to generate the configuration file..."></textarea>
@@ -2046,9 +2056,10 @@
         Branch / tag / commit SHA of the upstream repo. Leave as <code style="background:var(--input-bg);padding:1px 4px;border-radius:3px;">main</code> for latest.
       </span>
     </div>
-    <div id="refResolved" style="margin-top:4px;margin-bottom:10px;padding:8px 10px;background:var(--input-bg);border:1px solid var(--border);border-radius:4px;font-family:Consolas,monospace;font-size:0.8em;color:var(--label);">
+    <div id="refResolved" style="margin-top:4px;margin-bottom:4px;padding:8px 10px;background:var(--input-bg);border:1px solid var(--border);border-radius:4px;font-family:Consolas,monospace;font-size:0.8em;color:var(--label);">
       <span style="color:var(--label);">Will build:</span> <span id="refResolvedBody">resolving…</span>
     </div>
+    <div id="refAutoPinBanner" style="display:none; margin-bottom:10px; padding:8px 10px; background:rgba(78,204,163,0.10); border-left:3px solid var(--green); border-radius:3px; color:var(--green); font-size:0.85em;"></div>
     <!-- Preflight checklist -->
     <div id="preflight" style="margin-top:10px;padding:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:4px;font-size:0.85em;">
       <div id="preflightSummary" style="font-weight:bold;color:var(--green);">Checking&hellip;</div>
@@ -2067,6 +2078,7 @@
     <div id="compileStatus" style="margin-top:10px;padding:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:4px;min-height:30px;font-family:Consolas,monospace;font-size:0.85em;color:var(--label);">
       Idle — click "Compile Firmware" to begin.
     </div>
+    <div id="sizeIndicator" style="display:none;margin-top:10px;padding:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:4px;font-size:0.85em;"></div>
     <pre id="compileLog" style="margin-top:10px;padding:10px;background:#000;color:#4ecca3;border:1px solid var(--border);border-radius:4px;max-height:250px;overflow:auto;font-family:Consolas,monospace;font-size:0.8em;white-space:pre-wrap;display:none;"></pre>
   </div>
 
@@ -3496,17 +3508,9 @@ window.setMode = setMode;
 const BOARD_DEFAULTS = {
   FYSETC_E4: {
     label: 'FYSETC E4',
-    note: 'From hjd1964/OnStepX branch "E4". TMC2209 drivers on-board, GEM mount preset.',
-    fields: {
-      AXIS1_DRIVER_MODEL: 'TMC2209', AXIS2_DRIVER_MODEL: 'TMC2209',
-      AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
-      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
-      AXIS1_DRIVER_IRUN: '500', AXIS2_DRIVER_IRUN: '500',
-      MOUNT_TYPE: 'GEM',
-      TIME_LOCATION_SOURCE: 'DS3231',
-      WEATHER: 'BME280_0x76',
-      SERIAL_A_BAUD_DEFAULT: '9600',
-    },
+    note: 'Click to fetch the live Config.h from hjd1964/OnStepX branch "E4" (180+ fields) and apply it here.',
+    liveFetch: 'https://raw.githubusercontent.com/hjd1964/OnStepX/E4/Config.h',
+    fields: {}, // applied via live fetch in applyBoardDefaults; fields here unused.
   },
   MaxESP4: {
     label: 'MaxESP4',
@@ -3614,8 +3618,104 @@ function refreshBoardDefaultsButton() {
     }
   }
 }
-window.applyBoardDefaults = function () {
+// Parse #define lines from a raw Config.h into an object of {name: value}.
+// Skips string-valued #defines with quotes (those usually have embedded spaces
+// or special chars that our simple form fields can't represent well).
+function parseConfigDefines(text) {
+  const out = {};
+  const re = /^\s*#define\s+(\w+)\s+(.+?)\s*(?:\/\/.*)?$/gm;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const name = m[1];
+    let value = m[2].trim();
+    // Drop trailing comma (OnStepX configs often end with ",")
+    value = value.replace(/,\s*$/, '');
+    // Keep strings as-is — if the form has a matching field, it'll accept
+    // the full quoted string or a stripped version.
+    out[name] = value;
+  }
+  return out;
+}
+
+/**
+ * Fetch a Config.h from a URL, parse its #defines, and apply them to any
+ * form fields whose id matches. Confirms with the user before overwriting.
+ * Returns the list of field changes applied.
+ */
+async function importConfigFromUrl(url, { promptUser = true, label } = {}) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`fetch failed (${res.status}) for ${url}`);
+  const text = await res.text();
+  const defines = parseConfigDefines(text);
+  const changes = [];
+  for (const [name, value] of Object.entries(defines)) {
+    const el = document.getElementById(name);
+    if (!el) continue;
+    let next = value;
+    // For string fields with quotes, keep them stripped so form input matches
+    if (el.tagName === 'INPUT' && el.type !== 'number') {
+      const strMatch = next.match(/^"(.*)"$/);
+      if (strMatch) next = strMatch[1];
+    }
+    if (el.value !== next) changes.push({ id: name, current: el.value, next });
+  }
+  if (changes.length === 0) {
+    showStatus?.('Form already matches this Config.h — nothing to import.');
+    return [];
+  }
+  if (promptUser) {
+    const preview = changes.slice(0, 12).map((c) => `  ${c.id}: "${c.current || '(empty)'}" → "${c.next}"`).join('\n');
+    const more = changes.length > 12 ? `\n  ...and ${changes.length - 12} more` : '';
+    const source = label ? label : url;
+    if (!confirm(`Apply ${changes.length} field change${changes.length === 1 ? '' : 's'} from ${source}?\n\n${preview}${more}`)) {
+      return [];
+    }
+  }
+  for (const { id, next } of changes) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.value = next;
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  showStatus?.(`Imported ${changes.length} field${changes.length === 1 ? '' : 's'} from Config.h.`);
+  return changes;
+}
+window.importConfigFromUrl = importConfigFromUrl;
+
+// Wrapper used by the "Import from URL" button on the Output tab.
+window.importConfigFromUrlUi = async function () {
+  const input = document.getElementById('importConfigUrl');
+  let url = (input?.value || '').trim();
+  if (!url) {
+    url = 'https://raw.githubusercontent.com/hjd1964/OnStepX/E4/Config.h';
+    if (input) input.value = url;
+  }
+  try {
+    await importConfigFromUrl(url);
+  } catch (err) {
+    showStatus?.(`Import failed: ${err.message}`);
+    alert(`Could not import Config.h.\n\n${err.message}\n\nMake sure the URL points to a raw text file (e.g. raw.githubusercontent.com/… not github.com/…/blob/…).`);
+  }
+};
+
+window.applyBoardDefaults = async function () {
   const pinmap = document.getElementById('PINMAP')?.value;
+
+  // Special-case FYSETC_E4: fetch the real E4 branch Config.h live rather
+  // than using a hardcoded paraphrase. Gives the user the true upstream
+  // preset, 180+ fields.
+  if (pinmap === 'FYSETC_E4') {
+    try {
+      await importConfigFromUrl(
+        'https://raw.githubusercontent.com/hjd1964/OnStepX/E4/Config.h',
+        { label: 'hjd1964/OnStepX @ E4 (FYSETC E4 reference config)' }
+      );
+    } catch (err) {
+      alert(`Could not fetch E4 branch Config.h: ${err.message}`);
+    }
+    return;
+  }
+
   const entry = BOARD_DEFAULTS[pinmap];
   if (!entry) return;
 
@@ -4051,14 +4151,41 @@ function syncEnvFromPinmap() {
   }
   refreshFlashSupportHint();
 }
+// Some OnStepX pinmaps have a dedicated upstream branch with board-specific
+// source code. When the user picks one of these, auto-switch the Source ref
+// on the Compile & Flash tab so the build uses that branch, and show a
+// banner so they know why it changed.
+const PINMAP_BRANCH_REFS = {
+  FYSETC_E4: 'E4',
+};
+function autoPinRefForPinmap() {
+  const pinmap = document.getElementById('PINMAP')?.value;
+  const refInput = document.getElementById('ONSTEPX_REF');
+  const banner = document.getElementById('refAutoPinBanner');
+  if (!refInput || !banner) return;
+  const target = PINMAP_BRANCH_REFS[pinmap];
+  if (target && refInput.value !== target) {
+    refInput.value = target;
+    refInput.dispatchEvent(new Event('input', { bubbles: true }));
+    refInput.dispatchEvent(new Event('change', { bubbles: true }));
+    banner.innerHTML =
+      `<b>Source ref auto-set to <code>${target}</code></b> because PINMAP=${pinmap} has a dedicated ` +
+      `OnStepX branch with board-specific code. Change it back manually if you'd rather build from <code>main</code>.`;
+    banner.style.display = 'block';
+  } else if (!target) {
+    banner.style.display = 'none';
+  }
+}
+
 document.getElementById('PINMAP')?.addEventListener('change', () => {
-  syncEnvFromPinmap(); refreshBoardDefaultsButton(); runPreflight();
+  syncEnvFromPinmap(); refreshBoardDefaultsButton(); autoPinRefForPinmap(); runPreflight();
 });
 document.getElementById('COMPILE_ENV')?.addEventListener('change', () => { refreshFlashSupportHint(); runPreflight(); });
 // Initialise mode (sets tab visibility, board options, title — also calls runPreflight)
 setMode(window.currentMode);
 syncEnvFromPinmap();
 refreshBoardDefaultsButton();
+autoPinRefForPinmap();
 
 // --- Live resolver for the OnStepX ref field --------------------------------
 const refInput = document.getElementById('ONSTEPX_REF');
@@ -4109,6 +4236,43 @@ function appendLog(targetId, line) {
   el.style.display = 'block';
   el.textContent += (el.textContent ? '\n' : '') + line;
   el.scrollTop = el.scrollHeight;
+}
+
+function renderSizeIndicator(files) {
+  const el = document.getElementById('sizeIndicator');
+  if (!el) return;
+  let manifest = {};
+  try {
+    const m = files['manifest.json'];
+    if (m) manifest = JSON.parse(new TextDecoder().decode(m));
+  } catch {}
+  const { ram_used, ram_total, flash_used, flash_total } = manifest;
+  if (!flash_used || !flash_total) { el.style.display = 'none'; return; }
+
+  const kb = (n) => `${(n / 1024).toFixed(1)} KB`;
+  const bar = (used, total, label, warnAt = 0.9) => {
+    const pct = (used / total) * 100;
+    const color = pct >= warnAt * 100 ? 'var(--highlight)' : pct >= 0.7 * 100 ? 'var(--warn)' : 'var(--green)';
+    return `
+      <div style="margin-bottom:6px;">
+        <div style="display:flex;justify-content:space-between;font-family:Consolas,monospace;">
+          <span style="color:var(--label);">${label}</span>
+          <span style="color:${color};">${pct.toFixed(1)}%  <span style="color:var(--label);">· ${kb(used)} / ${kb(total)}</span></span>
+        </div>
+        <div style="height:6px;background:var(--accent);border-radius:3px;overflow:hidden;margin-top:2px;">
+          <div style="width:${Math.min(100, pct).toFixed(1)}%;height:100%;background:${color};transition:width .3s;"></div>
+        </div>
+      </div>`;
+  };
+  let html = '<div style="font-weight:bold;color:var(--green);margin-bottom:6px;">Firmware size</div>';
+  html += bar(flash_used, flash_total, 'Flash');
+  if (ram_used && ram_total) html += bar(ram_used, ram_total, 'RAM');
+  const flashPct = (flash_used / flash_total) * 100;
+  if (flashPct > 90) {
+    html += `<div style="color:var(--highlight);margin-top:4px;font-size:0.85em;">⚠ Flash usage above 90% — tight, may not fit on smaller MCU variants (e.g. F401).</div>`;
+  }
+  el.innerHTML = html;
+  el.style.display = 'block';
 }
 
 function refreshFlashSupportHint() {
@@ -4191,6 +4355,10 @@ window.startCompileFlow = async function () {
     flashBtn.disabled = false;
     // Clear any previous "stale" indicator — what's loaded is current
     document.getElementById('staleFlashWarn').style.display = 'none';
+    // Show flash/RAM usage from manifest.json (new field as of the
+    // fit-size workflow update — older manifests won't have them, in which
+    // case we hide the indicator).
+    renderSizeIndicator(files);
   } catch (err) {
     setStatus(`Error: ${err.message}`, 'err');
     appendLog('compileLog', `! ${err.stack || err.message}`);
