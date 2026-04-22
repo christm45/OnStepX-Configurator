@@ -654,17 +654,19 @@
       <label class="field-label">PINMAP <span class="hint-tag hint-reqd">Req'd</span></label>
       <select id="PINMAP">
         <option value="OFF">OFF</option>
-        <option value="MiniPCB">MiniPCB</option>
-        <option value="MiniPCB2">MiniPCB2</option>
-        <option value="MaxPCB4">MaxPCB4</option>
-        <option value="MaxESP4">MaxESP4</option>
-        <option value="MaxSTM3" selected>MaxSTM3</option>
-        <option value="FYSETC_E4">FYSETC_E4</option>
-        <option value="BTT_SKR_PRO">BTT_SKR_PRO</option>
-        <option value="CNC3">CNC3</option>
-        <option value="CNC3_2">CNC3_2</option>
+        <option value="MaxPCB4">MaxPCB4 (Teensy 4.1)</option>
+        <option value="MaxESP4">MaxESP4 (ESP32)</option>
+        <option value="MaxSTM3" selected>MaxSTM3 (STM32F411)</option>
+        <option value="FYSETC_E4">FYSETC_E4 (ESP32)</option>
+        <option value="CNC3">CNC3 (Teensy 4.0)</option>
+        <option value="CNC3_2">CNC3_2 (Teensy 4.0)</option>
+        <option value="BTT_SKR_PRO" disabled>BTT_SKR_PRO (STM32F407 — no matching build env)</option>
       </select>
-      <span class="field-hint">Board pinmap selection</span>
+      <span class="field-hint">
+        Board pinmap selection. <b>Note:</b> MiniPCB / MiniPCB2 (Teensy 3.2) aren't offered &mdash;
+        this service has no teensy32 OnStepX env. BTT_SKR_PRO needs STM32F407 which we don't
+        ship (closest env is blackpill_f411, different flash size — disabled to avoid silent breakage).
+      </span>
     </div>
     <div class="field-row">
       <label class="field-label"></label>
@@ -3597,21 +3599,9 @@ const BOARD_DEFAULTS = {
       MOUNT_TYPE: 'GEM',
     },
   },
-  BTT_SKR_PRO: {
-    label: 'BigTreeTech SKR Pro',
-    note: 'STM32F407 with TMC5160 SPI drivers across all axes.',
-    fields: {
-      AXIS1_DRIVER_MODEL: 'TMC5160', AXIS2_DRIVER_MODEL: 'TMC5160',
-      AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
-      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
-      AXIS1_DRIVER_IRUN: '800', AXIS2_DRIVER_IRUN: '800',
-      AXIS3_DRIVER_MODEL: 'OFF',
-      AXIS4_DRIVER_MODEL: 'TMC5160',
-      AXIS4_DRIVER_MICROSTEPS: '8',
-      AXIS4_DRIVER_IRUN: '400', AXIS4_DRIVER_IHOLD: '200',
-      MOUNT_TYPE: 'GEM',
-    },
-  },
+  // BTT_SKR_PRO (STM32F407) — removed: no matching PlatformIO env in the
+  // build service. F411 BlackPill's flash size differs enough to not be a
+  // safe substitute. Re-add here if/when an F407 env ships.
   CNC3: {
     label: 'CNC3 (Teensy 4.0)',
     note: 'Teensy 4.0 on a generic CNC shield — driver is whatever step-stick you plug in. Defaults to DRV8825.',
@@ -3632,26 +3622,8 @@ const BOARD_DEFAULTS = {
       MOUNT_TYPE: 'GEM',
     },
   },
-  MiniPCB: {
-    label: 'MiniPCB (legacy)',
-    note: 'Teensy 3.2 with removable step-sticks (legacy OnStep reference design).',
-    fields: {
-      AXIS1_DRIVER_MODEL: 'DRV8825', AXIS2_DRIVER_MODEL: 'DRV8825',
-      AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
-      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
-      MOUNT_TYPE: 'GEM',
-    },
-  },
-  MiniPCB2: {
-    label: 'MiniPCB2 (legacy)',
-    note: 'Teensy 3.2 with removable step-sticks — revised layout of MiniPCB.',
-    fields: {
-      AXIS1_DRIVER_MODEL: 'DRV8825', AXIS2_DRIVER_MODEL: 'DRV8825',
-      AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
-      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
-      MOUNT_TYPE: 'GEM',
-    },
-  },
+  // MiniPCB / MiniPCB2 (Teensy 3.2) — removed: no matching PlatformIO env.
+  // Re-add here if/when a teensy32 OnStepX env ships.
 };
 
 function refreshBoardDefaultsButton() {

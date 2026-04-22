@@ -8,17 +8,13 @@
 
 // PINMAP → the MCU family that pinmap's pin numbering targets.
 // If the Compile tab's MCU target disagrees, the build will fail.
+// PINMAP → expected MCU family for the build. Only pinmaps the build service
+// has an env for are listed. Unknown pinmaps fall through to a soft warning.
 export const PINMAP_MCU = {
-  MiniPCB: 'teensy32',
-  MiniPCB2: 'teensy32',
-  MaxPCB: 'teensy40',
-  MaxPCB3: 'teensy41',
   MaxPCB4: 'teensy41',
-  MaxESP3: 'esp32',
   MaxESP4: 'esp32',
   FYSETC_E4: 'esp32',
   MaxSTM3: 'blackpill_f411',
-  BTT_SKR_PRO: 'blackpill_f411',
   CNC3: 'teensy40',
   CNC3_2: 'teensy40',
 };

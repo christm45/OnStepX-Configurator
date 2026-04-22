@@ -9,17 +9,16 @@ export const WORKER_URL = 'https://onstepx-build-bridge.craciun-vlad.workers.dev
 
 // PINMAP (from Config.h dropdown) → PlatformIO build env.
 // Pinmaps not in this table fall back to "unknown" → user has to pick manually.
+// PINMAP → PlatformIO build env (OnStepX mode). Only pinmaps we actually
+// have a matching env for are listed here. Others get "No default — pick
+// manually" on the UI.
 export const PINMAP_TO_ENV = {
-  MaxESP3: 'esp32',
   MaxESP4: 'esp32',
   FYSETC_E4: 'esp32',
-  MaxPCB: 'teensy40',
   MaxPCB4: 'teensy41',
-  MaxPCB3: 'teensy41',
   CNC3: 'teensy40',
   CNC3_2: 'teensy40',
   MaxSTM3: 'blackpill_f411',
-  BTT_SKR_PRO: 'blackpill_f411', // STM32 — close enough for a default
 };
 
 export const ENV_LABELS = {
