@@ -1609,94 +1609,232 @@
   <div class="section help-body">
     <div class="section-title">User Guide</div>
 
-    <p>This site lets you generate an OnStepX <code>Config.h</code>, compile the firmware online using the latest
-    <a href="https://github.com/hjd1964/OnStepX" target="_blank">hjd1964/OnStepX</a> source, and flash it to your
-    board over USB &mdash; no Arduino IDE, no PlatformIO install, no toolchain on your machine.</p>
+    <p><b>What this site does:</b> you answer a handful of questions about your telescope mount (motors,
+      gearing, drivers, board), click a button, and get firmware ready to flash onto your OnStepX controller
+      &mdash; without installing Arduino IDE, PlatformIO, or any C++ toolchain on your computer.</p>
+
+    <p>Everything happens either inside your browser tab or on free cloud services
+      (<a href="https://pages.github.com/" target="_blank">GitHub Pages</a>,
+      <a href="https://github.com/features/actions" target="_blank">GitHub Actions</a>,
+      <a href="https://workers.cloudflare.com/" target="_blank">Cloudflare Workers</a>).
+      The project source is always the latest
+      <a href="https://github.com/hjd1964/OnStepX" target="_blank">hjd1964/OnStepX</a> &mdash; we never bundle
+      a stale copy.</p>
 
     <div class="help-warn">
-      <b>Before you flash anything:</b> make sure your wiring and PINMAP selection match the board you're flashing.
-      A mismatched pinmap can drive step/enable pins that are tied to other things and damage stepper drivers,
-      limit switches, or the MCU. When in doubt, flash without motors connected the first time.
+      <b>Before you flash anything:</b> make sure your wiring and PINMAP selection match the board you're
+      flashing. A mismatched pinmap can drive step/enable pins that are tied to other things and damage
+      stepper drivers, limit switches, or the MCU. When in doubt, flash once with no motors connected, watch
+      the serial output, and only then plug in the steppers.
     </div>
 
     <h3>Contents</h3>
     <ol class="help-toc">
-      <li><a href="#help-quickstart">Quick start</a></li>
+      <li><a href="#help-how">How it works (behind the curtain)</a></li>
+      <li><a href="#help-quickstart">Quick start &mdash; board to firmware in 8 steps</a></li>
       <li><a href="#help-tabs">What each tab does</a></li>
       <li><a href="#help-essentials">The settings you actually have to change</a></li>
+      <li><a href="#help-ref">Picking an OnStepX version</a></li>
+      <li><a href="#help-preflight">The preflight checklist</a></li>
       <li><a href="#help-boards">Board-by-board USB preparation</a></li>
       <li><a href="#help-browser">Browser requirements</a></li>
+      <li><a href="#help-privacy">Privacy &amp; what gets logged</a></li>
       <li><a href="#help-troubleshoot">Troubleshooting</a></li>
       <li><a href="#help-faq">FAQ</a></li>
     </ol>
   </div>
 
-  <div class="section help-body" id="help-quickstart">
-    <div class="section-title">1 &middot; Quick start</div>
+  <div class="section help-body" id="help-how">
+    <div class="section-title">1 &middot; How it works (behind the curtain)</div>
 
-    <p>The fastest path from "fresh tab" to "firmware on my board":</p>
+    <p>A normal OnStepX workflow looks like: <i>install Arduino IDE or PlatformIO &rarr; clone the source &rarr;
+      edit Config.h &rarr; wait for the toolchain to download &rarr; build &rarr; flash.</i> That's a lot of setup
+      just to try the firmware once. This site replaces every step with a click.</p>
+
+    <p>Here's what actually happens when you click <b>Compile Firmware</b>:</p>
+
+    <pre>
+  +--------------------------------------+
+  |  1. YOUR BROWSER                     |
+  |     You pick mount/motor/driver      |
+  |     settings. Your browser builds    |
+  |     a Config.h file locally. No      |
+  |     data is sent until you click     |
+  |     Compile.                         |
+  +-----------------+--------------------+
+                    |  POST /compile
+                    |  { config.h, board, onstepx_ref }
+                    v
+  +--------------------------------------+
+  |  2. CLOUDFLARE WORKER (a "bridge")   |
+  |     Tiny serverless endpoint at      |
+  |     onstepx-build-bridge.*.workers.dev
+  |     Validates your inputs, adds a    |
+  |     GitHub token (which your browser |
+  |     shouldn't see), and asks GitHub  |
+  |     Actions to start a build.        |
+  +-----------------+--------------------+
+                    |  workflow_dispatch
+                    v
+  +--------------------------------------+
+  |  3. GITHUB ACTIONS (the build farm)  |
+  |     In christm45/onstepx-build-      |
+  |     service, a fresh Ubuntu VM:
+  |       a) clones hjd1964/OnStepX at   |
+  |          your chosen branch/tag/SHA  |
+  |       b) overwrites its Config.h     |
+  |          with the one you sent       |
+  |       c) runs PlatformIO to compile  |
+  |          for your chosen MCU         |
+  |       d) packages firmware as a zip  |
+  |          and publishes it as a       |
+  |          "workflow artifact"         |
+  +-----------------+--------------------+
+                    |  firmware.zip
+                    |  (bootloader, partitions, firmware.bin, merged.bin…)
+                    v
+  +--------------------------------------+
+  |  4. WORKER FETCHES THE ARTIFACT      |
+  |     and streams it back to your      |
+  |     browser.                         |
+  +-----------------+--------------------+
+                    |
+                    v
+  +--------------------------------------+
+  |  5. YOUR BROWSER                     |
+  |     Unzips the archive in memory,    |
+  |     talks to your board over USB     |
+  |     (Web Serial / WebUSB), and       |
+  |     writes the firmware. The board   |
+  |     reboots into OnStepX.            |
+  +--------------------------------------+
+    </pre>
+
+    <p>Piece by piece:</p>
+
+    <h4>The configurator (this page)</h4>
+    <p>Runs entirely in your browser. The HTML/CSS/JavaScript was served by GitHub Pages when you loaded the
+      tab, and from then on everything is local &mdash; even the Config.h generation and the browser-based
+      flasher. The page never phones home just for you being here.</p>
+
+    <h4>The Cloudflare Worker (the "bridge")</h4>
+    <p>A ~200-line JavaScript function that Cloudflare runs on-demand when your browser pings it. Its only
+      job is to accept your <code>/compile</code> request, attach a private GitHub API token (which, critically,
+      your browser <i>shouldn't</i> see), and tell GitHub Actions to start a build. It also proxies the resulting
+      firmware zip back to you. The Worker doesn't store anything &mdash; each request is independent.</p>
+    <p>Why it's needed: GitHub Pages is static-only (it serves files, it can't call protected APIs). A tiny
+      serverless function is the simplest way to bridge a static site to an authenticated API without standing
+      up a server you have to maintain.</p>
+
+    <h4>GitHub Actions + the build-service repo</h4>
+    <p>The repo <a href="https://github.com/christm45/onstepx-build-service" target="_blank">christm45/onstepx-build-service</a>
+      holds a <code>platformio.ini</code> (build recipe) and a workflow file
+      (<code>.github/workflows/build.yml</code>). When the Worker triggers the workflow, GitHub spins up a
+      fresh Ubuntu virtual machine, runs the steps, then throws the VM away. The steps are:</p>
+    <ol>
+      <li>Check out this repo's build recipe</li>
+      <li>Install PlatformIO (Python package)</li>
+      <li><code>git clone https://github.com/hjd1964/OnStepX.git</code>, then <code>git checkout</code> at the
+        branch/tag/commit you typed in the <b>OnStepX source</b> field (default: latest <code>main</code>)</li>
+      <li>Write your generated <code>Config.h</code> over OnStepX's default</li>
+      <li>Run <code>pio run -e esp32</code> (or teensy40 / teensy41 / blackpill_f411). PlatformIO downloads the
+        MCU toolchain and any external libraries OnStepX needs, then compiles.</li>
+      <li>Bundle the outputs (firmware binary, bootloader, partitions, and &mdash; for ESP32 &mdash; a pre-merged
+        single-file image) into <code>firmware-&lt;uuid&gt;.zip</code>, published as a 1-day-retention workflow
+        artifact</li>
+    </ol>
+
+    <h4>The browser flasher</h4>
+    <p>Once your browser has the firmware zip, it unzips in memory and uses one of the Web APIs modern Chromium
+      browsers expose to talk to USB devices:</p>
+    <ul>
+      <li><b>Web Serial</b> for ESP32 &mdash; same protocol as <code>esptool.py</code>, using the
+        <a href="https://github.com/espressif/esptool-js" target="_blank">esptool-js</a> library loaded from a
+        CDN on first use.</li>
+      <li><b>WebUSB + DFU</b> for STM32 BlackPill &mdash; we wrote a small DFU client that speaks the same
+        protocol as <code>dfu-util</code>.</li>
+      <li><b>Download + hand off</b> for Teensy &mdash; HalfKay bootloader support in the browser is still
+        experimental; instead we save <code>firmware.hex</code> and you drag it into the PJRC Teensy Loader app
+        (which takes about 3 seconds).</li>
+    </ul>
+
+    <div class="help-tip">
+      <b>Nothing runs on anyone's private server.</b> All three free-tier services are transparent: you can
+      inspect the configurator source (GitHub Pages serves it), the Worker source, the build workflow, the
+      PlatformIO config. If the whole thing disappeared tomorrow, you could clone all three repos and deploy
+      your own in under an hour &mdash; see <code>SETUP-COMPILE-SERVICE.md</code> in the configurator repo.
+    </div>
+  </div>
+
+  <div class="section help-body" id="help-quickstart">
+    <div class="section-title">2 &middot; Quick start &mdash; board to firmware in 8 steps</div>
+
     <ol>
       <li>Open the <b>Controller</b> tab. Set <code>PINMAP</code> to whatever board you have
         (e.g. <code>MaxPCB4</code>, <code>MaxESP4</code>, <code>MaxSTM3</code>).</li>
-      <li>Open the <b>Calculator</b> tab. Fill in your mount's worm teeth, motor steps/rev, and gear ratio
-        for each axis &mdash; the steps/deg values used by Axis1/Axis2 are calculated from this.</li>
+      <li>Open the <b>Calculator</b> tab. Fill in your mount's worm teeth, motor steps/rev, and gear ratio for
+        each axis &mdash; the steps/deg values used by Axis1/Axis2 are calculated from this.</li>
       <li>Open <b>Axis1</b> and <b>Axis2</b>. Set <code>AXIS_DRIVER_MODEL</code> to whatever you're using
-        (e.g. <code>TMC2209</code>, <code>TMC5160</code>, <code>DRV8825</code>) and pick the microstepping.
+        (<code>TMC2209</code>, <code>TMC5160</code>, <code>DRV8825</code>, &hellip;) and pick the microstepping.
         Review the pre-filled steps/deg values.</li>
-      <li>Open <b>Mount</b>. Pick <code>MOUNT_TYPE</code> (<code>GEM</code> for German Equatorial,
-        <code>FORK</code>, <code>ALTAZM</code>, etc.).</li>
-      <li>Optional: pick any extras on <b>Rotator</b>, <b>Focuser</b>, <b>Auxiliary</b>.</li>
-      <li>Click <b>Generate &amp; View Config.h</b> at the bottom. Skim the output; make sure
-        <code>#define PINMAP</code> and driver/mount lines look right.</li>
-      <li>Open <b>Compile &amp; Flash</b>. The MCU target is auto-selected from your PINMAP. Click
-        <b>Compile Firmware</b>. Wait 1&ndash;3 min.</li>
+      <li>Open <b>Mount</b>. Pick <code>MOUNT_TYPE</code> (<code>GEM</code>, <code>FORK</code>, or
+        <code>ALTAZM</code>).</li>
+      <li>Optional: extras on <b>Rotator</b>, <b>Focuser</b>, <b>Auxiliary</b>.</li>
+      <li>Click the sticky <b>Generate &amp; View Config.h</b> button at the bottom. Skim the output; the
+        <code>#define PINMAP</code>, driver, and mount lines should look right.</li>
+      <li>Open <b>Compile &amp; Flash</b>. The MCU target auto-follows your PINMAP. The preflight checklist
+        tells you whether the build will even try. Click <b>Compile Firmware</b>. Wait 1&ndash;3 min.</li>
       <li>Put the board in bootloader mode (see <a href="#help-boards">below</a>), plug in USB, click
         <b>Flash to Board</b>, pick the device in the browser prompt. Done.</li>
     </ol>
 
     <div class="help-tip">
-      <b>First build is slower</b> (~2&ndash;3 min) because GitHub Actions has to download PlatformIO toolchains.
-      Subsequent builds of the same board are ~30&ndash;60 s thanks to caching.
+      <b>First build is slower</b> (~2&ndash;3 min) because GitHub Actions has to download the PlatformIO
+      toolchain and OnStepX's external libraries. Subsequent builds of the same board are ~30&ndash;60 s
+      thanks to caching.
     </div>
   </div>
 
   <div class="section help-body" id="help-tabs">
-    <div class="section-title">2 &middot; What each tab does</div>
+    <div class="section-title">3 &middot; What each tab does</div>
 
     <ul>
-      <li><b>Calculator</b> &mdash; enter physical mount/motor numbers (worm teeth, motor full steps, gear ratio,
-        belt ratio). It computes steps/deg, PEC period, and maximum slew rate for each axis. Copy the results
-        into the Axis tabs.</li>
-      <li><b>Controller</b> &mdash; board-level settings: <code>PINMAP</code>, serial/WiFi, weather/IMU sensors,
-        GPS, display.</li>
-      <li><b>Axis1 / Axis2</b> &mdash; per-axis driver config. Steps/deg, microsteps, driver model,
-        motor current (for TMC drivers), soft limits, reverse direction, tracking compensation.</li>
+      <li><b>Calculator</b> &mdash; enter physical mount/motor numbers (worm teeth, motor full steps, gear
+        ratio, belt ratio). It computes steps/deg, PEC period, and maximum slew rate for each axis. Copy
+        results into the Axis tabs.</li>
+      <li><b>Controller</b> &mdash; board-level settings: <code>PINMAP</code>, serial/WiFi, weather/IMU
+        sensors, GPS, display.</li>
+      <li><b>Axis1 / Axis2</b> &mdash; per-axis driver config: steps/deg, microsteps, driver model, motor
+        current (for TMC drivers), soft limits, reverse direction, tracking compensation.</li>
       <li><b>Mount</b> &mdash; mount type (GEM / FORK / ALTAZM), guide rates, parking, meridian flip behavior,
-        PEC, park/unpark.</li>
-      <li><b>Rotator / Focuser</b> &mdash; enable and configure up to one camera rotator and up to four focusers.</li>
-      <li><b>Auxiliary</b> &mdash; feature toggles (dew heaters, aux switches, TMC stall guard, etc.).</li>
-      <li><b>Output</b> &mdash; the generated <code>Config.h</code>. Copy, download, or load an existing one to
-        back-fill the form.</li>
-      <li><b>Compile &amp; Flash</b> &mdash; compile the current config online and flash over USB.</li>
+        PEC.</li>
+      <li><b>Rotator / Focuser</b> &mdash; enable and configure up to one camera rotator and up to four
+        focusers.</li>
+      <li><b>Auxiliary</b> &mdash; feature toggles (dew heaters, aux switches, TMC stall guard, &hellip;).</li>
+      <li><b>Output</b> &mdash; the generated <code>Config.h</code>. Copy, download, or load an existing one
+        to back-fill the form. <b>Reset to Defaults</b> clears saved state and reloads.</li>
+      <li><b>Compile &amp; Flash</b> &mdash; compile online and flash over USB.</li>
+      <li><b>? Help</b> &mdash; this page.</li>
     </ul>
   </div>
 
   <div class="section help-body" id="help-essentials">
-    <div class="section-title">3 &middot; The settings you actually have to change</div>
+    <div class="section-title">4 &middot; The settings you actually have to change</div>
 
     <p>Most defaults are fine. These are the ones you almost always have to set:</p>
 
-    <h4>Required</h4>
+    <h4>Required (compile will fail without these)</h4>
     <ul>
-      <li><code>PINMAP</code> (Controller) &mdash; pick the board you have. Wrong value = firmware drives wrong
-        pins.</li>
+      <li><code>PINMAP</code> (Controller) &mdash; pick the board you have. Wrong value = firmware drives
+        wrong pins.</li>
       <li><code>MOUNT_TYPE</code> (Mount) &mdash; <code>GEM</code>, <code>FORK</code>, or <code>ALTAZM</code>.</li>
       <li><code>AXIS1_STEPS_PER_DEGREE</code> and <code>AXIS2_STEPS_PER_DEGREE</code> (Axis1/Axis2) &mdash; from
         the Calculator.</li>
-      <li><code>AXIS1_DRIVER_MODEL</code> / <code>AXIS2_DRIVER_MODEL</code> &mdash; e.g. <code>TMC2209</code>,
-        <code>TMC5160</code>, <code>DRV8825</code>, <code>A4988</code>, <code>LV8729</code>.</li>
-      <li><code>AXIS1_DRIVER_MICROSTEPS</code> / <code>AXIS2_DRIVER_MICROSTEPS</code> &mdash; 16, 32, 64, 128, 256.
-        Higher = smoother tracking but more step rate on slews.</li>
+      <li><code>AXIS1_DRIVER_MODEL</code> / <code>AXIS2_DRIVER_MODEL</code> &mdash;
+        <code>TMC2209</code>, <code>TMC5160</code>, <code>DRV8825</code>, <code>A4988</code>,
+        <code>LV8729</code>, etc.</li>
+      <li><code>AXIS1_DRIVER_MICROSTEPS</code> / <code>AXIS2_DRIVER_MICROSTEPS</code> &mdash; 16, 32, 64, 128,
+        256. Higher = smoother tracking but more step rate on slews.</li>
     </ul>
 
     <h4>Very common adjustments</h4>
@@ -1704,9 +1842,9 @@
       <li><code>AXIS*_DRIVER_REVERSE</code> &mdash; flip if the axis moves the wrong way.</li>
       <li><code>AXIS*_LIMIT_MIN</code> / <code>_MAX</code> &mdash; soft limits in degrees.</li>
       <li><code>AXIS*_DRIVER_IRUN</code> / <code>_IHOLD</code> &mdash; motor current (mA) for TMC drivers.
-        Start low; raise only as needed. Too high = hot driver, skipped steps, burned stepper.</li>
-      <li><code>TRACK_REFRACTION</code> (Mount) &mdash; refraction-compensated tracking. Fine to leave OFF
-        for visual use.</li>
+        Start low, raise only as needed. Too high = hot driver, skipped steps, burned stepper.</li>
+      <li><code>TRACK_REFRACTION</code> (Mount) &mdash; refraction-compensated tracking. Fine to leave OFF for
+        visual use.</li>
       <li><code>WIFI</code> (Controller, ESP32 only) &mdash; enable if you want SkySafari over WiFi.</li>
     </ul>
 
@@ -1719,31 +1857,85 @@
     </ul>
 
     <div class="help-tip">
-      You can <b>load an existing Config.h</b> on the Output tab (the "Load Existing Config.h" button).
-      The form fields will populate from the file, so you can take a working config from your current
-      firmware and tweak from there.
+      You can <b>load an existing Config.h</b> on the Output tab. The form fields will populate from the
+      file, so you can take a working config from your current firmware and tweak from there.
+    </div>
+  </div>
+
+  <div class="section help-body" id="help-ref">
+    <div class="section-title">5 &middot; Picking an OnStepX version</div>
+
+    <p>On the Compile &amp; Flash tab, the <b>OnStepX source</b> field controls which version of the firmware
+      gets compiled. The default is <code>main</code> &mdash; the latest commit on
+      <a href="https://github.com/hjd1964/OnStepX" target="_blank">hjd1964/OnStepX</a>'s main branch.</p>
+
+    <p>You can type any of:</p>
+    <ul>
+      <li>A <b>branch name</b> &mdash; <code>main</code>, <code>develop</code>, or any feature branch that
+        exists upstream</li>
+      <li>A <b>tag</b> &mdash; e.g. <code>v10.24</code> to pin to a released version for reproducibility</li>
+      <li>A <b>commit SHA</b> &mdash; e.g. <code>1a2b3c4</code> for exact reproducibility or to try a specific
+        in-progress change</li>
+    </ul>
+
+    <p>Just below the field you'll see a live preview that resolves your input against GitHub and shows the
+      commit hash, author, date, and the first line of the commit message, so you know exactly what's about
+      to be compiled:</p>
+    <pre style="color:var(--label);">
+  Will build: hjd1964/OnStepX @ main &middot; 1a2b3c4 &middot; Howard Dutton &middot; 3 days ago
+              Add X-axis soft-limit check to mount park routine
+    </pre>
+
+    <p>If the ref doesn't exist (typo, or tag hasn't been published yet), you'll see a red "could not
+      resolve" message.</p>
+  </div>
+
+  <div class="section help-body" id="help-preflight">
+    <div class="section-title">6 &middot; The preflight checklist</div>
+
+    <p>Before any Compile actually goes to the cloud, a local validator scans your form for common mistakes
+      so you don't waste a 2-minute build on an obvious oversight:</p>
+    <ul>
+      <li><b>PINMAP &harr; MCU match</b> &mdash; picking <code>MaxPCB4</code> (a Teensy 4.1 board) while the
+        target MCU is set to ESP32 will fail. The checklist catches this before it hits the runner.</li>
+      <li><b>Required fields</b> &mdash; <code>PINMAP</code>, <code>MOUNT_TYPE</code>, axis driver model, and
+        steps/deg must all be set.</li>
+      <li><b>Driver microsteps</b> &mdash; A4988 won't do 256, DRV8825 maxes at 32, etc.</li>
+      <li><b>Unusual steps/deg</b> &mdash; typical values are 5,000&ndash;50,000; anything outside
+        500&ndash;200,000 is flagged.</li>
+      <li><b>Secret-looking values</b> &mdash; if your Config.h has a non-empty field whose name contains
+        <code>PASSWORD</code>, <code>KEY</code>, <code>SECRET</code>, or <code>TOKEN</code>, you're warned
+        because it would appear in the public GitHub Actions log.</li>
+    </ul>
+
+    <p>You see each issue listed with a red &#x2717; (error) or yellow &#x26A0; (warning) icon. The Compile
+      button stays disabled until you either resolve the issues or tick the
+      <b>"I understand the issues above &mdash; build anyway"</b> override. This is intentional: the checklist
+      is a safety net for beginners, not a straightjacket for power users who know what they're doing.</p>
+
+    <div class="help-tip">
+      Your form state is saved automatically to your browser's local storage every time you change a field,
+      so a refresh won't lose your work. <b>Reset to Defaults</b> on the Output tab clears it.
     </div>
   </div>
 
   <div class="section help-body" id="help-boards">
-    <div class="section-title">4 &middot; Board-by-board USB preparation</div>
+    <div class="section-title">7 &middot; Board-by-board USB preparation</div>
 
     <h4>ESP32 (MaxESP3, MaxESP4, FYSETC_E4, generic ESP32 dev boards)</h4>
     <ol>
-      <li>Connect USB. Most dev boards (and MaxESP*) auto-reset into bootloader when the tool grabs the port.</li>
+      <li>Connect USB. Most dev boards (and MaxESP*) auto-reset into bootloader when esptool grabs the port.</li>
       <li>If auto-reset fails: hold <kbd>BOOT</kbd> / <kbd>IO0</kbd>, tap <kbd>EN</kbd> / <kbd>RST</kbd>,
         release BOOT.</li>
-      <li>Click <b>Flash to Board</b>, pick the port (it'll be something like
+      <li>Click <b>Flash to Board</b>, pick the port in the browser prompt (it'll be labeled something like
         <i>CP2102</i>, <i>CH340</i>, or <i>USB JTAG/serial debug unit</i>).</li>
       <li>Flashing takes 15&ndash;40 s. Board auto-resets into firmware when done.</li>
     </ol>
-    <p>Typical USB-serial chip vendor IDs you'll see in the picker: Silicon Labs <code>10C4</code>,
-      WCH <code>1A86</code>, FTDI <code>0403</code>, Espressif native USB <code>303A</code>.</p>
 
     <h4>STM32 BlackPill F411CE (and MaxSTM3)</h4>
     <ol>
-      <li>Connect USB (USB-C or micro, depending on the variant).</li>
-      <li>Hold <kbd>BOOT0</kbd>, tap <kbd>NRST</kbd>, release BOOT0. The board enumerates as
+      <li>Connect USB.</li>
+      <li>Hold <kbd>BOOT0</kbd>, tap <kbd>NRST</kbd>, release BOOT0. The board re-enumerates as
         <i>STM32 BOOTLOADER</i> (VID <code>0483</code> / PID <code>DF11</code>).</li>
       <li>Click <b>Flash to Board</b>, pick <i>STM32 BOOTLOADER</i> in the browser prompt.</li>
       <li>Wait for "Flash complete", then tap <kbd>NRST</kbd> to run your firmware.</li>
@@ -1755,34 +1947,31 @@
     </div>
 
     <h4>Teensy 4.0 / 4.1 / MaxPCB4</h4>
-    <p>Browser flashing for Teensy isn't wired up yet (the HalfKay protocol has enough per-chip quirks that
-      a half-working version would be worse than Teensy's own loader). Instead:</p>
     <ol>
-      <li>Click <b>Flash to Board</b> &mdash; it saves <code>firmware.hex</code>.</li>
-      <li>Install <a href="https://www.pjrc.com/teensy/td_download.html" target="_blank">Teensyduino</a>
-        (comes with the Teensy Loader app), or just the standalone
-        <a href="https://www.pjrc.com/teensy/loader.html" target="_blank">Teensy Loader</a>.</li>
-      <li>Open Teensy Loader, drop the saved <code>firmware.hex</code> onto the window.</li>
-      <li>Press the white <b>program</b> button on the Teensy &mdash; it flashes and reboots automatically.</li>
+      <li>Click <b>Flash to Board</b> &mdash; it saves <code>firmware.hex</code> to your Downloads folder.</li>
+      <li>Open <a href="https://www.pjrc.com/teensy/loader.html" target="_blank">Teensy Loader</a>
+        (comes with <a href="https://www.pjrc.com/teensy/td_download.html" target="_blank">Teensyduino</a>).</li>
+      <li>Drop <code>firmware.hex</code> onto the window.</li>
+      <li>Press the white program button on the Teensy &mdash; it flashes and reboots automatically.</li>
     </ol>
-    <p>If you prefer CLI:</p>
+    <p>CLI alternative if you have Teensyduino installed:</p>
     <pre>teensy_loader_cli --mcu=TEENSY41 -w -v firmware.hex   # 4.1 / MaxPCB4
 teensy_loader_cli --mcu=TEENSY40 -w -v firmware.hex   # 4.0</pre>
   </div>
 
   <div class="section help-body" id="help-browser">
-    <div class="section-title">5 &middot; Browser requirements</div>
+    <div class="section-title">8 &middot; Browser requirements</div>
 
     <table style="width:100%;border-collapse:collapse;margin-bottom:10px;">
       <tr style="background:var(--accent);">
         <th style="padding:6px;text-align:left;border:1px solid var(--border);">Browser</th>
-        <th style="padding:6px;text-align:left;border:1px solid var(--border);">Compile</th>
+        <th style="padding:6px;text-align:left;border:1px solid var(--border);">Configurator &amp; Compile</th>
         <th style="padding:6px;text-align:left;border:1px solid var(--border);">ESP32 flash</th>
-        <th style="padding:6px;text-align:left;border:1px solid var(--border);">STM32 DFU</th>
-        <th style="padding:6px;text-align:left;border:1px solid var(--border);">Teensy .hex DL</th>
+        <th style="padding:6px;text-align:left;border:1px solid var(--border);">STM32 DFU flash</th>
+        <th style="padding:6px;text-align:left;border:1px solid var(--border);">Teensy .hex download</th>
       </tr>
       <tr>
-        <td style="padding:6px;border:1px solid var(--border);">Chrome, Edge, Opera, Brave</td>
+        <td style="padding:6px;border:1px solid var(--border);">Chrome, Edge, Opera, Brave (Chromium)</td>
         <td style="padding:6px;border:1px solid var(--border);color:var(--green);">yes</td>
         <td style="padding:6px;border:1px solid var(--border);color:var(--green);">yes (Web Serial)</td>
         <td style="padding:6px;border:1px solid var(--border);color:var(--green);">yes (WebUSB)</td>
@@ -1803,32 +1992,88 @@ teensy_loader_cli --mcu=TEENSY40 -w -v firmware.hex   # 4.0</pre>
         <td style="padding:6px;border:1px solid var(--border);color:var(--green);">yes</td>
       </tr>
     </table>
-    <p>Firefox and Safari can generate a config and trigger a compile (and download the firmware), but flashing
-      needs Web Serial / WebUSB &mdash; which only Chromium-based browsers implement. If you can't switch,
-      download the firmware and use a desktop tool (esptool.py for ESP32, dfu-util for STM32).</p>
+    <p>Firefox / Safari can generate a config, trigger a compile, and <b>download</b> the firmware &mdash;
+      they just can't flash via the browser. If you're on one of those, download the firmware and use
+      <code>esptool.py</code> (ESP32) or <code>dfu-util</code> (STM32) locally.</p>
+  </div>
+
+  <div class="section help-body" id="help-privacy">
+    <div class="section-title">9 &middot; Privacy &amp; what gets logged</div>
+
+    <p>Here's exactly what leaves your browser and where it ends up:</p>
+
+    <table style="width:100%;border-collapse:collapse;margin-bottom:10px;">
+      <tr style="background:var(--accent);">
+        <th style="padding:6px;text-align:left;border:1px solid var(--border);">Data</th>
+        <th style="padding:6px;text-align:left;border:1px solid var(--border);">Where it goes</th>
+        <th style="padding:6px;text-align:left;border:1px solid var(--border);">How long it stays</th>
+      </tr>
+      <tr>
+        <td style="padding:6px;border:1px solid var(--border);">Your Config.h (base64-encoded)</td>
+        <td style="padding:6px;border:1px solid var(--border);">Cloudflare Worker &rarr; GitHub Actions as a workflow input</td>
+        <td style="padding:6px;border:1px solid var(--border);">Logged in the Actions run metadata indefinitely (public repo)</td>
+      </tr>
+      <tr>
+        <td style="padding:6px;border:1px solid var(--border);">Board selection &amp; OnStepX ref</td>
+        <td style="padding:6px;border:1px solid var(--border);">Same as above</td>
+        <td style="padding:6px;border:1px solid var(--border);">Same</td>
+      </tr>
+      <tr>
+        <td style="padding:6px;border:1px solid var(--border);">Your IP address (for rate limiting only)</td>
+        <td style="padding:6px;border:1px solid var(--border);">Cloudflare Worker KV (if rate limit is enabled)</td>
+        <td style="padding:6px;border:1px solid var(--border);">1 hour</td>
+      </tr>
+      <tr>
+        <td style="padding:6px;border:1px solid var(--border);">The compiled firmware</td>
+        <td style="padding:6px;border:1px solid var(--border);">GitHub Actions artifact storage</td>
+        <td style="padding:6px;border:1px solid var(--border);">24 hours, then deleted automatically</td>
+      </tr>
+      <tr>
+        <td style="padding:6px;border:1px solid var(--border);">Form state (all your settings)</td>
+        <td style="padding:6px;border:1px solid var(--border);">Your browser's localStorage</td>
+        <td style="padding:6px;border:1px solid var(--border);">Until you click Reset to Defaults or clear site data</td>
+      </tr>
+    </table>
+
+    <div class="help-warn">
+      <b>Don't put WiFi passwords, API keys, or other secrets in Config.h.</b> The workflow input is visible
+      in the public Actions log. Leave those fields at <code>OFF</code> / empty and configure them over the
+      OnStepX web UI <i>after</i> flashing, where they only live on your board.
+    </div>
+
+    <p>The configurator itself sends no analytics, no telemetry, no trackers. Nothing leaves your browser
+      until you click Compile.</p>
   </div>
 
   <div class="section help-body" id="help-troubleshoot">
-    <div class="section-title">6 &middot; Troubleshooting</div>
+    <div class="section-title">10 &middot; Troubleshooting</div>
 
     <h4>"Compile service is not configured yet"</h4>
-    <p>The operator hasn't deployed the build backend yet. Download the generated Config.h and build locally
-      with PlatformIO or the Arduino IDE for now.</p>
+    <p>The site owner hasn't deployed the Cloudflare Worker, or <code>WORKER_URL</code> in
+      <code>compile.js</code> still has the placeholder. For the owner: follow
+      <code>SETUP-COMPILE-SERVICE.md</code>.</p>
 
     <h4>Compile starts but fails</h4>
-    <p>Click the <code>run URL</code> printed in the compile log. That opens the GitHub Actions page for your
-      build. The "PlatformIO build" step contains the compiler error. Usually it's one of:</p>
+    <p>Click the <code>run URL</code> printed in the compile log. That opens the GitHub Actions page for
+      your build. The "PlatformIO build" step contains the compiler error. Common causes:</p>
     <ul>
-      <li>A PINMAP incompatible with the MCU target you picked (e.g. MaxESP4 selected but target is Teensy).</li>
+      <li>A PINMAP incompatible with the MCU target (the preflight usually catches this &mdash; override it
+        only if you're sure).</li>
       <li>A driver model or feature enabled that the selected pinmap doesn't have pins for.</li>
-      <li>A required field left at <code>OFF</code> &mdash; scroll up in the log for
-        <code>#error</code> lines from <code>Validate.h</code>.</li>
+      <li>A required field left at <code>OFF</code> &mdash; scroll up in the log for <code>#error</code>
+        lines from <code>Validate.h</code>.</li>
+      <li>You picked a branch/tag that doesn't exist. The "Fetch upstream OnStepX" step will fail at
+        <code>git checkout</code>.</li>
     </ul>
 
     <h4>Build succeeded, Flash button is disabled</h4>
-    <p>The firmware artifact couldn't be downloaded. Reload the page, re-compile, and check the browser console
-      for a <code>firmware download failed</code> line. Usually means the artifact already expired (1 day
-      retention) or the Worker URL is wrong.</p>
+    <p>The firmware artifact couldn't be downloaded. Reload the page, re-compile, and watch for a
+      <code>firmware download failed</code> line in the compile log. Usually means the artifact already
+      expired (24 h retention) or the Worker URL is wrong.</p>
+
+    <h4>"Your config has changed since this firmware was built"</h4>
+    <p>You edited the form after compiling. The firmware on disk is stale. Click <b>Compile Firmware</b>
+      again, or click Cancel to flash the outdated firmware anyway (rarely what you want).</p>
 
     <h4>Flashing ESP32: "Failed to connect"</h4>
     <ol>
@@ -1840,10 +2085,10 @@ teensy_loader_cli --mcu=TEENSY40 -w -v firmware.hex   # 4.0</pre>
 
     <h4>Flashing STM32: device doesn't appear in the picker</h4>
     <ol>
-      <li>Make sure you actually entered DFU: hold BOOT0, tap NRST, release BOOT0. Device should re-enumerate
-        with a different name.</li>
+      <li>Make sure you actually entered DFU: hold BOOT0, tap NRST, release BOOT0. The device name in
+        Device Manager / <code>lsusb</code> should change.</li>
       <li>On Windows: install the WinUSB driver via Zadig (see the BlackPill warning above).</li>
-      <li>Confirm with <code>lsusb</code> (Linux) or Device Manager (Windows) that VID:PID 0483:DF11 is present.</li>
+      <li>Confirm VID:PID <code>0483:DF11</code> is present.</li>
     </ol>
 
     <h4>Teensy Loader doesn't see my .hex</h4>
@@ -1852,58 +2097,57 @@ teensy_loader_cli --mcu=TEENSY40 -w -v firmware.hex   # 4.0</pre>
       open.</p>
 
     <h4>Firmware runs but axis moves wrong direction / doesn't move</h4>
-    <p>This is config, not firmware. Toggle <code>AXIS1_DRIVER_REVERSE</code> / <code>AXIS2_DRIVER_REVERSE</code>,
-      re-generate, re-compile, re-flash. Also check wiring &mdash; if step/dir pins aren't connected, the
-      firmware is fine but nothing moves.</p>
+    <p>That's config, not firmware. Toggle <code>AXIS1_DRIVER_REVERSE</code> / <code>AXIS2_DRIVER_REVERSE</code>,
+      re-generate, re-compile, re-flash. If nothing moves at all, check the wiring &mdash; if step/dir pins
+      aren't connected, the firmware is fine but the stepper won't move.</p>
 
     <h4>Rate limit hit</h4>
     <p>If the service enforces rate limits (default: 10 builds/hour/IP), wait an hour. If you're iterating
-      heavily, set up a local PlatformIO checkout &mdash; clone
+      heavily, set up a local PlatformIO checkout: clone
       <a href="https://github.com/hjd1964/OnStepX" target="_blank">hjd1964/OnStepX</a>, drop your
-      <code>Config.h</code> in, <code>pio run -e &lt;env&gt;</code>.</p>
+      Config.h in, <code>pio run -e &lt;env&gt;</code>.</p>
   </div>
 
   <div class="section help-body" id="help-faq">
-    <div class="section-title">7 &middot; FAQ</div>
-
-    <h4>Is my Config.h sent anywhere permanent?</h4>
-    <p>Each compile request base64-encodes your Config.h and sends it as a workflow input to a GitHub Actions
-      run. GitHub logs the workflow input, so treat anything in Config.h as visible to the build-service repo's
-      admin. Don't put WiFi passwords in PASSWORD fields if that matters to you &mdash; leave them <code>OFF</code>
-      and configure over the web interface after flashing.</p>
+    <div class="section-title">11 &middot; FAQ</div>
 
     <h4>Which OnStepX version does this build?</h4>
-    <p>Whatever you type in the <b>OnStepX source</b> field on the Compile &amp; Flash tab — defaults to
-      <code>main</code> (latest upstream). The workflow <code>git clone</code>s
-      <a href="https://github.com/hjd1964/OnStepX" target="_blank">hjd1964/OnStepX</a> fresh on every build
-      and checks out your chosen ref.</p>
-    <p>You can type any of:</p>
-    <ul>
-      <li>A branch name &mdash; <code>main</code>, <code>develop</code></li>
-      <li>A tag &mdash; <code>v10.24</code> (pin to a known-good release for reproducibility)</li>
-      <li>A 7+ character commit SHA &mdash; <code>1a2b3c4</code> (exact reproducibility)</li>
-    </ul>
-    <p>Below the field you'll see the resolved commit, author, and date, so you know exactly what's
-      about to compile before you hit the button. If the ref doesn't exist, the build fails at the
-      <code>git checkout</code> step &mdash; check the run URL in the compile log.</p>
+    <p>Whatever you type in the <b>OnStepX source</b> field on the Compile &amp; Flash tab &mdash; defaults
+      to <code>main</code> (latest). The live preview under the field shows the exact commit. See
+      <a href="#help-ref">Picking an OnStepX version</a>.</p>
+
+    <h4>Is my Config.h sent anywhere permanent?</h4>
+    <p>Yes &mdash; each compile request base64-encodes your Config.h and sends it as a GitHub Actions workflow
+      input. Public-repo Actions logs are visible to anyone, so treat Config.h as public. See
+      <a href="#help-privacy">Privacy</a>.</p>
 
     <h4>Can I build for a board that's not in the list?</h4>
     <p>Today, no &mdash; the backend has PlatformIO environments for ESP32, Teensy 4.0, Teensy 4.1, and
-      STM32F411 BlackPill only. If you need another (STM32F407, SKR Pro with full pinmap, etc.), it needs an
-      env added to the build-service repo's <code>platformio.ini</code>.</p>
+      STM32F411 BlackPill only. Adding a new board means adding an env to
+      <code>build-service/platformio.ini</code> in the build service repo.</p>
 
     <h4>Can I run this offline?</h4>
-    <p>You can generate Config.h offline (this page works fully offline once loaded). Compiling needs the
-      online build service. If you want an offline toolchain: install
+    <p>You can generate Config.h offline &mdash; this page works fully offline once loaded. Compiling needs
+      the online service. For a fully offline toolchain, install
       <a href="https://platformio.org/install/cli" target="_blank">PlatformIO</a>, clone
-      <code>hjd1964/OnStepX</code>, and run <code>pio run -e esp32</code> (or whatever env you need).</p>
+      <code>hjd1964/OnStepX</code>, and run <code>pio run -e esp32</code> (or whatever env).</p>
 
-    <h4>The configurator is broken / is giving weird output</h4>
-    <p>File an issue at <a href="https://github.com/christm45/OnStepX-Configurator/issues" target="_blank">the
-      configurator repo</a>. If the issue is with OnStepX itself (firmware behavior, missing features), use
+    <h4>How much does this cost the site owner?</h4>
+    <p>Zero at the scale of a hobby project. GitHub Pages, GitHub Actions (on public repos), and Cloudflare
+      Workers all have free tiers that comfortably fit hundreds of builds per day.</p>
+
+    <h4>Can someone else clone this and run their own instance?</h4>
+    <p>Yes. Everything is open-source. Fork <code>christm45/OnStepX-Configurator</code>, follow
+      <code>SETUP-COMPILE-SERVICE.md</code>, redeploy. The whole pipeline takes under an hour end-to-end.</p>
+
+    <h4>The configurator is broken / giving weird output</h4>
+    <p>File an issue at
+      <a href="https://github.com/christm45/OnStepX-Configurator/issues" target="_blank">the configurator
+      repo</a>. If the issue is with OnStepX itself (firmware behavior, missing features), use
       <a href="https://onstep.groups.io/g/main" target="_blank">the OnStep group</a> or the
       <a href="https://github.com/hjd1964/OnStepX/issues" target="_blank">upstream repo</a>.</p>
   </div>
+
 </div>
 
 <!-- Persistent bottom bar -->
