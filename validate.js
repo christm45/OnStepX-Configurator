@@ -99,6 +99,18 @@ export function validateConfig(values) {
     add('error', 'COMPILE_ENV', 'No MCU target selected on the Compile & Flash tab.');
   }
 
+  // --- Teensy 4.x requires STEP_WAVE_FORM=SQUARE (hard constraint in
+  //     OnStepX Validate.h). PULSE compiles fine on ESP32/STM32 but the
+  //     Teensy 4.x step engine needs the SQUARE waveform. Upstream fires
+  //     '#error "Setting STEP_WAVE_FORM SQUARE is required for the
+  //     Teensy4.0 and 4.1"' otherwise.
+  if ((values.COMPILE_ENV === 'teensy40' || values.COMPILE_ENV === 'teensy41') &&
+      values.STEP_WAVE_FORM && values.STEP_WAVE_FORM !== 'SQUARE') {
+    add('error', 'STEP_WAVE_FORM',
+      `Teensy 4.x requires STEP_WAVE_FORM=SQUARE (currently ${values.STEP_WAVE_FORM}). ` +
+      `Fix on the Controller tab, or the compile will fail with Validate.h #error.`);
+  }
+
   const counts = {
     error: issues.filter((i) => i.level === 'error').length,
     warn: issues.filter((i) => i.level === 'warn').length,

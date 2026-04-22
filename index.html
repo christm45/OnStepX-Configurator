@@ -4125,7 +4125,7 @@ document.getElementById('configOutput')?.addEventListener('input', () => {
 
 // --- Preflight check --------------------------------------------------------
 const relevantIds = [
-  'PINMAP', 'COMPILE_ENV', 'MOUNT_TYPE',
+  'PINMAP', 'COMPILE_ENV', 'MOUNT_TYPE', 'STEP_WAVE_FORM',
   'AXIS1_DRIVER_MODEL', 'AXIS1_DRIVER_MICROSTEPS', 'AXIS1_STEPS_PER_DEGREE',
   'AXIS2_DRIVER_MODEL', 'AXIS2_DRIVER_MICROSTEPS', 'AXIS2_STEPS_PER_DEGREE',
 ];
@@ -4355,10 +4355,27 @@ function autoPinRefForPinmap() {
   }
 }
 
+// Hard OnStepX constraint: Teensy 4.0/4.1 need STEP_WAVE_FORM=SQUARE.
+// Validate.h fires '#error "STEP_WAVE_FORM SQUARE is required for the
+// Teensy4.0 and 4.1"' otherwise. Auto-correct on COMPILE_ENV change so the
+// user doesn't have to hunt for the field on the Controller tab.
+function autoFixForCompileEnv() {
+  const env = document.getElementById('COMPILE_ENV')?.value;
+  const swf = document.getElementById('STEP_WAVE_FORM');
+  if (!swf) return;
+  if ((env === 'teensy40' || env === 'teensy41') && swf.value !== 'SQUARE') {
+    swf.value = 'SQUARE';
+    swf.dispatchEvent(new Event('change', { bubbles: true }));
+    showStatus?.(`Auto-set STEP_WAVE_FORM=SQUARE — required for ${env}.`);
+  }
+}
+
 document.getElementById('PINMAP')?.addEventListener('change', () => {
-  syncEnvFromPinmap(); refreshBoardDefaultsButton(); autoPinRefForPinmap(); runPreflight();
+  syncEnvFromPinmap(); refreshBoardDefaultsButton(); autoPinRefForPinmap(); autoFixForCompileEnv(); runPreflight();
 });
-document.getElementById('COMPILE_ENV')?.addEventListener('change', () => { refreshFlashSupportHint(); runPreflight(); });
+document.getElementById('COMPILE_ENV')?.addEventListener('change', () => {
+  refreshFlashSupportHint(); autoFixForCompileEnv(); runPreflight();
+});
 // Initialise mode (sets tab visibility, board options, title — also calls runPreflight)
 renderPlugins();
 setMode(window.currentMode);
