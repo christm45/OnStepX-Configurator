@@ -656,6 +656,15 @@
       </select>
       <span class="field-hint">Board pinmap selection</span>
     </div>
+    <div class="field-row">
+      <label class="field-label"></label>
+      <button type="button" class="btn btn-copy" id="applyBoardDefaultsBtn"
+              onclick="applyBoardDefaults()"
+              style="grid-column: 2; justify-self: start; padding: 6px 12px; font-size: 0.85em;">
+        Apply board defaults
+      </button>
+      <span class="field-hint" id="applyBoardDefaultsHint">Fill in driver model, microsteps, current, etc. for the selected PINMAP</span>
+    </div>
   </div>
   <div class="section">
     <div class="section-title">Serial Ports</div>
@@ -3462,6 +3471,172 @@ function setMode(mode) {
 }
 window.setMode = setMode;
 
+// ---------------------------------------------------------------------------
+// Per-board starter configs. Applied when the user clicks "Apply board
+// defaults" on the Controller tab. Pulls driver model, microsteps, current,
+// steps/deg, mount type, etc. suitable for the selected PINMAP.
+//
+// FYSETC_E4 values come from hjd1964/OnStepX branch "E4" (Howard's own
+// reference config for that board). Other entries are informed starter
+// values — verify against your actual hardware before flashing.
+// ---------------------------------------------------------------------------
+const BOARD_DEFAULTS = {
+  FYSETC_E4: {
+    label: 'FYSETC E4',
+    note: 'From hjd1964/OnStepX branch "E4". TMC2209 drivers on-board, GEM mount preset.',
+    fields: {
+      AXIS1_DRIVER_MODEL: 'TMC2209', AXIS2_DRIVER_MODEL: 'TMC2209',
+      AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
+      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
+      AXIS1_DRIVER_IRUN: '500', AXIS2_DRIVER_IRUN: '500',
+      MOUNT_TYPE: 'GEM',
+      TIME_LOCATION_SOURCE: 'DS3231',
+      WEATHER: 'BME280_0x76',
+      SERIAL_A_BAUD_DEFAULT: '9600',
+    },
+  },
+  MaxESP4: {
+    label: 'MaxESP4',
+    note: 'ESP32 with TMC2209 UART-mode drivers (typical configuration). Verify IRUN against your motors.',
+    fields: {
+      AXIS1_DRIVER_MODEL: 'TMC2209', AXIS2_DRIVER_MODEL: 'TMC2209',
+      AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
+      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
+      AXIS1_DRIVER_IRUN: '600', AXIS2_DRIVER_IRUN: '600',
+      MOUNT_TYPE: 'GEM',
+    },
+  },
+  MaxPCB4: {
+    label: 'MaxPCB4',
+    note: 'Teensy 4.1 with TMC5160 SPI drivers (typical high-torque configuration).',
+    fields: {
+      AXIS1_DRIVER_MODEL: 'TMC5160', AXIS2_DRIVER_MODEL: 'TMC5160',
+      AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
+      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
+      AXIS1_DRIVER_IRUN: '800', AXIS2_DRIVER_IRUN: '800',
+      MOUNT_TYPE: 'GEM',
+    },
+  },
+  MaxSTM3: {
+    label: 'MaxSTM3',
+    note: 'STM32F411 BlackPill with TMC2209 drivers (typical mid-range configuration).',
+    fields: {
+      AXIS1_DRIVER_MODEL: 'TMC2209', AXIS2_DRIVER_MODEL: 'TMC2209',
+      AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
+      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
+      AXIS1_DRIVER_IRUN: '600', AXIS2_DRIVER_IRUN: '600',
+      MOUNT_TYPE: 'GEM',
+    },
+  },
+  BTT_SKR_PRO: {
+    label: 'BigTreeTech SKR Pro',
+    note: 'STM32F407 with TMC5160 SPI drivers — same driver family as MaxPCB4.',
+    fields: {
+      AXIS1_DRIVER_MODEL: 'TMC5160', AXIS2_DRIVER_MODEL: 'TMC5160',
+      AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
+      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
+      AXIS1_DRIVER_IRUN: '800', AXIS2_DRIVER_IRUN: '800',
+      MOUNT_TYPE: 'GEM',
+    },
+  },
+  CNC3: {
+    label: 'CNC3 (Teensy 4.0)',
+    note: 'Teensy 4.0 on a generic CNC shield — driver is whatever step-stick you plug in. Defaults to DRV8825.',
+    fields: {
+      AXIS1_DRIVER_MODEL: 'DRV8825', AXIS2_DRIVER_MODEL: 'DRV8825',
+      AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
+      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
+      MOUNT_TYPE: 'GEM',
+    },
+  },
+  CNC3_2: {
+    label: 'CNC3 v2 (Teensy 4.0)',
+    note: 'Teensy 4.0 CNC shield v2 — driver is whatever step-stick you plug in. Defaults to DRV8825.',
+    fields: {
+      AXIS1_DRIVER_MODEL: 'DRV8825', AXIS2_DRIVER_MODEL: 'DRV8825',
+      AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
+      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
+      MOUNT_TYPE: 'GEM',
+    },
+  },
+  MiniPCB: {
+    label: 'MiniPCB (legacy)',
+    note: 'Teensy 3.2 with removable step-sticks (legacy OnStep reference design).',
+    fields: {
+      AXIS1_DRIVER_MODEL: 'DRV8825', AXIS2_DRIVER_MODEL: 'DRV8825',
+      AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
+      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
+      MOUNT_TYPE: 'GEM',
+    },
+  },
+  MiniPCB2: {
+    label: 'MiniPCB2 (legacy)',
+    note: 'Teensy 3.2 with removable step-sticks — revised layout of MiniPCB.',
+    fields: {
+      AXIS1_DRIVER_MODEL: 'DRV8825', AXIS2_DRIVER_MODEL: 'DRV8825',
+      AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
+      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
+      MOUNT_TYPE: 'GEM',
+    },
+  },
+};
+
+function refreshBoardDefaultsButton() {
+  const btn = document.getElementById('applyBoardDefaultsBtn');
+  const hint = document.getElementById('applyBoardDefaultsHint');
+  if (!btn) return;
+  const pinmap = document.getElementById('PINMAP')?.value || 'OFF';
+  const entry = BOARD_DEFAULTS[pinmap];
+  if (entry) {
+    btn.textContent = `Apply ${entry.label} defaults`;
+    btn.disabled = false;
+    if (hint) hint.textContent = entry.note;
+  } else {
+    btn.textContent = 'Apply board defaults';
+    btn.disabled = true;
+    if (hint) {
+      hint.textContent = pinmap === 'OFF'
+        ? 'Pick a PINMAP first.'
+        : `No starter config shipped for ${pinmap} yet — configure the axes manually on the Axis tabs.`;
+    }
+  }
+}
+window.applyBoardDefaults = function () {
+  const pinmap = document.getElementById('PINMAP')?.value;
+  const entry = BOARD_DEFAULTS[pinmap];
+  if (!entry) return;
+
+  const existing = Object.keys(entry.fields)
+    .map((id) => {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const current = el.value;
+      const next = entry.fields[id];
+      return current !== next ? { id, current, next } : null;
+    })
+    .filter(Boolean);
+
+  if (existing.length === 0) {
+    showStatus?.('Form already matches the board defaults.');
+    return;
+  }
+
+  const preview = existing.map((e) => `  ${e.id}: "${e.current || '(empty)'}" → "${e.next}"`).join('\n');
+  const ok = confirm(
+    `Apply ${entry.label} starter config? The following fields will be overwritten:\n\n${preview}\n\n` +
+    `Other fields you've set (calculator, guide rates, etc.) are kept.`
+  );
+  if (!ok) return;
+
+  for (const { id, next } of existing) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.value = next;
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  showStatus?.(`${entry.label} defaults applied.`);
+};
+
 function updateCompileBoardOptions() {
   const sel = document.getElementById('COMPILE_ENV');
   if (!sel) return;
@@ -3863,11 +4038,14 @@ function syncEnvFromPinmap() {
   }
   refreshFlashSupportHint();
 }
-document.getElementById('PINMAP')?.addEventListener('change', () => { syncEnvFromPinmap(); runPreflight(); });
+document.getElementById('PINMAP')?.addEventListener('change', () => {
+  syncEnvFromPinmap(); refreshBoardDefaultsButton(); runPreflight();
+});
 document.getElementById('COMPILE_ENV')?.addEventListener('change', () => { refreshFlashSupportHint(); runPreflight(); });
 // Initialise mode (sets tab visibility, board options, title — also calls runPreflight)
 setMode(window.currentMode);
 syncEnvFromPinmap();
+refreshBoardDefaultsButton();
 
 // --- Live resolver for the OnStepX ref field --------------------------------
 const refInput = document.getElementById('ONSTEPX_REF');
