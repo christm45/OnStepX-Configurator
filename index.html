@@ -3921,17 +3921,19 @@ function appendLog(targetId, line) {
 }
 
 function refreshFlashSupportHint() {
-  const env = document.getElementById('COMPILE_ENV')?.value;
+  const env = document.getElementById('COMPILE_ENV')?.value || '';
   const hint = document.getElementById('flashSupport');
   if (!hint) return;
   const msgs = [];
-  if (env === 'esp32' && !esp32Flasher.supported()) {
-    msgs.push('Your browser does not support Web Serial — ESP32 flashing needs Chrome/Edge/Opera.');
+  const isEsp = env === 'esp32' || env === 'shc_esp32' || env === 'sws_esp32' || env === 'sws_esp8266';
+  const isTeensy = /^teensy4[01]$|^shc_teensy(40|32)$/.test(env);
+  if (isEsp && !esp32Flasher.supported()) {
+    msgs.push('Your browser does not support Web Serial — ESP32/ESP8266 flashing needs Chrome/Edge/Opera.');
   }
   if (env === 'blackpill_f411' && !stm32Flasher.supported()) {
     msgs.push('Your browser does not support WebUSB — STM32 flashing needs Chrome/Edge/Opera.');
   }
-  if (env === 'teensy40' || env === 'teensy41') {
+  if (isTeensy) {
     msgs.push('Teensy: clicking "Flash to Board" will save firmware.hex and open Teensy Loader instructions.');
   }
   hint.textContent = msgs.join(' ');
@@ -4008,15 +4010,10 @@ window.startCompileFlow = async function () {
 
 window.downloadFirmware = function () {
   if (!lastBuild) return;
-  const { env, files } = lastBuild;
-  if (env === 'esp32') {
-    // Download the "application" binary users most commonly want
-    if (files['firmware.bin']) downloadBlob('firmware.bin', files['firmware.bin']);
-  } else if (env === 'teensy40' || env === 'teensy41') {
-    if (files['firmware.hex']) downloadBlob('firmware.hex', files['firmware.hex'], 'text/plain');
-  } else if (env === 'blackpill_f411') {
-    if (files['firmware.bin']) downloadBlob('firmware.bin', files['firmware.bin']);
-  }
+  const { files } = lastBuild;
+  // Prefer the app firmware.bin; .hex for Teensy; otherwise grab whatever exists.
+  if (files['firmware.bin']) downloadBlob('firmware.bin', files['firmware.bin']);
+  else if (files['firmware.hex']) downloadBlob('firmware.hex', files['firmware.hex'], 'text/plain');
 };
 
 window.flashBoard = async function () {
@@ -4050,9 +4047,16 @@ window.flashBoard = async function () {
   flashBtn.disabled = true;
   try {
     const { env, files } = lastBuild;
-    if (env === 'esp32') await esp32Flasher.flash(files, log);
+    // All ESP32 builds (OnStepX / SHC / SWS) share the Web Serial flasher.
+    // Both ESP32 and ESP8266 are supported by esptool-js; the flasher adapts
+    // based on which files are in the bundle.
+    const isEsp = env === 'esp32' || env === 'shc_esp32' || env === 'sws_esp32' || env === 'sws_esp8266';
+    const isTeensy =
+      env === 'teensy40' || env === 'teensy41' ||
+      env === 'shc_teensy40' || env === 'shc_teensy32';
+    if (isEsp) await esp32Flasher.flash(files, log);
     else if (env === 'blackpill_f411') await stm32Flasher.flash(files, log);
-    else if (env === 'teensy40' || env === 'teensy41') await teensyFlasher.flash(files, log);
+    else if (isTeensy) await teensyFlasher.flash(files, log);
     else throw new Error(`no flasher for env ${env}`);
   } catch (err) {
     log(`! ${err.message}`);

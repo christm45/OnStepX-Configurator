@@ -18,11 +18,13 @@ export function supported() {
 export async function flash(files, log = console.log) {
   if (!supported()) throw new Error('Web Serial not supported — use Chrome, Edge, or Opera');
 
-  // Prefer the single merged image (produced by merge_bin.py) — one file, one
-  // flash address, less to go wrong. Fall back to the classic 3-file layout
-  // if the build didn't produce a merged file.
+  // Three layouts in descending preference:
+  //   1. merged-firmware.bin at 0x0                      (ESP32 with merge_bin.py — cleanest)
+  //   2. bootloader + partitions + (boot_app0) + app    (ESP32 classic 4-file layout)
+  //   3. firmware.bin at 0x0                             (ESP8266 — single self-contained image)
   const useMerged = !!files['merged-firmware.bin'];
-  if (!useMerged) {
+  const useSingle = !useMerged && !files['bootloader.bin'] && !!files['firmware.bin'];
+  if (!useMerged && !useSingle) {
     const required = ['firmware.bin', 'bootloader.bin', 'partitions.bin'];
     for (const f of required) {
       if (!files[f]) throw new Error(`missing ${f} in firmware bundle`);
@@ -54,12 +56,14 @@ export async function flash(files, log = console.log) {
   };
 
   const esploader = new ESPLoader(flashOptions);
-  log('Connecting to ESP32…');
+  log('Connecting to ESP chip…');
   const chip = await esploader.main();
   log(`Detected: ${chip}`);
 
   const fileArray = useMerged
     ? [{ data: binaryString(files['merged-firmware.bin']), address: 0x0 }]
+    : useSingle
+    ? [{ data: binaryString(files['firmware.bin']), address: 0x0 }]
     : [
         { data: binaryString(files['bootloader.bin']), address: 0x1000 },
         { data: binaryString(files['partitions.bin']), address: 0x8000 },
