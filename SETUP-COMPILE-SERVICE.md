@@ -251,12 +251,112 @@ listed here so re-deployers know the shape of the issue):
 
 You don't need to do anything. The workflow clones
 `https://github.com/hjd1964/OnStepX.git` fresh on every build, so every
-compile uses the latest upstream source automatically.
+compile uses the latest upstream source automatically. End users pick a
+specific branch / tag / commit in the **OnStepX source** field on the
+Compile & Flash tab when they want reproducibility.
 
-If you ever want to **pin** to a specific OnStepX commit for reproducibility,
-edit `.github/workflows/build.yml`:
+## Renewing the GitHub PAT (important — do this every 90 days)
 
-```yaml
-git clone https://github.com/hjd1964/OnStepX.git OnStepX
-cd OnStepX && git checkout <commit-sha> && cd ..
-```
+The GitHub fine-grained PAT you stored as the Worker's `GITHUB_TOKEN` secret
+expires on the date you picked when creating it (90 days by default). Once it
+expires, every compile attempt will fail with a GitHub API `401 Unauthorized`
+or `403 Forbidden`, and users will see `github workflow_dispatch failed` in
+the compile log.
+
+**GitHub sends reminder emails** 7 days before expiration and on the day of
+expiration, to the address on your GitHub account. You can also see the
+expiration date at https://github.com/settings/tokens?type=fine-grained .
+
+You have two renewal options. The first is faster, the second is safer.
+
+### Option A — Regenerate the existing token (fast path)
+
+This keeps the same token entry with the same name and permissions, but
+issues a new token string. Use this when your current token hasn't been
+leaked — you just need to extend its life.
+
+1. Open https://github.com/settings/tokens?type=fine-grained
+2. Click the token named **`onstepx-build-bridge`** (or whatever you named it).
+3. Click the **Regenerate token** button (top-right).
+4. Confirm the new expiration (up to 1 year).
+5. Click **Regenerate token**. GitHub shows the new `github_pat_...` string
+   **once** — copy it immediately.
+6. Update the Cloudflare Worker secret:
+   ```bash
+   cd cloudflare-worker
+   wrangler secret put GITHUB_TOKEN
+   # paste the new token when prompted, press Enter
+   ```
+   Wrangler replaces the old secret value in place. The Worker picks it up
+   on the next request — no redeploy needed.
+7. Smoke-test:
+   ```bash
+   curl https://onstepx-build-bridge.<your-subdomain>.workers.dev/
+   ```
+   You should still see `{"ok":true,"service":"onstepx-build-bridge"}`.
+   Then trigger a compile from the configurator to confirm.
+
+### Option B — Rotate (create a new token, revoke the old one)
+
+Use this when the old token has been exposed (pasted in chat, logged,
+committed, etc.) or when you want a clean audit trail.
+
+1. Open https://github.com/settings/personal-access-tokens/new
+2. Fill the same fields as the original:
+   - **Token name**: `onstepx-build-bridge` (add `-v2` or a date suffix if
+     you want to keep the old one visible during the handoff)
+   - **Expiration**: up to 1 year
+   - **Resource owner**: your GitHub user
+   - **Repository access** → Only select repositories → `onstepx-build-service`
+   - **Permissions** → Repository permissions:
+     - Actions: **Read and write**
+     - Contents: **Read-only**
+     - Metadata: **Read-only** (required)
+3. Click **Generate token** at the bottom.
+4. Copy the new `github_pat_...` string.
+5. Update the Worker secret (same as Option A, step 6):
+   ```bash
+   cd cloudflare-worker
+   wrangler secret put GITHUB_TOKEN
+   # paste the NEW token
+   ```
+6. Test a compile from the configurator.
+7. **Only after confirming the new token works**, revoke the old one:
+   - Go to https://github.com/settings/tokens?type=fine-grained
+   - Click the old token entry → **Revoke** (bottom of the page).
+8. Consider deleting any local file where you saved the old token
+   (`*tooken*.txt`, `.env`, etc.). These patterns are gitignored but best to
+   delete them entirely.
+
+### What if the token has already expired?
+
+Same procedure as Option A or B — the expiration only prevents the token
+from being used, it doesn't block you from regenerating or rotating it.
+Users who hit a compile failure during the gap will get a recognizable
+"github workflow_dispatch failed 401" in their compile log.
+
+### Tips
+
+- **Calendar reminder**: after issuing a new token, set a reminder for
+  **7 days before** the new expiration (e.g. 83 days after issuance) so
+  you're not caught by surprise.
+- **Keep the name stable** (`onstepx-build-bridge`) across rotations —
+  GitHub's token list is easier to reason about that way.
+- **Don't bump the permissions** unless you need to. The token only needs
+  `Actions: Read and write` + `Contents: Read-only` + `Metadata: Read-only`.
+  Over-scoped tokens are a bigger blast radius if they leak.
+- **Wrangler's secret store is encrypted at rest** on Cloudflare's side. You
+  can't read the stored value back (`wrangler secret list` shows names only).
+  If you lose the local copy of the token, you regenerate/rotate &mdash; you
+  don't recover the old one.
+
+### Watching for leaks
+
+GitHub runs secret scanning against public repos. If the PAT ever lands in
+a public commit (this repo, a fork, a gist), GitHub will:
+
+1. Email you within minutes.
+2. Optionally auto-revoke the token (GitHub's default for fine-grained PATs).
+
+If this happens, treat it as Option B and rotate immediately — the leaked
+value is considered compromised even if the repo is quickly deleted.
