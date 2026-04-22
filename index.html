@@ -3561,9 +3561,11 @@ window.setMode = setMode;
 const BOARD_DEFAULTS = {
   FYSETC_E4: {
     label: 'FYSETC E4',
-    note: 'Click to fetch the live Config.h from hjd1964/OnStepX branch "E4" (180+ fields) and apply it here.',
+    note: 'Click: fetches the Config.h from hjd1964/OnStepX branch "E4" (180+ fields) into the Output tab, ' +
+          'keeps Source ref on main (latest OnStepX), and ticks the Website plugin. Matches Howard\'s ' +
+          'documented E4 + Website build.',
     liveFetch: 'https://raw.githubusercontent.com/hjd1964/OnStepX/E4/Config.h',
-    fields: {}, // applied via live fetch in applyBoardDefaults; fields here unused.
+    fields: {}, // applied via live fetch + plugin auto-tick in applyBoardDefaults.
   },
   MaxESP4: {
     label: 'MaxESP4',
@@ -3758,15 +3760,25 @@ window.importConfigFromUrlUi = async function () {
 window.applyBoardDefaults = async function () {
   const pinmap = document.getElementById('PINMAP')?.value;
 
-  // Special-case FYSETC_E4: fetch the real E4 branch Config.h live rather
-  // than using a hardcoded paraphrase. Gives the user the true upstream
-  // preset, 180+ fields.
+  // Special-case FYSETC_E4: fetch the real E4 branch Config.h live, then
+  // auto-tick the Website plugin. Source ref stays on main (latest
+  // OnStepX) — workflow clones main, overlays the E4 Config.h, and
+  // bundles the website plugin. Mirrors Howard's "copy E4 Config.h
+  // into main + enable website" recipe.
   if (pinmap === 'FYSETC_E4') {
     try {
-      await importConfigFromUrl(
+      const changes = await importConfigFromUrl(
         'https://raw.githubusercontent.com/hjd1964/OnStepX/E4/Config.h',
         { label: 'hjd1964/OnStepX @ E4 (FYSETC E4 reference config)' }
       );
+      if (!changes) return; // user cancelled the confirm
+      // Auto-tick Website plugin so the build includes the web UI
+      const websiteCb = document.getElementById('PLUGIN_website');
+      if (websiteCb && !websiteCb.checked) {
+        websiteCb.checked = true;
+        websiteCb.dispatchEvent(new Event('change', { bubbles: true }));
+        showStatus?.('FYSETC E4 defaults applied. Website plugin auto-enabled.');
+      }
     } catch (err) {
       alert(`Could not fetch E4 branch Config.h: ${err.message}`);
     }
@@ -4277,13 +4289,6 @@ function syncEnvFromPinmap() {
   }
   refreshFlashSupportHint();
 }
-// Some OnStepX pinmaps have a dedicated upstream branch with board-specific
-// source code. When the user picks one of these, auto-switch the Source ref
-// on the Compile & Flash tab so the build uses that branch, and show a
-// banner so they know why it changed.
-const PINMAP_BRANCH_REFS = {
-  FYSETC_E4: 'E4',
-};
 // OnStepX plugin catalog — mirrors hjd1964/OnStepX-Plugins.
 // Each entry is rendered as a checkbox on the Compile & Flash tab.
 const ONSTEPX_PLUGINS = [
@@ -4346,23 +4351,14 @@ function getSelectedPlugins() {
     .map((p) => p.id);
 }
 
+// No auto-pin of the Source ref — Howard's documented FYSETC_E4 flow is:
+// start from OnStepX main (latest) + overlay E4's Config.h + enable the
+// website plugin. "Apply FYSETC E4 defaults" handles the Config.h
+// overlay and auto-ticks the Website plugin. Users who genuinely want
+// the E4 branch source can still type `E4` in the Source ref field.
 function autoPinRefForPinmap() {
-  const pinmap = document.getElementById('PINMAP')?.value;
-  const refInput = document.getElementById('ONSTEPX_REF');
   const banner = document.getElementById('refAutoPinBanner');
-  if (!refInput || !banner) return;
-  const target = PINMAP_BRANCH_REFS[pinmap];
-  if (target && refInput.value !== target) {
-    refInput.value = target;
-    refInput.dispatchEvent(new Event('input', { bubbles: true }));
-    refInput.dispatchEvent(new Event('change', { bubbles: true }));
-    banner.innerHTML =
-      `<b>Source ref auto-set to <code>${target}</code></b> because PINMAP=${pinmap} has a dedicated ` +
-      `OnStepX branch with board-specific code. Change it back manually if you'd rather build from <code>main</code>.`;
-    banner.style.display = 'block';
-  } else if (!target) {
-    banner.style.display = 'none';
-  }
+  if (banner) banner.style.display = 'none';
 }
 
 // Hard OnStepX constraint: Teensy 4.0/4.1 need STEP_WAVE_FORM=SQUARE.
