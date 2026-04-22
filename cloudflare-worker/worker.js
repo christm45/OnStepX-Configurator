@@ -169,24 +169,44 @@ async function handleFirmware(url, env) {
   const artifact = (artData.artifacts || []).find((a) => a.name.startsWith('firmware-'));
   if (!artifact) return json({ error: 'no firmware artifact on this run' }, 404);
 
-  // Artifact zip download URL requires auth and redirects to a pre-signed URL.
-  const zipRes = await fetch(
+  // GitHub's artifact /zip endpoint returns a 302 to a short-lived pre-signed
+  // Azure Storage URL. We MUST follow manually and drop the Authorization
+  // header on the redirect — Azure rejects the request if GitHub's token is
+  // presented there.
+  const redirectRes = await fetch(
     `https://api.github.com/repos/${env.BUILD_OWNER}/${env.BUILD_REPO}/actions/artifacts/${artifact.id}/zip`,
     {
+      method: 'GET',
+      redirect: 'manual',
       headers: {
         Authorization: `Bearer ${env.GITHUB_TOKEN}`,
         Accept: 'application/vnd.github+json',
         'User-Agent': 'onstepx-build-bridge',
       },
-      redirect: 'follow',
     }
   );
 
-  if (!zipRes.ok) {
-    return json({ error: 'artifact download failed', status: zipRes.status }, 502);
+  if (redirectRes.status !== 302) {
+    const text = await redirectRes.text().catch(() => '');
+    return json(
+      { error: 'expected 302 from artifact zip endpoint', status: redirectRes.status, detail: text.slice(0, 300) },
+      502
+    );
   }
 
-  // Stream the zip straight through to the browser.
+  const signedUrl = redirectRes.headers.get('Location');
+  if (!signedUrl) return json({ error: 'no Location header on 302' }, 502);
+
+  const zipRes = await fetch(signedUrl); // no auth header — Azure uses URL-signed auth
+
+  if (!zipRes.ok) {
+    const text = await zipRes.text().catch(() => '');
+    return json(
+      { error: 'signed artifact download failed', status: zipRes.status, detail: text.slice(0, 300) },
+      502
+    );
+  }
+
   return new Response(zipRes.body, {
     status: 200,
     headers: {

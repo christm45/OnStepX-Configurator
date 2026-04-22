@@ -1,6 +1,17 @@
 # Claude Code local state
 .claude/
 
+# Wrangler local state (API tokens, deploy logs, cached versions)
+cloudflare-worker/.wrangler/
+**/.wrangler/
+
+# Never commit local secret/token files
+*.pem
+*token*.txt
+*tooken*.txt
+*.env
+.env.*
+
 # Temporary / editor artifacts
 *.swp
 *.tmp

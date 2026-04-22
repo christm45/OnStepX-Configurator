@@ -1,7 +1,18 @@
 # Setting up the online compile + flash service
 
-This repo's `index.html` ships a "Compile & Flash" tab that calls an external
-build backend. The backend has two pieces you have to deploy once:
+**Current deployed state** (as of 2026-04-22):
+
+| Piece | Status | Location |
+|---|---|---|
+| Frontend | ✅ live | https://christm45.github.io/OnStepX-Configurator/ |
+| Build service | ✅ live | https://github.com/christm45/onstepx-build-service |
+| Cloudflare Worker | ✅ live | https://onstepx-build-bridge.craciun-vlad.workers.dev |
+| End-to-end pipeline | ✅ verified | ESP32 build + merged-firmware.bin download |
+
+This doc describes how the three pieces were set up, so you can redeploy or
+replicate on another account.
+
+The backend has two pieces:
 
 1. **`onstepx-build-service`** — a separate GitHub repo that runs PlatformIO
    in GitHub Actions. (Free: uses your Actions minutes on a public repo.)
@@ -192,6 +203,47 @@ Worker prints (`html_url` in `compileLog`).
 **Rate limit hit** — by default the Worker allows 10 builds/hour/IP once you
 create the optional KV namespace. Remove the rate limit by commenting out
 the `[[kv_namespaces]]` block in `wrangler.toml` and redeploying.
+
+## Lessons learned from the initial deployment
+
+Problems we hit and how they were fixed (all resolved in the committed code,
+listed here so re-deployers know the shape of the issue):
+
+1. **`gh` OAuth token lacks `workflow` scope** → can't push
+   `.github/workflows/build.yml` from a plain `gh auth login`.
+   Fix: either `gh auth refresh -h github.com -s workflow` (needs browser),
+   or upload the workflow file via the GitHub web UI.
+
+2. **`actions/setup-python@v5` with `cache: pip` fails**
+   if the repo has no `requirements.txt` / `pyproject.toml`. We just
+   `pip install platformio` at runtime, so the `cache: pip` line was dropped.
+
+3. **`lib_ldf_mode = off`** in `platformio.ini` stopped PlatformIO's
+   dependency finder from pulling in `Wire.h` and other Arduino framework
+   headers OnStepX needs. Restored default LDF.
+
+4. **Missing lib_deps for optional OnStepX features.** OnStepX's `src/lib/`
+   references a dozen external libraries via `#include <...>`. The defaults in
+   `Config.h` activate several of them (e.g. `TIME_LOCATION_SOURCE = DS3231`
+   pulls in `RtcDS3231.h`). `platformio.ini`'s ESP32 env now declares the
+   usual set: Makuna/Rtc, Time, TinyGPSPlus, TMCStepper, OneWire,
+   DallasTemperature, QuickPID, SimpleKalmanFilter, Adafruit BME280 + Unified
+   Sensor. More are added as needed when new features get enabled.
+
+5. **`merge_bin.py` can't call `esptool.py` directly** — the script isn't on
+   PATH with an exec bit on GHA Ubuntu runners, and `$PYTHONEXE -m esptool`
+   fails because the host Python (from setup-python) doesn't have esptool
+   installed. Fix: look up PlatformIO's bundled esptool via
+   `env.PioPlatform().get_package_dir("tool-esptoolpy")` and invoke the
+   `esptool.py` script with `$PYTHONEXE`. Same trick used for `boot_app0.bin`
+   from `framework-arduinoespressif32`.
+
+6. **Cloudflare Worker `/firmware` returned 502** — GitHub's
+   `/actions/artifacts/<id>/zip` endpoint returns a 302 to a pre-signed Azure
+   Storage URL. If you `fetch` with `redirect: 'follow'`, the Authorization
+   header gets re-sent to Azure and Azure rejects. Fix: `redirect: 'manual'`,
+   read the `Location` header, and fetch that URL with no Authorization
+   header.
 
 ---
 
