@@ -161,25 +161,6 @@ export function validateConfig(values) {
       `BLUETOOTH / WIFI_ACCESS_POINT / WIFI_STATION aren't supported on Teensy or STM32.`);
   }
 
-  // Networking tab: NET_MODE ↔ MCU target compatibility.
-  const netMode = values.NET_MODE;
-  if (netMode && netMode !== 'OFF') {
-    if ((netMode === 'WIFI_ACCESS_POINT' || netMode === 'WIFI_STATION' || netMode === 'BOTH') &&
-        values.COMPILE_ENV && values.COMPILE_ENV !== 'esp32') {
-      add('error', 'NET_MODE',
-        `NET_MODE=${netMode} is WiFi-based and only works on ESP32 builds (current target: ${values.COMPILE_ENV}).`);
-    }
-    if (netMode === 'ETHERNET_TEENSY41' && values.COMPILE_ENV && values.COMPILE_ENV !== 'teensy41') {
-      add('error', 'NET_MODE',
-        `NET_MODE=ETHERNET_TEENSY41 is the Teensy 4.1 built-in magjack — it only works with the teensy41 build target (current: ${values.COMPILE_ENV}).`);
-    }
-    if ((netMode === 'ETHERNET_W5100' || netMode === 'ETHERNET_W5500') &&
-        values.COMPILE_ENV === 'esp32') {
-      // Not strictly invalid but unusual — ESP32 usually uses WiFi.
-      add('warn', 'NET_MODE',
-        `NET_MODE=${netMode} on ESP32 is unusual — ESP32 builds typically use WIFI_* instead. Proceed only if you've actually wired a W5x00 SPI shield.`);
-    }
-  }
 
   // Simple ON/OFF whitelist — Validate.h errors if these are anything else.
   const onOffFields = [

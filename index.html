@@ -408,7 +408,6 @@
   <button class="tab-btn" data-modes="onstepx" onclick="showTab('rotator')">Rotator</button>
   <button class="tab-btn" data-modes="onstepx" onclick="showTab('focuser')">Focuser</button>
   <button class="tab-btn" data-modes="onstepx" onclick="showTab('auxiliary')">Auxiliary</button>
-  <button class="tab-btn" data-modes="onstepx" onclick="showTab('networking')">Networking</button>
   <button class="tab-btn" data-modes="shc" onclick="showTab('shc-controller')">Hand Controller</button>
   <button class="tab-btn" data-modes="shc" onclick="showTab('shc-comm')">Communication</button>
   <button class="tab-btn" data-modes="shc" onclick="showTab('shc-aux')">Sensors &amp; Aux</button>
@@ -1595,104 +1594,6 @@
   <div id="features-container"></div>
 </div>
 
-<!-- ==================== NETWORKING TAB (OnStepX) ==================== -->
-<div class="tab-content" id="tab-networking">
-  <div class="section">
-    <div class="section-title">Network interface</div>
-    <p style="color:var(--label);font-size:0.9em;margin-bottom:10px;">
-      OnStepX's network layer. Lets SkySafari / KStars / ASCOM Alpaca / your own scripts talk to the mount
-      over WiFi or Ethernet instead of USB. Leave as <code style="color:var(--green);">OFF</code> if you only
-      need USB serial.
-    </p>
-    <div class="field-row">
-      <label class="field-label">Network mode <span class="hint-tag hint-option">Option</span></label>
-      <select id="NET_MODE">
-        <option value="OFF" selected>OFF (USB serial only)</option>
-        <option value="ETHERNET_W5100">ETHERNET_W5100 (SPI shield, any MCU)</option>
-        <option value="ETHERNET_W5500">ETHERNET_W5500 (SPI shield, faster)</option>
-        <option value="ETHERNET_TEENSY41">ETHERNET_TEENSY41 (Teensy 4.1 native magjack)</option>
-        <option value="WIFI_ACCESS_POINT">WIFI_ACCESS_POINT (ESP32 hotspot)</option>
-        <option value="WIFI_STATION">WIFI_STATION (ESP32 joins your WiFi)</option>
-        <option value="BOTH">BOTH (ESP32 AP + STA simultaneously)</option>
-      </select>
-      <span class="field-hint">Emits <code>SERIAL_IP_MODE</code> (for W5x00/WiFi) or
-        <code>OPERATIONAL_MODE ETHERNET_TEENSY41</code> (for native Teensy Ethernet, since
-        <code>SERIAL_IP_MODE</code> has no mapping for that case).</span>
-    </div>
-    <div class="field-row">
-      <label class="field-label">SERIAL_SERVER <span class="hint-tag hint-infreq">Infreq</span></label>
-      <select id="SERIAL_SERVER">
-        <option value="STANDARD">STANDARD (single port 9999)</option>
-        <option value="PERSISTENT">PERSISTENT (ports 9996-9998)</option>
-        <option value="BOTH" selected>BOTH</option>
-      </select>
-      <span class="field-hint">LX200 TCP server mode. BOTH is the usual default.</span>
-    </div>
-    <div class="field-row">
-      <label class="field-label">MDNS_NAME <span class="hint-tag hint-adjust">Adjust</span></label>
-      <input type="text" id="MDNS_NAME" value="" maxlength="32" placeholder="onstep">
-      <span class="field-hint">Discoverable name on the network. Leave empty to use OnStepX default.</span>
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">Static IP (optional &mdash; leave blank for DHCP)</div>
-    <p style="color:var(--label);font-size:0.85em;margin-bottom:10px;">
-      Only fill in if you want a fixed address. Dotted-quad form (<code>192.168.1.55</code>). Blank =
-      device asks the router via DHCP.
-    </p>
-    <div class="field-row">
-      <label class="field-label">IP_ADDR <span class="hint-tag hint-option">Option</span></label>
-      <input type="text" id="IP_ADDR" value="" placeholder="e.g. 192.168.1.55" pattern="[0-9.]*" style="font-family:Consolas,monospace;">
-      <span class="field-hint">Static IP for the OnStep controller</span>
-    </div>
-    <div class="field-row">
-      <label class="field-label">GATEWAY <span class="hint-tag hint-option">Option</span></label>
-      <input type="text" id="IP_GATEWAY" value="" placeholder="e.g. 192.168.1.1" pattern="[0-9.]*" style="font-family:Consolas,monospace;">
-      <span class="field-hint">Router IP</span>
-    </div>
-    <div class="field-row">
-      <label class="field-label">SUBNET <span class="hint-tag hint-option">Option</span></label>
-      <input type="text" id="IP_SUBNET" value="" placeholder="e.g. 255.255.255.0" pattern="[0-9.]*" style="font-family:Consolas,monospace;">
-      <span class="field-hint">Subnet mask</span>
-    </div>
-    <div class="field-row">
-      <label class="field-label">DNS_ADDR <span class="hint-tag hint-option">Option</span></label>
-      <input type="text" id="IP_DNS" value="" placeholder="e.g. 192.168.1.1" pattern="[0-9.]*" style="font-family:Consolas,monospace;">
-      <span class="field-hint">DNS server</span>
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">WiFi credentials (ESP32 STA / AP modes only)</div>
-    <p style="color:var(--label);font-size:0.85em;margin-bottom:10px;">
-      <b>⚠ Warning:</b> anything typed here ends up in your Config.h, which is logged by GitHub Actions on
-      every compile. If you don't want your home WiFi password in a public Actions log, leave these blank
-      and set them via the OnStepX web UI after flashing.
-    </p>
-    <div class="field-row">
-      <label class="field-label">STA_SSID <span class="hint-tag hint-adjust">Adjust</span></label>
-      <input type="text" id="STA_SSID" value="" maxlength="32" placeholder="YourWiFi">
-      <span class="field-hint">WiFi network to join (WIFI_STATION / BOTH)</span>
-    </div>
-    <div class="field-row">
-      <label class="field-label">STA_PASSWORD <span class="hint-tag hint-adjust">Adjust</span></label>
-      <input type="password" id="STA_PASSWORD" value="" maxlength="64" placeholder="leave blank = configure after flashing">
-      <span class="field-hint">WiFi password (see warning above)</span>
-    </div>
-    <div class="field-row">
-      <label class="field-label">AP_SSID <span class="hint-tag hint-adjust">Adjust</span></label>
-      <input type="text" id="AP_SSID" value="" maxlength="32" placeholder="OnStep">
-      <span class="field-hint">Hotspot name broadcast by the ESP32 (WIFI_ACCESS_POINT / BOTH)</span>
-    </div>
-    <div class="field-row">
-      <label class="field-label">AP_PASSWORD <span class="hint-tag hint-adjust">Adjust</span></label>
-      <input type="password" id="AP_PASSWORD" value="" maxlength="64" placeholder="password">
-      <span class="field-hint">Hotspot password</span>
-    </div>
-  </div>
-</div>
-
 <!-- ==================== SHC: HAND CONTROLLER TAB ==================== -->
 <div class="tab-content" id="tab-shc-controller">
   <div class="section">
@@ -2840,6 +2741,22 @@ teensy_loader_cli --mcu=TEENSY40 -w -v firmware.hex   # 4.0</pre>
       input. Public-repo Actions logs are visible to anyone, so treat Config.h as public. See
       <a href="#help-privacy">Privacy</a>.</p>
 
+    <h4>Where do I configure network / WiFi / Ethernet?</h4>
+    <p>Depends on the flow:</p>
+    <ul>
+      <li><b>OnStepX on ESP32 with the Website plugin</b> → network settings live in
+        <code>src/plugins/website/Config.h</code> (the plugin's own config, bundled automatically by the
+        workflow when you tick the plugin).</li>
+      <li><b>Separate SmartWebServer board</b> → configure on the SWS side in
+        <b>SmartWebServer mode</b> of this page (Network / Web UI / Encoders &amp; BLE tabs).</li>
+      <li><b>OnStepX with raw LX200 TCP (no web UI)</b> &mdash; e.g. Teensy 4.1 native Ethernet &mdash;
+        hand-edit the generated Config.h on the Output tab: add
+        <code>#define OPERATIONAL_MODE ETHERNET_TEENSY41</code>
+        before <code>#include "Extended.config.h"</code>, and optionally
+        <code>#define SERIAL_IP_MODE ETHERNET_W5500</code> for W5x00 shields. The textarea is editable
+        and Compile sends it as-is.</li>
+    </ul>
+
     <h4>Can I build for a board that's not in the list?</h4>
     <p>Today, no &mdash; the backend has PlatformIO environments for ESP32, Teensy 4.0, Teensy 4.1, and
       STM32F411 BlackPill only. Adding a new board means adding an env to
@@ -3414,62 +3331,6 @@ function generateConfig() {
     L(pad('FEATURE'+n+'_VALUE_MEMORY', v('FEATURE'+n+'_VALUE_MEMORY'), 'OFF,', 'ON remembers state across power cycles.                                 Adjust'));
     L(pad('FEATURE'+n+'_ON_STATE', v('FEATURE'+n+'_ON_STATE'), 'HIGH,', 'LOW to invert so "ON" is 0V and "OFF" is Vcc (3.3V usually.)             Adjust'));
   }
-  // ------------------------- NETWORKING -------------------------
-  const netMode = v('NET_MODE');
-  if (netMode && netMode !== 'OFF') {
-    L('');
-    L('// =================================================================================================================================');
-    L('// NETWORKING ======================================================================================================================');
-    if (netMode === 'ETHERNET_TEENSY41') {
-      // Teensy 4.1 native Ethernet — SERIAL_IP_MODE has no translation for it,
-      // so set OPERATIONAL_MODE directly (OnStepX checks that at the pinmap level).
-      L('#define OPERATIONAL_MODE             ETHERNET_TEENSY41 //  Teensy 4.1 built-in magjack Ethernet.                      Option');
-    } else {
-      L(pad('SERIAL_IP_MODE', netMode, 'OFF,', 'ETHERNET_W5100/W5500, WIFI_ACCESS_POINT/WIFI_STATION/BOTH (ESP32).       Option'));
-    }
-    const sServer = v('SERIAL_SERVER');
-    if (sServer && sServer !== 'BOTH') {
-      L(pad('SERIAL_SERVER', sServer, 'BOTH,', 'STANDARD (port 9999), PERSISTENT (9996-9998), or BOTH.                    Infreq'));
-    }
-    const mdns = v('MDNS_NAME');
-    if (mdns) L(`#define MDNS_NAME "${mdns}"`);
-    // Static IP (all four must be set together to make sense)
-    const ipToBraces = (s) => {
-      const parts = String(s).trim().split('.').map((n) => Number(n));
-      if (parts.length !== 4 || parts.some((n) => !Number.isFinite(n) || n < 0 || n > 255)) return null;
-      return `{ ${parts.join(', ')} }`;
-    };
-    const ip = ipToBraces(v('IP_ADDR'));
-    const gw = ipToBraces(v('IP_GATEWAY'));
-    const sn = ipToBraces(v('IP_SUBNET'));
-    const dns = ipToBraces(v('IP_DNS'));
-    if (ip && gw && sn && dns) {
-      L('');
-      L('// Static IP (all four must be set together)');
-      L(`#define IP_ADDR                       ${ip}`);
-      L(`#define GATEWAY                       ${gw}`);
-      L(`#define SUBNET                        ${sn}`);
-      L(`#define DNS_ADDR                      ${dns}`);
-    } else if (ip || gw || sn || dns) {
-      L('// (Partial static-IP entries ignored — either fill in IP_ADDR+GATEWAY+SUBNET+DNS_ADDR all together, or leave them all blank for DHCP.)');
-    }
-    // WiFi credentials — only emit if user filled them in
-    const staSsid = v('STA_SSID'), staPwd = v('STA_PASSWORD');
-    if (staSsid) {
-      L('');
-      L('// WIFI_STATION / BOTH credentials');
-      L(`#define STA_SSID                     "${staSsid}"`);
-      L(`#define STA_PASSWORD                 "${staPwd || ''}"`);
-    }
-    const apSsid = v('AP_SSID'), apPwd = v('AP_PASSWORD');
-    if (apSsid) {
-      L('');
-      L('// WIFI_ACCESS_POINT / BOTH credentials');
-      L(`#define AP_SSID                      "${apSsid}"`);
-      L(`#define AP_PASSWORD                  "${apPwd || ''}"`);
-    }
-  }
-
   L('');
   L('// ---------------------------------------------------------------------------------------------------------------------------------');
   L('#define FileVersionConfig 6');
@@ -4319,7 +4180,7 @@ document.getElementById('configOutput')?.addEventListener('input', () => {
 
 // --- Preflight check --------------------------------------------------------
 const relevantIds = [
-  'PINMAP', 'COMPILE_ENV', 'MOUNT_TYPE', 'STEP_WAVE_FORM', 'SERIAL_RADIO', 'NET_MODE',
+  'PINMAP', 'COMPILE_ENV', 'MOUNT_TYPE', 'STEP_WAVE_FORM', 'SERIAL_RADIO',
   'STATUS_LED', 'RETICLE_LED_MEMORY', 'RETICLE_LED_INVERT',
   'MOUNT_COORDS_MEMORY', 'MOUNT_ENABLE_IN_STANDBY',
   'TRACK_AUTOSTART', 'ST4_INTERFACE', 'ST4_HAND_CONTROL',
