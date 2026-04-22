@@ -61,6 +61,7 @@ async function handleCompile(request, env) {
   if (!body) return json({ error: 'invalid JSON' }, 400);
 
   const { config, board } = body;
+  const onstepxRef = (body.ref || 'main').toString();
   if (typeof config !== 'string' || !config.length) {
     return json({ error: 'config missing' }, 400);
   }
@@ -69,6 +70,10 @@ async function handleCompile(request, env) {
   }
   if (new TextEncoder().encode(config).length > MAX_CONFIG_BYTES) {
     return json({ error: 'config too large' }, 413);
+  }
+  // Same charset the workflow enforces — reject shell-unsafe refs at the edge.
+  if (!/^[A-Za-z0-9._/-]{1,64}$/.test(onstepxRef)) {
+    return json({ error: 'ref contains disallowed characters' }, 400);
   }
 
   // Optional rate limiting
@@ -96,11 +101,12 @@ async function handleCompile(request, env) {
     {
       method: 'POST',
       body: JSON.stringify({
-        ref: 'main',
+        ref: 'main', // which branch of the BUILD-SERVICE repo runs the workflow
         inputs: {
           config_h: configB64,
           environment: board,
           request_id: requestId,
+          onstepx_ref: onstepxRef, // which ref of hjd1964/OnStepX to compile
         },
       }),
     }

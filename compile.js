@@ -35,12 +35,13 @@ export const ENV_LABELS = {
 
 /**
  * Kick off a compile. Returns a request_id.
+ * `ref` is a branch / tag / commit SHA of hjd1964/OnStepX (default 'main').
  */
-export async function startCompile(configText, board) {
+export async function startCompile(configText, board, ref = 'main') {
   const res = await fetch(`${WORKER_URL}/compile`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ config: configText, board }),
+    body: JSON.stringify({ config: configText, board, ref }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
@@ -134,6 +135,57 @@ async function unzipArtifact(bytes) {
 
 export function inferEnvFromPinmap(pinmap) {
   return PINMAP_TO_ENV[pinmap] || null;
+}
+
+/**
+ * Resolve a git ref of hjd1964/OnStepX to a concrete commit via the public
+ * GitHub API. Unauthenticated — 60 req/hr/IP, plenty for page-load use.
+ * Returns {sha, shortSha, authorName, dateIso, relative, message} or throws.
+ */
+export async function resolveOnStepXRef(ref) {
+  const r = await fetch(
+    `https://api.github.com/repos/hjd1964/OnStepX/commits/${encodeURIComponent(ref)}`,
+    { headers: { Accept: 'application/vnd.github+json' } }
+  );
+  if (!r.ok) {
+    if (r.status === 404) throw new Error(`ref "${ref}" not found`);
+    if (r.status === 403) throw new Error('GitHub API rate-limited — try again later');
+    throw new Error(`GitHub API ${r.status}`);
+  }
+  const d = await r.json();
+  const dateIso = d.commit?.author?.date || d.commit?.committer?.date;
+  return {
+    sha: d.sha,
+    shortSha: d.sha.slice(0, 7),
+    authorName: d.commit?.author?.name || 'unknown',
+    dateIso,
+    relative: humanRelative(dateIso),
+    message: (d.commit?.message || '').split('\n')[0].slice(0, 120),
+  };
+}
+
+function humanRelative(iso) {
+  if (!iso) return '';
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60_000);
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 48) return `${hrs} h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days} d ago`;
+  const months = Math.floor(days / 30);
+  return months < 12 ? `${months} mo ago` : `${Math.floor(months / 12)} y ago`;
+}
+
+/**
+ * SHA-1 hex digest — used to detect "config changed since compile" staleness.
+ * SHA-1 is fine here; this is a change-detection fingerprint, not a security
+ * hash, and Web Crypto gives it to us for free.
+ */
+export async function sha1Hex(text) {
+  const data = new TextEncoder().encode(text);
+  const hash = await crypto.subtle.digest('SHA-1', data);
+  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 export function downloadBlob(filename, bytes, mime = 'application/octet-stream') {

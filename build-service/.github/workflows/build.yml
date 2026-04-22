@@ -16,6 +16,10 @@ on:
       request_id:
         description: "Client-supplied UUID for correlation"
         required: true
+      onstepx_ref:
+        description: "hjd1964/OnStepX branch / tag / commit SHA to build (default: main)"
+        required: false
+        default: "main"
 
 concurrency:
   group: "onstepx-build-${{ inputs.request_id }}"
@@ -38,6 +42,11 @@ jobs:
           # request_id must look like a UUID (loose check)
           if ! [[ "${{ inputs.request_id }}" =~ ^[0-9a-fA-F-]{8,64}$ ]]; then
             echo "::error::request_id has invalid format"; exit 1
+          fi
+          # onstepx_ref: conservative charset — letters/digits and . _ / -
+          REF="${{ inputs.onstepx_ref }}"
+          if ! [[ "$REF" =~ ^[A-Za-z0-9._/-]{1,64}$ ]]; then
+            echo "::error::onstepx_ref '$REF' contains disallowed characters"; exit 1
           fi
 
       - name: Setup Python
@@ -62,12 +71,21 @@ jobs:
           restore-keys: |
             pio-${{ inputs.environment }}-
 
-      - name: Fetch latest upstream OnStepX
+      - name: Fetch upstream OnStepX at requested ref
+        env:
+          ONSTEPX_REF: ${{ inputs.onstepx_ref }}
         run: |
           set -euo pipefail
           rm -rf OnStepX
-          git clone --depth 1 https://github.com/hjd1964/OnStepX.git OnStepX
-          # We keep OnStepX/Config.h replaced by user-supplied contents below.
+          # Full clone so arbitrary branches / tags / commit SHAs all resolve.
+          git clone https://github.com/hjd1964/OnStepX.git OnStepX
+          cd OnStepX
+          echo "::group::Resolving ref '$ONSTEPX_REF'"
+          git checkout "$ONSTEPX_REF"
+          echo "::notice::Built against hjd1964/OnStepX @ $(git rev-parse HEAD) ($ONSTEPX_REF)"
+          echo "::notice::Commit date: $(git log -1 --format=%cI HEAD)"
+          echo "::endgroup::"
+          cd ..
           rm -f OnStepX/.gitattributes OnStepX/.gitignore OnStepX/LICENSE OnStepX/README.md || true
 
       - name: Write user-supplied Config.h

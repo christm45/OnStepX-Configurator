@@ -1520,6 +1520,7 @@
     <button class="btn btn-download" onclick="downloadConfig()">Download Config.h</button>
     <button class="btn btn-load" onclick="document.getElementById('fileInput').click()">Load Existing Config.h</button>
     <input type="file" id="fileInput" accept=".h" style="display:none" onchange="loadConfig(event)">
+    <button class="btn btn-copy" onclick="resetToDefaults()" title="Clear saved form state and reload the page">Reset to Defaults</button>
   </div>
   <div id="statusBar" class="status-bar"></div>
   <div class="output-area">
@@ -1547,6 +1548,30 @@
       </select>
       <span class="field-hint" id="pinmap-hint">Auto-selected from your PINMAP choice</span>
     </div>
+    <div class="field-row">
+      <label class="field-label">OnStepX source <span class="hint-tag hint-adjust">Adjust</span></label>
+      <input type="text" id="ONSTEPX_REF" value="main" maxlength="64" placeholder="main, v10.24, or commit SHA"
+             pattern="[A-Za-z0-9._/-]{1,64}" spellcheck="false"
+             style="font-family:Consolas,monospace;">
+      <span class="field-hint">
+        From <a href="https://github.com/hjd1964/OnStepX" target="_blank" style="color:var(--green);">hjd1964/OnStepX</a>.
+        Leave as <code style="background:var(--input-bg);padding:1px 4px;border-radius:3px;">main</code> for latest, or pin to a tag/commit.
+      </span>
+    </div>
+    <div id="refResolved" style="margin-top:4px;margin-bottom:10px;padding:8px 10px;background:var(--input-bg);border:1px solid var(--border);border-radius:4px;font-family:Consolas,monospace;font-size:0.8em;color:var(--label);">
+      <span style="color:var(--label);">Will build:</span> <span id="refResolvedBody">resolving…</span>
+    </div>
+    <!-- Preflight checklist -->
+    <div id="preflight" style="margin-top:10px;padding:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:4px;font-size:0.85em;">
+      <div id="preflightSummary" style="font-weight:bold;color:var(--green);">Checking&hellip;</div>
+      <ul id="preflightList" style="margin:6px 0 0 18px;padding:0;color:var(--label);"></ul>
+      <div id="preflightOverride" style="margin-top:8px;display:none;">
+        <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:var(--warn);">
+          <input type="checkbox" id="preflightOverrideCheckbox"> I understand the issues above &mdash; build anyway
+        </label>
+      </div>
+    </div>
+
     <div class="btn-row" style="margin-top:10px;">
       <button class="btn btn-generate" id="compileBtn" onclick="startCompileFlow()">Compile Firmware</button>
       <button class="btn btn-download" id="downloadFwBtn" onclick="downloadFirmware()" disabled>Download Firmware</button>
@@ -1567,6 +1592,10 @@
       <li><b>STM32 BlackPill</b> — hold BOOT0 and tap NRST. Board should appear as "STM32 BOOTLOADER".</li>
       <li><b>Teensy 4.0/4.1</b> — no browser flashing yet; we'll download firmware.hex and hand it off to the Teensy Loader app.</li>
     </ul>
+    <div id="staleFlashWarn" style="display:none;margin-bottom:8px;padding:8px 10px;background:rgba(255,107,53,0.12);border-left:3px solid var(--warn);border-radius:3px;color:var(--warn);font-size:0.85em;">
+      Your config has changed since this firmware was built. Recompile before flashing, or the board
+      will run stale firmware.
+    </div>
     <div class="btn-row">
       <button class="btn btn-generate" id="flashBtn" onclick="flashBoard()" disabled>Flash to Board</button>
     </div>
@@ -1844,8 +1873,19 @@ teensy_loader_cli --mcu=TEENSY40 -w -v firmware.hex   # 4.0</pre>
       and configure over the web interface after flashing.</p>
 
     <h4>Which OnStepX version does this build?</h4>
-    <p>The workflow clones <code>hjd1964/OnStepX</code> <b>main</b> branch fresh on every build. Whatever's
-      at the tip of main when you hit Compile is what you get. No pinned version.</p>
+    <p>Whatever you type in the <b>OnStepX source</b> field on the Compile &amp; Flash tab — defaults to
+      <code>main</code> (latest upstream). The workflow <code>git clone</code>s
+      <a href="https://github.com/hjd1964/OnStepX" target="_blank">hjd1964/OnStepX</a> fresh on every build
+      and checks out your chosen ref.</p>
+    <p>You can type any of:</p>
+    <ul>
+      <li>A branch name &mdash; <code>main</code>, <code>develop</code></li>
+      <li>A tag &mdash; <code>v10.24</code> (pin to a known-good release for reproducibility)</li>
+      <li>A 7+ character commit SHA &mdash; <code>1a2b3c4</code> (exact reproducibility)</li>
+    </ul>
+    <p>Below the field you'll see the resolved commit, author, and date, so you know exactly what's
+      about to compile before you hit the button. If the ref doesn't exist, the build fails at the
+      <code>git checkout</code> step &mdash; check the run URL in the compile log.</p>
 
     <h4>Can I build for a board that's not in the list?</h4>
     <p>Today, no &mdash; the backend has PlatformIO environments for ESP32, Teensy 4.0, Teensy 4.1, and
@@ -2582,14 +2622,141 @@ import {
   fetchFirmware,
   inferEnvFromPinmap,
   downloadBlob,
+  resolveOnStepXRef,
+  sha1Hex,
   WORKER_URL,
 } from './compile.js';
+import { validateConfig, findSecrets } from './validate.js';
 import * as esp32Flasher from './flash/esp32.js';
 import * as stm32Flasher from './flash/stm32.js';
 import * as teensyFlasher from './flash/teensy.js';
 
-// Latest compile result ({runId, env, files})
+// Latest compile result ({runId, env, files, configHash})
 let lastBuild = null;
+
+// --- LocalStorage auto-save / restore ---------------------------------------
+const STORAGE_KEY = 'onstepx-configurator-v1';
+const VOLATILE_IDS = new Set(['configOutput', 'fileInput', 'preflightOverrideCheckbox']);
+
+function collectFormState() {
+  const out = {};
+  for (const el of document.querySelectorAll('input[id], select[id], textarea[id]')) {
+    if (VOLATILE_IDS.has(el.id)) continue;
+    if (el.type === 'checkbox') out[el.id] = el.checked;
+    else out[el.id] = el.value;
+  }
+  return out;
+}
+function restoreFormState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const state = JSON.parse(raw);
+    for (const [id, val] of Object.entries(state)) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+      if (el.type === 'checkbox') el.checked = !!val;
+      else el.value = val;
+    }
+    // Re-run the calculators that depend on form state
+    try { calcAxis1(); calcAxis2(); calcAxis3(); calcSlew(); calcPEC(); } catch {}
+    return true;
+  } catch (e) {
+    console.warn('failed to restore saved state', e);
+    return false;
+  }
+}
+let saveTimer = null;
+function queueSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(collectFormState())); } catch {}
+  }, 500);
+}
+window.resetToDefaults = function () {
+  if (!confirm('Clear all saved form state and reload the page?')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+};
+
+// Restore BEFORE wiring change listeners so we don't immediately re-save.
+const restored = restoreFormState();
+document.addEventListener('change', () => { queueSave(); runPreflight(); });
+document.addEventListener('input', queueSave);
+if (restored) showStatus?.('Restored saved form state.');
+
+// --- Preflight check --------------------------------------------------------
+const relevantIds = [
+  'PINMAP', 'COMPILE_ENV', 'MOUNT_TYPE',
+  'AXIS1_DRIVER_MODEL', 'AXIS1_DRIVER_MICROSTEPS', 'AXIS1_STEPS_PER_DEGREE',
+  'AXIS2_DRIVER_MODEL', 'AXIS2_DRIVER_MICROSTEPS', 'AXIS2_STEPS_PER_DEGREE',
+];
+function snapshotForValidation() {
+  const s = {};
+  for (const id of relevantIds) {
+    const el = document.getElementById(id);
+    if (el) s[id] = el.value;
+  }
+  return s;
+}
+function runPreflight() {
+  const summary = document.getElementById('preflightSummary');
+  const list = document.getElementById('preflightList');
+  const overrideBox = document.getElementById('preflightOverride');
+  const compileBtn = document.getElementById('compileBtn');
+  if (!summary || !list) return;
+
+  const { issues } = validateConfig(snapshotForValidation());
+
+  // Also check for secrets in the currently-generated config (if any)
+  const currentConfig = document.getElementById('configOutput')?.value || '';
+  const secrets = currentConfig ? findSecrets(currentConfig) : [];
+  for (const s of secrets) {
+    issues.push({
+      level: 'warn',
+      id: s.name,
+      message: `Config.h sets ${s.name} — it will be logged in the GitHub Actions run inputs. Consider leaving it OFF and setting it via the web UI after flashing.`,
+    });
+  }
+
+  const errorCount = issues.filter((i) => i.level === 'error').length;
+  const warnCount = issues.filter((i) => i.level === 'warn').length;
+  const hasErrors = errorCount > 0;
+
+  list.innerHTML = '';
+  if (issues.length === 0) {
+    summary.textContent = '✓ Preflight: all checks pass.';
+    summary.style.color = 'var(--green)';
+    overrideBox.style.display = 'none';
+    compileBtn.disabled = false;
+    compileBtn.textContent = 'Compile Firmware';
+    return;
+  }
+
+  summary.innerHTML = (hasErrors ? '✗' : '⚠') +
+    ` Preflight: ${errorCount} error${errorCount === 1 ? '' : 's'}, ` +
+    `${warnCount} warning${warnCount === 1 ? '' : 's'}`;
+  summary.style.color = hasErrors ? 'var(--highlight)' : 'var(--warn)';
+
+  for (const issue of issues) {
+    const li = document.createElement('li');
+    const sym = issue.level === 'error' ? '✗' : '⚠';
+    const color = issue.level === 'error' ? 'var(--highlight)' : 'var(--warn)';
+    li.style.color = color;
+    li.style.marginBottom = '4px';
+    li.textContent = `${sym} ${issue.message}`;
+    list.appendChild(li);
+  }
+
+  overrideBox.style.display = 'block';
+  const checkbox = document.getElementById('preflightOverrideCheckbox');
+  const updateFromCheckbox = () => {
+    compileBtn.disabled = !checkbox.checked;
+    compileBtn.textContent = checkbox.checked ? 'Compile Anyway' : 'Resolve Issues or Override to Compile';
+  };
+  checkbox.onchange = updateFromCheckbox;
+  updateFromCheckbox();
+}
 
 // Auto-match Compile Target to the selected PINMAP.
 function syncEnvFromPinmap() {
@@ -2604,9 +2771,43 @@ function syncEnvFromPinmap() {
   }
   refreshFlashSupportHint();
 }
-document.getElementById('PINMAP')?.addEventListener('change', syncEnvFromPinmap);
-document.getElementById('COMPILE_ENV')?.addEventListener('change', refreshFlashSupportHint);
+document.getElementById('PINMAP')?.addEventListener('change', () => { syncEnvFromPinmap(); runPreflight(); });
+document.getElementById('COMPILE_ENV')?.addEventListener('change', () => { refreshFlashSupportHint(); runPreflight(); });
 syncEnvFromPinmap();
+runPreflight();
+
+// --- Live resolver for the OnStepX ref field --------------------------------
+const refInput = document.getElementById('ONSTEPX_REF');
+const refBody = document.getElementById('refResolvedBody');
+let refTimer = null;
+let refRequestSeq = 0;
+async function refreshRef() {
+  if (!refInput || !refBody) return;
+  const ref = (refInput.value || 'main').trim() || 'main';
+  const mySeq = ++refRequestSeq;
+  refBody.innerHTML = `<span style="color:var(--label);">resolving <code>${escapeHtml(ref)}</code>…</span>`;
+  try {
+    const info = await resolveOnStepXRef(ref);
+    if (mySeq !== refRequestSeq) return; // superseded
+    refBody.innerHTML =
+      `<span style="color:var(--green);">hjd1964/OnStepX @ ${escapeHtml(ref)}</span>` +
+      ` &middot; <a href="https://github.com/hjd1964/OnStepX/commit/${info.sha}" target="_blank" style="color:var(--green);">${info.shortSha}</a>` +
+      ` &middot; ${escapeHtml(info.authorName)}` +
+      ` &middot; ${escapeHtml(info.relative)}` +
+      `<br><span style="color:var(--label);">${escapeHtml(info.message)}</span>`;
+  } catch (err) {
+    if (mySeq !== refRequestSeq) return;
+    refBody.innerHTML = `<span style="color:var(--highlight);">could not resolve: ${escapeHtml(err.message)}</span>`;
+  }
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+refInput?.addEventListener('input', () => {
+  clearTimeout(refTimer);
+  refTimer = setTimeout(refreshRef, 500);
+});
+refreshRef(); // initial resolution on page load
 
 function setStatus(msg, kind = 'info') {
   const el = document.getElementById('compileStatus');
@@ -2659,14 +2860,18 @@ window.startCompileFlow = async function () {
     const config = document.getElementById('configOutput').value;
     if (!config) throw new Error('Config.h is empty — generate it on the Output tab first.');
     const env = document.getElementById('COMPILE_ENV').value;
+    const ref = (document.getElementById('ONSTEPX_REF')?.value || 'main').trim() || 'main';
+    if (!/^[A-Za-z0-9._/-]{1,64}$/.test(ref)) {
+      throw new Error(`OnStepX ref "${ref}" contains disallowed characters`);
+    }
 
     if (WORKER_URL.includes('<your-subdomain>')) {
       throw new Error('Compile service is not configured yet. The site owner must deploy the Cloudflare Worker and update WORKER_URL in compile.js.');
     }
 
-    setStatus(`Requesting compile (${env})…`);
-    appendLog('compileLog', `> POST ${WORKER_URL}/compile { board: ${env} }`);
-    const requestId = await startCompile(config, env);
+    setStatus(`Requesting compile (${env}, ref=${ref})…`);
+    appendLog('compileLog', `> POST ${WORKER_URL}/compile { board: ${env}, ref: ${ref} }`);
+    const requestId = await startCompile(config, env, ref);
     appendLog('compileLog', `  request_id = ${requestId}`);
     setStatus('Build queued on GitHub Actions…');
 
@@ -2687,10 +2892,13 @@ window.startCompileFlow = async function () {
     const files = await fetchFirmware(final.run_id);
     const names = Object.keys(files);
     appendLog('compileLog', `  fetched ${names.length} file(s): ${names.join(', ')}`);
-    lastBuild = { runId: final.run_id, env, files };
+    const configHash = await sha1Hex(config);
+    lastBuild = { runId: final.run_id, env, files, configHash };
     setStatus('Build complete. Firmware ready to download or flash.', 'ok');
     downloadBtn.disabled = false;
     flashBtn.disabled = false;
+    // Clear any previous "stale" indicator — what's loaded is current
+    document.getElementById('staleFlashWarn').style.display = 'none';
   } catch (err) {
     setStatus(`Error: ${err.message}`, 'err');
     appendLog('compileLog', `! ${err.stack || err.message}`);
@@ -2715,12 +2923,32 @@ window.downloadFirmware = function () {
 window.flashBoard = async function () {
   if (!lastBuild) return;
   const flashBtn = document.getElementById('flashBtn');
-  flashBtn.disabled = true;
   const logEl = document.getElementById('flashLog');
   logEl.textContent = '';
   logEl.style.display = 'block';
   const log = (m) => appendLog('flashLog', m);
 
+  // Stale-flash guard: has Config.h changed since this firmware was built?
+  try {
+    if (typeof generateConfig === 'function') generateConfig();
+    const currentConfig = document.getElementById('configOutput').value;
+    const currentHash = await sha1Hex(currentConfig);
+    if (currentHash !== lastBuild.configHash) {
+      document.getElementById('staleFlashWarn').style.display = 'block';
+      const go = confirm(
+        'Your config has changed since this firmware was built.\n\n' +
+        'Flashing now will put OUT-OF-DATE firmware on the board. Recompile first?\n\n' +
+        'OK = cancel flash and recompile.\nCancel = flash the old firmware anyway.'
+      );
+      if (go) return;
+    } else {
+      document.getElementById('staleFlashWarn').style.display = 'none';
+    }
+  } catch (e) {
+    console.warn('stale-flash check failed', e);
+  }
+
+  flashBtn.disabled = true;
   try {
     const { env, files } = lastBuild;
     if (env === 'esp32') await esp32Flasher.flash(files, log);
