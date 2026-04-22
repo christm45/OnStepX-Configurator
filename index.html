@@ -2667,6 +2667,19 @@ teensy_loader_cli --mcu=TEENSY40 -w -v firmware.hex   # 4.0</pre>
       <a href="https://platformio.org/install/cli" target="_blank">PlatformIO</a>, clone
       <code>hjd1964/OnStepX</code>, and run <code>pio run -e esp32</code> (or whatever env).</p>
 
+    <h4>Why did the form change after I flashed?</h4>
+    <p>In OnStepX mode, after a successful flash the form auto-resets to the selected board's starter
+      defaults, so the next build starts from a clean baseline for that board. This only happens for boards
+      where a starter config is shipped (see the hint next to the "Apply board defaults" button on the
+      Controller tab). Your pre-flash state is stashed in <code>localStorage</code> under
+      <code>onstepx-configurator-v2-preflash</code> — to restore it, open DevTools &rarr; Console and run:</p>
+    <pre>localStorage.setItem('onstepx-configurator-v2', localStorage.getItem('onstepx-configurator-v2-preflash'));
+location.reload();</pre>
+    <p>The simpler alternative: before flashing, click <b>Download Config.h</b> on the Output tab to save a
+      copy; re-load it later with <b>Load Existing Config.h</b>.</p>
+    <p>SHC / SWS modes do <b>not</b> auto-reset — their configs are small enough that overwriting would
+      be annoying rather than helpful.</p>
+
     <h4>How much does this cost the site owner?</h4>
     <p>Zero at the scale of a hobby project. GitHub Pages, GitHub Actions (on public repos), and Cloudflare
       Workers all have free tiers that comfortably fit hundreds of builds per day.</p>
@@ -4236,6 +4249,36 @@ window.flashBoard = async function () {
     else if (env === 'blackpill_f411') await stm32Flasher.flash(files, log);
     else if (isTeensy) await teensyFlasher.flash(files, log);
     else throw new Error(`no flasher for env ${env}`);
+
+    // Flash succeeded — auto-reset the OnStepX form to the current board's
+    // starter defaults so the next build starts clean. We snapshot the
+    // pre-flash state first so a manual restore is possible (the user can
+    // reload with the Output tab's "Load Existing Config.h" button to get
+    // it back, or reach into localStorage via devtools).
+    if (window.currentMode === 'onstepx') {
+      const pinmap = document.getElementById('PINMAP')?.value;
+      const entry = BOARD_DEFAULTS[pinmap];
+      if (entry) {
+        try { localStorage.setItem('onstepx-configurator-v2-preflash', localStorage.getItem(STORAGE_KEY) || ''); } catch {}
+        for (const [id, val] of Object.entries(entry.fields)) {
+          const el = document.getElementById(id);
+          if (!el) continue;
+          el.value = val;
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        log('');
+        log(`✓ Flash complete. Form reset to ${entry.label} starter defaults for next build.`);
+        log(`  (To restore your pre-flash config: Output tab → Load Existing Config.h,`);
+        log(`   or in DevTools: localStorage.setItem('${STORAGE_KEY}', localStorage.getItem('onstepx-configurator-v2-preflash')); location.reload();)`);
+        showStatus?.('Flashed! Form reset to board defaults.', 'ok');
+      } else {
+        log('');
+        log('✓ Flash complete. (No starter defaults for this PINMAP — form kept as-is.)');
+      }
+    } else {
+      log('');
+      log('✓ Flash complete.');
+    }
   } catch (err) {
     log(`! ${err.message}`);
   } finally {
