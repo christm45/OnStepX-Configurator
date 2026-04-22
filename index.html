@@ -3508,20 +3508,20 @@ const BOARD_DEFAULTS = {
   },
   MaxPCB4: {
     label: 'MaxPCB4',
-    note: 'Teensy 4.1 with TMC5160 SPI drivers (typical high-torque configuration).',
+    note: 'Teensy 4.1. Pinmap is wired for 4× TMC2209 UART step drivers (Serial8, 460800 baud). Starter preset.',
     fields: {
-      AXIS1_DRIVER_MODEL: 'TMC5160', AXIS2_DRIVER_MODEL: 'TMC5160',
+      AXIS1_DRIVER_MODEL: 'TMC2209', AXIS2_DRIVER_MODEL: 'TMC2209',
       AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
       AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
-      AXIS1_DRIVER_IRUN: '800', AXIS2_DRIVER_IRUN: '800',
+      AXIS1_DRIVER_IRUN: '600', AXIS2_DRIVER_IRUN: '600',
       MOUNT_TYPE: 'GEM',
     },
   },
   MaxSTM3: {
     label: 'MaxSTM3',
-    note: 'STM32F411 BlackPill with TMC2209 drivers (typical mid-range configuration).',
+    note: 'STM32F411. Pinmap is wired for TMC SPI drivers (MOSI/SCK/CS/MISO). Default TMC2130; TMC5160 also works (swap the define). Starter preset.',
     fields: {
-      AXIS1_DRIVER_MODEL: 'TMC2209', AXIS2_DRIVER_MODEL: 'TMC2209',
+      AXIS1_DRIVER_MODEL: 'TMC2130', AXIS2_DRIVER_MODEL: 'TMC2130',
       AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
       AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
       AXIS1_DRIVER_IRUN: '600', AXIS2_DRIVER_IRUN: '600',
