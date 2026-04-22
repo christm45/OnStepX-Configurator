@@ -2055,6 +2055,33 @@
       source, replaces Config.h with your version, compiles with PlatformIO, and returns the firmware.
       Builds typically take 1-3 minutes.
     </p>
+
+    <!-- Context-aware info box for the FYSETC E4 recipe. Shown only when
+         PINMAP=FYSETC_E4 on the Controller tab. -->
+    <div id="e4RecipeBox" style="display:none; margin-bottom:12px; padding:10px 12px; background:rgba(78,204,163,0.08); border-left:3px solid var(--green); border-radius:3px; font-size:0.85em;">
+      <div style="font-weight:bold; color:var(--green); margin-bottom:6px;">FYSETC E4 recipe (what will happen when you click Compile)</div>
+      <ol style="margin-left:18px; color:var(--label);">
+        <li>Source ref stays on <code style="color:var(--green);">main</code> &mdash; you get the latest OnStepX.</li>
+        <li>Your Config.h (= E4 branch's Config.h, if you clicked <b>Apply FYSETC E4 defaults</b>) is written on top.</li>
+        <li>The workflow clones <a href="https://github.com/hjd1964/OnStepX" target="_blank" style="color:var(--green);">hjd1964/OnStepX@main</a>.</li>
+        <li>Because <code style="color:var(--green);">src/plugins/website/</code> doesn't ship on main, the workflow copies it from
+          <a href="https://github.com/hjd1964/OnStepX-Plugins" target="_blank" style="color:var(--green);">hjd1964/OnStepX-Plugins</a>
+          (the <b>Website</b> plugin checkbox should be ticked below &mdash; <b>Apply FYSETC E4 defaults</b> auto-ticks it).</li>
+        <li><code style="color:var(--green);">Plugins.config.h</code> is generated to enable Website in slot 1.</li>
+        <li><code style="color:var(--green);">pio run -e esp32</code> builds it into a single ESP32 firmware with mount control + web UI.</li>
+      </ol>
+      <div style="margin-top:6px; color:var(--label);">
+        <b>End result:</b> main OnStepX source + E4's Config.h + Website plugin &mdash; the same layout as
+        <code style="font-size:0.85em;">OnStepX-main_E4/</code> on disk.
+      </div>
+      <div style="margin-top:6px; color:var(--warn);">
+        <b>Escape hatch:</b> if you specifically want Howard's E4-branch source (older OnStepX snapshot
+        with the website plugin pre-installed), type <code style="background:var(--input-bg);padding:1px 4px;border-radius:3px;">E4</code>
+        in the Source ref field below instead of leaving it on <code>main</code>. The workflow detects the
+        pre-existing <code>src/plugins/website/</code> in that branch and reuses it in place rather than
+        re-copying.
+      </div>
+    </div>
     <div class="field-row">
       <label class="field-label">Target MCU <span class="hint-tag hint-reqd">Req'd</span></label>
       <select id="COMPILE_ENV">
@@ -4359,6 +4386,10 @@ function getSelectedPlugins() {
 function autoPinRefForPinmap() {
   const banner = document.getElementById('refAutoPinBanner');
   if (banner) banner.style.display = 'none';
+  // Context-aware E4 recipe info box — visible only for FYSETC_E4.
+  const e4Box = document.getElementById('e4RecipeBox');
+  const pinmap = document.getElementById('PINMAP')?.value;
+  if (e4Box) e4Box.style.display = pinmap === 'FYSETC_E4' ? 'block' : 'none';
 }
 
 // Hard OnStepX constraint: Teensy 4.0/4.1 need STEP_WAVE_FORM=SQUARE.
