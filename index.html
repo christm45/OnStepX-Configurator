@@ -2028,7 +2028,9 @@
   </div>
   <div style="margin-top:4px; color:var(--label); font-size:0.8em;">
     <b>Compile uses whatever is in this textarea.</b> Imports and file loads preserve the raw source exactly.
-    Click <b>Generate Config.h</b> to rebuild from the form fields (overwrites whatever's here).
+    Clicking <b>Generate Config.h</b> <i>patches</i> form values into existing content &mdash; imported
+    extras like <code style="color:var(--green);">THERMISTOR1_*</code>, <code style="color:var(--green);">DISPLAY_WEATHER</code>
+    stay put. To start totally fresh, click <b>Reset to Defaults</b> (clears the textarea first).
   </div>
 </div>
 
@@ -4039,15 +4041,64 @@ function generateSWSConfig() {
   return text;
 }
 
+// Patch an existing Config.h text: for each `#define NAME VALUE` line,
+// if NAME matches a form field ID, replace VALUE with the form field's
+// current value. Every other line (THERMISTOR1_*, LIMIT_SENSE_PIN, comments,
+// section headers, etc.) is preserved verbatim. This lets imported E4
+// Config.h survive the user clicking "Generate" mid-workflow.
+function patchFormFieldsIntoConfig(rawText) {
+  const lines = rawText.split('\n');
+  let patched = 0;
+  const updated = lines.map((line) => {
+    // Split off any trailing "// comment" so we only touch the value portion
+    const commentIdx = line.indexOf('//');
+    const content = commentIdx >= 0 ? line.substring(0, commentIdx) : line;
+    const comment = commentIdx >= 0 ? line.substring(commentIdx) : '';
+    const m = content.match(/^(\s*#define\s+)(\w+)(\s+)(\S.*?)(\s*)$/);
+    if (!m) return line;
+    const [, prefix, name, sep, currentValue, trailingWs] = m;
+    const el = document.getElementById(name);
+    if (!el) return line;
+    let newValue = String(el.value ?? '').trim();
+    if (!newValue) return line; // empty form field — leave original alone
+    // Preserve quoted strings
+    const hadQuotes = currentValue.startsWith('"');
+    if (hadQuotes && !newValue.startsWith('"')) newValue = `"${newValue}"`;
+    if (!hadQuotes && newValue.startsWith('"')) newValue = newValue.replace(/^"|"$/g, '');
+    if (newValue === currentValue) return line; // no-op
+    // Preserve column alignment (pad with spaces so following comment stays put)
+    const delta = currentValue.length - newValue.length;
+    const newTrailingWs = delta > 0 ? trailingWs + ' '.repeat(delta) : trailingWs;
+    patched++;
+    return prefix + name + sep + newValue + newTrailingWs + comment;
+  });
+  if (patched > 0) console.log(`patchFormFieldsIntoConfig: updated ${patched} line(s)`);
+  return updated.join('\n');
+}
+
 // Override generateConfig() (defined in the classic script) to dispatch by mode.
+// KEY BEHAVIOUR: if the Output textarea already has #define lines (imported,
+// loaded, or hand-edited), we PATCH the form-known fields into it instead
+// of overwriting. This preserves upstream fields like THERMISTOR1_*,
+// LIMIT_SENSE_PIN, DISPLAY_WEATHER, etc. that the form can't represent.
 const _generateOnStepXConfig = window.generateConfig;
 window.generateConfig = function () {
+  const outEl = document.getElementById('configOutput');
+  const existing = outEl?.value || '';
+  const hasDefines = /^#define\s+\w+/m.test(existing);
+
+  if (hasDefines) {
+    // Patch mode — keep imported / hand-edited content intact.
+    outEl.value = patchFormFieldsIntoConfig(existing);
+    setConfigSource('Form values patched into existing Config.h — other #defines preserved');
+    return outEl.value;
+  }
+
+  // Fresh generate — no existing content to preserve.
   let result;
   if (window.currentMode === 'shc') result = generateSHCConfig();
   else if (window.currentMode === 'sws') result = generateSWSConfig();
   else result = _generateOnStepXConfig?.();
-  // The classic script writes to configOutput directly; update the source banner
-  // so the user sees this came from the form (and not an import).
   setConfigSource('Regenerated from form fields (' + (window.currentMode || 'onstepx') + ')');
   return result;
 };
