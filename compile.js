@@ -5,7 +5,7 @@
 // ==========================================================================
 // CONFIGURATION — set this after deploying the worker.
 // ==========================================================================
-export const WORKER_URL = 'https://onstepx-build-bridge.<your-subdomain>.workers.dev';
+export const WORKER_URL = 'https://onstepx-build-bridge.craciun-vlad.workers.dev';
 
 // PINMAP (from Config.h dropdown) → PlatformIO build env.
 // Pinmaps not in this table fall back to "unknown" → user has to pick manually.
