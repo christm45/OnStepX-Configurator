@@ -2060,6 +2060,19 @@
       <span style="color:var(--label);">Will build:</span> <span id="refResolvedBody">resolving…</span>
     </div>
     <div id="refAutoPinBanner" style="display:none; margin-bottom:10px; padding:8px 10px; background:rgba(78,204,163,0.10); border-left:3px solid var(--green); border-radius:3px; color:var(--green); font-size:0.85em;"></div>
+
+    <!-- OnStepX plugins (hidden in SHC / SWS modes) -->
+    <div id="pluginsSection" style="margin-top:6px; padding:10px; background:var(--input-bg); border:1px solid var(--border); border-radius:4px; font-size:0.85em;">
+      <div style="font-weight:bold; color:var(--green); margin-bottom:4px;">OnStepX plugins (optional)</div>
+      <div style="color:var(--label); margin-bottom:8px; font-size:0.85em;">
+        Check the plugins you want <b>bundled into this OnStepX firmware</b> — the workflow will clone
+        <a href="https://github.com/hjd1964/OnStepX-Plugins" target="_blank" style="color:var(--green);">OnStepX-Plugins</a>,
+        copy the selected folders into <code>src/plugins/</code>, and wire up <code>Plugins.config.h</code>
+        automatically. Leave all unchecked for a stock build.
+      </div>
+      <div id="pluginsList"></div>
+      <div id="pluginsWarning" style="display:none; margin-top:8px; padding:6px 10px; background:rgba(255,107,53,0.12); border-left:3px solid var(--warn); border-radius:3px; color:var(--warn);"></div>
+    </div>
     <!-- Preflight checklist -->
     <div id="preflight" style="margin-top:10px;padding:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:4px;font-size:0.85em;">
       <div id="preflightSummary" style="font-weight:bold;color:var(--green);">Checking&hellip;</div>
@@ -3490,6 +3503,8 @@ function setMode(mode) {
 
   // Compile-tab board list reflects the selected project
   updateCompileBoardOptions();
+  // Plugins section is OnStepX-only
+  try { refreshPluginsSectionVisibility(); } catch {}
   // Recompute preflight + ref resolution for the new mode
   try { runPreflight(); } catch {}
   try { refreshRef(); } catch {}
@@ -4158,6 +4173,68 @@ function syncEnvFromPinmap() {
 const PINMAP_BRANCH_REFS = {
   FYSETC_E4: 'E4',
 };
+// OnStepX plugin catalog — mirrors hjd1964/OnStepX-Plugins.
+// Each entry is rendered as a checkbox on the Compile & Flash tab.
+const ONSTEPX_PLUGINS = [
+  { id: 'website', name: 'Website', desc: 'Built-in web UI (SmartWebServer features as a plugin instead of a separate MCU). ESP32 only in practice.', flags: ['esp32-only', 'wifi'] },
+  { id: 'elegantota', name: 'ElegantOTA', desc: 'Over-the-air firmware update via web browser. Pairs well with Website.', flags: ['esp32-only', 'wifi'] },
+  { id: 'metrics', name: 'Metrics', desc: 'Prometheus-compatible metrics endpoint for debugging / monitoring.', flags: ['esp32-only', 'wifi'] },
+  { id: 'serialBluetoothConfig', name: 'Serial Bluetooth Config', desc: 'Configures external HC-05/HC-06 Bluetooth modules via AT commands at startup.', flags: [] },
+  { id: 'guideRateRheostat', name: 'Guide Rate Rheostat', desc: 'Analog potentiometer on guide rate for hand-controller extensions.', flags: [] },
+  { id: 'usb', name: 'USB Power Control', desc: 'Adds dedicated USB power port control to the aux-switching system.', flags: [] },
+];
+
+function renderPlugins() {
+  const list = document.getElementById('pluginsList');
+  if (!list) return;
+  list.innerHTML = '';
+  for (const p of ONSTEPX_PLUGINS) {
+    const row = document.createElement('label');
+    row.style.cssText = 'display:flex; gap:8px; align-items:flex-start; margin-bottom:6px; cursor:pointer;';
+    row.innerHTML = `
+      <input type="checkbox" id="PLUGIN_${p.id}" style="margin-top:4px;">
+      <div>
+        <div><b style="color:var(--text);">${p.name}</b> <code style="color:var(--label); font-size:0.85em;">${p.id}</code></div>
+        <div style="color:var(--label); font-size:0.85em;">${p.desc}</div>
+      </div>`;
+    list.appendChild(row);
+    row.querySelector('input').addEventListener('change', refreshPluginsWarning);
+  }
+}
+
+function refreshPluginsWarning() {
+  const warn = document.getElementById('pluginsWarning');
+  if (!warn) return;
+  const env = document.getElementById('COMPILE_ENV')?.value || '';
+  const selectedWifiPlugins = ONSTEPX_PLUGINS
+    .filter((p) => p.flags.includes('wifi') && document.getElementById(`PLUGIN_${p.id}`)?.checked)
+    .map((p) => p.name);
+  const needsEsp = ONSTEPX_PLUGINS
+    .filter((p) => p.flags.includes('esp32-only') && document.getElementById(`PLUGIN_${p.id}`)?.checked)
+    .map((p) => p.name);
+  const msgs = [];
+  if (needsEsp.length && env !== 'esp32') {
+    msgs.push(`${needsEsp.join(', ')} require an ESP32 build target (current: ${env || 'none'}).`);
+  }
+  if (selectedWifiPlugins.length) {
+    msgs.push(`Remember to enable WiFi in your Config.h (Controller tab) — plugin ${selectedWifiPlugins.join('/')} needs it.`);
+  }
+  warn.innerHTML = msgs.join('<br>');
+  warn.style.display = msgs.length ? 'block' : 'none';
+}
+
+function refreshPluginsSectionVisibility() {
+  const section = document.getElementById('pluginsSection');
+  if (!section) return;
+  section.style.display = window.currentMode === 'onstepx' ? 'block' : 'none';
+}
+
+function getSelectedPlugins() {
+  return ONSTEPX_PLUGINS
+    .filter((p) => document.getElementById(`PLUGIN_${p.id}`)?.checked)
+    .map((p) => p.id);
+}
+
 function autoPinRefForPinmap() {
   const pinmap = document.getElementById('PINMAP')?.value;
   const refInput = document.getElementById('ONSTEPX_REF');
@@ -4182,10 +4259,13 @@ document.getElementById('PINMAP')?.addEventListener('change', () => {
 });
 document.getElementById('COMPILE_ENV')?.addEventListener('change', () => { refreshFlashSupportHint(); runPreflight(); });
 // Initialise mode (sets tab visibility, board options, title — also calls runPreflight)
+renderPlugins();
 setMode(window.currentMode);
 syncEnvFromPinmap();
 refreshBoardDefaultsButton();
 autoPinRefForPinmap();
+refreshPluginsWarning();
+document.getElementById('COMPILE_ENV')?.addEventListener('change', refreshPluginsWarning);
 
 // --- Live resolver for the OnStepX ref field --------------------------------
 const refInput = document.getElementById('ONSTEPX_REF');
@@ -4325,9 +4405,11 @@ window.startCompileFlow = async function () {
     const project = window.currentMode === 'shc' ? 'shc'
                   : window.currentMode === 'sws' ? 'sws'
                   : 'onstepx';
+    const plugins = project === 'onstepx' ? getSelectedPlugins() : [];
     setStatus(`Requesting compile (${project} / ${env}, ref=${ref})…`);
-    appendLog('compileLog', `> POST ${WORKER_URL}/compile { project: ${project}, board: ${env}, ref: ${ref} }`);
-    const requestId = await startCompile(config, env, ref, project);
+    const pluginsLog = plugins.length ? `, plugins: [${plugins.join(', ')}]` : '';
+    appendLog('compileLog', `> POST ${WORKER_URL}/compile { project: ${project}, board: ${env}, ref: ${ref}${pluginsLog} }`);
+    const requestId = await startCompile(config, env, ref, project, plugins);
     appendLog('compileLog', `  request_id = ${requestId}`);
     setStatus('Build queued on GitHub Actions…');
 

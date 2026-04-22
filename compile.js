@@ -39,11 +39,11 @@ export const ENV_LABELS = {
  * `project` is 'onstepx' (default) or 'shc' — picks hjd1964/OnStepX vs
  * hjd1964/SmartHandController as the source.
  */
-export async function startCompile(configText, board, ref = 'main', project = 'onstepx') {
+export async function startCompile(configText, board, ref = 'main', project = 'onstepx', plugins = []) {
   const res = await fetch(`${WORKER_URL}/compile`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ config: configText, board, ref, project }),
+    body: JSON.stringify({ config: configText, board, ref, project, plugins }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));

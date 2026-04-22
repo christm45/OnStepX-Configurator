@@ -77,6 +77,21 @@ async function handleCompile(request, env) {
   const { config, board } = body;
   const project = (body.project || 'onstepx').toString();
   const onstepxRef = (body.ref || 'main').toString();
+  // Plugins — OnStepX only. Array of plugin names from the known list.
+  const ALLOWED_PLUGINS = new Set([
+    'website', 'elegantota', 'metrics', 'serialBluetoothConfig',
+    'guideRateRheostat', 'usb',
+  ]);
+  const pluginsArr = Array.isArray(body.plugins) ? body.plugins : [];
+  for (const p of pluginsArr) {
+    if (typeof p !== 'string' || !ALLOWED_PLUGINS.has(p)) {
+      return json({ error: `unknown plugin: ${p}` }, 400);
+    }
+  }
+  if (project !== 'onstepx' && pluginsArr.length > 0) {
+    return json({ error: 'plugins are only supported for project=onstepx' }, 400);
+  }
+  const pluginsCsv = pluginsArr.join(',');
   if (typeof config !== 'string' || !config.length) {
     return json({ error: 'config missing' }, 400);
   }
@@ -130,11 +145,12 @@ async function handleCompile(request, env) {
       body: JSON.stringify({
         ref: 'main', // which branch of the BUILD-SERVICE repo runs the workflow
         inputs: {
-          project,                 // 'onstepx' | 'shc' — picks upstream repo
+          project,                 // 'onstepx' | 'shc' | 'sws' — picks upstream repo
           config_h: configB64,
           environment: board,
           request_id: requestId,
           onstepx_ref: onstepxRef, // ref of the chosen upstream repo
+          plugins: pluginsCsv,     // comma-separated plugin list (OnStepX only)
         },
       }),
     }
