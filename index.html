@@ -2339,6 +2339,22 @@
     <p>Runs entirely in your browser. The HTML/CSS/JavaScript was served by GitHub Pages when you loaded the
       tab, and from then on everything is local &mdash; even the Config.h generation and the browser-based
       flasher. The page never phones home just for you being here.</p>
+    <p>A few UI niceties worth knowing:</p>
+    <ul>
+      <li><b>The little <code>?</code> icons</b> next to field names open a one-sentence explanation for
+        that specific setting, plus (for most fields) a <i>"Learn more &rarr;"</i> link that jumps to the
+        relevant help section. Hover to preview, click to pin, <kbd>Esc</kbd> to dismiss.</li>
+      <li><b>"Apply board defaults"</b> (under the PINMAP field) autofills driver model, microsteps, run
+        current, and mount type with the known-good values for whichever PINMAP you picked &mdash;
+        MaxESP3/4, MaxPCB4, MaxSTM3, BTT SKR PRO, MiniPCB, CNC3, etc. A one-click starting point you then
+        tweak.</li>
+      <li><b>PINMAP &rarr; MCU target auto-resolves.</b> Pick <code>MaxPCB4</code> in the Controller
+        section and the Compile &amp; Flash tab's <i>Target MCU</i> switches to <code>teensy41</code> for
+        you. Changing it manually to something incompatible fires a preflight warning before you spend a
+        build minute.</li>
+      <li><b>Form state is saved to local storage</b> on every change, so a refresh or closed tab doesn't
+        lose your work. The header <b>↻ Reset to Defaults</b> clears it.</li>
+    </ul>
 
     <h4>The Cloudflare Worker (the "bridge")</h4>
     <p>A ~200-line JavaScript function that Cloudflare runs on-demand when your browser pings it. Its only
@@ -2360,8 +2376,10 @@
       <li><code>git clone https://github.com/hjd1964/OnStepX.git</code>, then <code>git checkout</code> at the
         branch/tag/commit you typed in the <b>OnStepX source</b> field (default: latest <code>main</code>)</li>
       <li>Write your generated <code>Config.h</code> over OnStepX's default</li>
-      <li>Run <code>pio run -e esp32</code> (or teensy40 / teensy41 / blackpill_f411). PlatformIO downloads the
-        MCU toolchain and any external libraries OnStepX needs, then compiles.</li>
+      <li>Run <code>pio run -e esp32</code> (or one of <code>teensy32</code> / <code>teensy40</code> /
+        <code>teensy41</code> / <code>blackpill_f411</code> / <code>skr_pro_f407</code>, plus the SHC and
+        SWS variants). PlatformIO downloads the MCU toolchain and any external libraries OnStepX needs,
+        then compiles.</li>
       <li>Bundle the outputs (firmware binary, bootloader, partitions, and &mdash; for ESP32 &mdash; a pre-merged
         single-file image) into <code>firmware-&lt;uuid&gt;.zip</code>, published as a 1-day-retention workflow
         artifact</li>
@@ -2392,12 +2410,13 @@
       thing from a browser we need an API that can send HID output reports to an arbitrary vendor device, and
       that's exactly what <b>WebHID</b> gives us (Chrome/Edge only; no Firefox or Safari support yet).</p>
 
-    <p>The Teensy 4.x sits in ROM as HalfKay whenever you press the white program button. In that mode it
-      appears as a USB HID device with vendor/product IDs <code>0x16C0</code> / <code>0x0478</code>. The
-      browser's device picker filters on those IDs, so only a Teensy in bootloader mode shows up in the
-      dialog &mdash; the running OnStepX sketch, with its own USB identity, is ignored. That also means the
-      dialog is empty until you press the program button; Chrome polls for new devices, so the Teensy pops in
-      as soon as HalfKay activates.</p>
+    <p>Every Teensy 3.2 / 4.0 / 4.1 sits in ROM as HalfKay whenever you press the white program button.
+      In that mode it appears as a USB HID device with vendor/product IDs <code>0x16C0</code> /
+      <code>0x0478</code> &mdash; same VID:PID across models. The browser's device picker filters on
+      those IDs, so only a Teensy in bootloader mode shows up in the dialog; the running OnStepX sketch,
+      with its own USB identity, is ignored. That also means the dialog is empty until you press the
+      program button &mdash; Chrome polls for new devices, so the Teensy pops in as soon as HalfKay
+      activates.</p>
 
     <p>Once the device is open, flashing is a loop of 1088-byte HID output reports with this layout:</p>
 
@@ -2473,8 +2492,8 @@
         Controller / Communication / Sensors in SHC mode.</li>
       <li>Your form values are preserved <i>per mode</i>: switching from OnStepX to SHC and back doesn't
         lose your work in either.</li>
-      <li>The Compile &amp; Flash tab's MCU target list changes (SHC supports ESP32 / Teensy 4.0 / Teensy
-        3.2; OnStepX adds STM32 BlackPill F411).</li>
+      <li>The Compile &amp; Flash tab's MCU target list changes: SHC supports ESP32 / Teensy 4.0 /
+        Teensy 3.2; OnStepX adds Teensy 4.1, STM32 BlackPill F411, and STM32F407 / BTT SKR PRO.</li>
       <li>The "Source ref" field resolves against the right upstream repo
         (<a href="https://github.com/hjd1964/OnStepX" target="_blank">hjd1964/OnStepX</a> or
         <a href="https://github.com/hjd1964/SmartHandController" target="_blank">hjd1964/SmartHandController</a>).</li>
@@ -2492,8 +2511,11 @@
     <div class="section-title">2 &middot; Quick start &mdash; board to firmware in 8 steps</div>
 
     <ol>
-      <li>Open the <b>Controller</b> tab. Set <code>PINMAP</code> to whatever board you have
-        (e.g. <code>MaxPCB4</code>, <code>MaxESP4</code>, <code>MaxSTM3</code>).</li>
+      <li>Open the <b>Controller</b> tab. Set <code>PINMAP</code> to whatever board you have &mdash;
+        <code>MaxPCB4</code>, <code>MaxESP3</code>/<code>MaxESP4</code>, <code>MaxSTM3</code>,
+        <code>FYSETC_E4</code>, <code>CNC3</code>/<code>CNC3_2</code>, <code>MiniPCB</code>
+        (v1 / v1.3 / v2), or <code>BTT_SKR_PRO</code>. Click <b>Apply board defaults</b> right below the
+        PINMAP dropdown to autofill driver model, microsteps, and run current for that board.</li>
       <li>Open the <b>Calculator</b> tab. Fill in your mount's worm teeth, motor steps/rev, and gear ratio for
         each axis &mdash; the steps/deg values used by Axis1/Axis2 are calculated from this.</li>
       <li>Open <b>Axis1</b> and <b>Axis2</b>. Set <code>AXIS_DRIVER_MODEL</code> to whatever you're using
@@ -2545,6 +2567,14 @@
     <div class="section-title">4 &middot; The settings you actually have to change</div>
 
     <p>Most defaults are fine. These are the ones you almost always have to set:</p>
+
+    <div class="help-tip">
+      <b>Shortcut:</b> once you've picked your <code>PINMAP</code>, click the <b>Apply board defaults</b>
+      button right under the dropdown. For MaxESP3/4, MaxPCB4, MaxSTM3, BTT SKR PRO, MiniPCB, CNC3,
+      and FYSETC_E4, that fills in the driver model, microsteps, run current, and mount type with
+      known-good values &mdash; so you only need to touch the steps/deg (from the Calculator) and the
+      values specific to your scope.
+    </div>
 
     <h4>Required (compile will fail without these)</h4>
     <ul>
@@ -2619,13 +2649,19 @@
     <p>Before any Compile actually goes to the cloud, a local validator scans your form for common mistakes
       so you don't waste a 2-minute build on an obvious oversight:</p>
     <ul>
-      <li><b>PINMAP &harr; MCU match</b> &mdash; picking <code>MaxPCB4</code> (a Teensy 4.1 board) while the
-        target MCU is set to ESP32 will fail. The checklist catches this before it hits the runner.</li>
+      <li><b>PINMAP &harr; MCU match</b> &mdash; every PINMAP is pinned to a specific MCU family in the
+        validator. Current map: MaxESP3/MaxESP4/FYSETC_E4 &rarr; <code>esp32</code>; MaxPCB4 &rarr;
+        <code>teensy41</code>; CNC3/CNC3_2 &rarr; <code>teensy40</code>; MiniPCB (v1/v1.3/v2) &rarr;
+        <code>teensy32</code>; MaxSTM3 &rarr; <code>blackpill_f411</code>; BTT_SKR_PRO &rarr;
+        <code>skr_pro_f407</code>. Mismatches are caught before they hit the runner.</li>
       <li><b>Required fields</b> &mdash; <code>PINMAP</code>, <code>MOUNT_TYPE</code>, axis driver model, and
         steps/deg must all be set.</li>
       <li><b>Driver microsteps</b> &mdash; A4988 won't do 256, DRV8825 maxes at 32, etc.</li>
       <li><b>Unusual steps/deg</b> &mdash; typical values are 5,000&ndash;50,000; anything outside
         500&ndash;200,000 is flagged.</li>
+      <li><b>Teensy 4.x step waveform</b> &mdash; on <code>teensy40</code>/<code>teensy41</code> the OnStepX
+        source requires <code>STEP_WAVE_FORM=SQUARE</code>. The form auto-corrects this when you switch
+        envs, and the preflight catches it if you override.</li>
       <li><b>Secret-looking values</b> &mdash; if your Config.h has a non-empty field whose name contains
         <code>PASSWORD</code>, <code>KEY</code>, <code>SECRET</code>, or <code>TOKEN</code>, you're warned
         because it would appear in the public GitHub Actions log.</li>
@@ -2869,16 +2905,34 @@ teensy_loader_cli --mcu=TEENSY40 -w -v firmware.hex   # 4.0</pre>
 
     <h4>Flashing STM32: device doesn't appear in the picker</h4>
     <ol>
-      <li>Make sure you actually entered DFU: hold BOOT0, tap NRST, release BOOT0. The device name in
-        Device Manager / <code>lsusb</code> should change.</li>
+      <li>Make sure you actually entered DFU. BlackPill: hold BOOT0, tap NRST, release. BTT SKR PRO V1.2:
+        set the <b>BOOT0 jumper</b>, then power-cycle &mdash; the device name in Device Manager /
+        <code>lsusb</code> should change.</li>
       <li>On Windows: install the WinUSB driver via Zadig (see the BlackPill warning above).</li>
       <li>Confirm VID:PID <code>0483:DF11</code> is present.</li>
     </ol>
+
+    <h4>Flashing Teensy: device picker is empty</h4>
+    <p>The Teensy isn't in HalfKay bootloader mode yet. Leave the browser dialog open and press the white
+      program button on the Teensy &mdash; Chrome polls for new devices and it'll appear. This applies to
+      3.2, 4.0, 4.1, and MaxPCB4. If the picker still won't show it after the button press, the USB cable
+      may be charge-only (try another).</p>
+
+    <h4>Flashing Teensy: "WebHID not available in this browser"</h4>
+    <p>WebHID is Chromium-only. On Firefox/Safari the flasher silently falls back to saving
+      <code>firmware.hex</code> which you then drop into the PJRC Teensy Loader app. Same result, one more
+      step.</p>
 
     <h4>Teensy Loader doesn't see my .hex</h4>
     <p>Drag the file onto the Teensy Loader window, or File &rarr; Open HEX File. If it opens but doesn't
       flash, press the white program button on the Teensy &mdash; it flashes on button press, not on file
       open.</p>
+
+    <h4>Flash log stops at "First block sent (chip erase…)"</h4>
+    <p>Normal. Block 0 on a Teensy triggers a full chip erase; the ACK for that first write arrives only
+      after the erase finishes (a few seconds on 3.2, a bit longer on 4.1's 8&nbsp;MB flash). The flasher
+      allows up to 45&nbsp;s per block for the first five blocks. If it actually times out, unplug /
+      replug the Teensy and retry &mdash; HalfKay is ROM-resident, nothing can be bricked.</p>
 
     <h4>Firmware runs but axis moves wrong direction / doesn't move</h4>
     <p>That's config, not firmware. Toggle <code>AXIS1_DRIVER_REVERSE</code> / <code>AXIS2_DRIVER_REVERSE</code>,
@@ -2921,10 +2975,21 @@ teensy_loader_cli --mcu=TEENSY40 -w -v firmware.hex   # 4.0</pre>
         and Compile sends it as-is.</li>
     </ul>
 
-    <h4>Can I build for a board that's not in the list?</h4>
-    <p>Today, no &mdash; the backend has PlatformIO environments for ESP32, Teensy 4.0, Teensy 4.1, and
-      STM32F411 BlackPill only. Adding a new board means adding an env to
-      <code>build-service/platformio.ini</code> in the build service repo.</p>
+    <h4>Which boards can I build for?</h4>
+    <p>Everything in the <code>PINMAP</code> dropdown is wired to a matching PlatformIO env on the build
+      side. Today that covers:</p>
+    <ul>
+      <li><b>ESP32</b> &mdash; MaxESP3, MaxESP4, FYSETC_E4, generic dev boards.</li>
+      <li><b>Teensy 3.2</b> &mdash; MiniPCB v1 / v1.3 / v2.</li>
+      <li><b>Teensy 4.0</b> &mdash; CNC3, CNC3_2.</li>
+      <li><b>Teensy 4.1</b> &mdash; MaxPCB4.</li>
+      <li><b>STM32F411 BlackPill</b> &mdash; MaxSTM3.</li>
+      <li><b>STM32F407</b> &mdash; BTT SKR PRO V1.2.</li>
+    </ul>
+    <p>To add a board that's not listed, the build service needs a new PlatformIO env &mdash; edit
+      <code>build-service/platformio.ini</code> (plus the whitelist in <code>build.yml</code> and the
+      Worker's <code>ALLOWED_BOARDS</code> set), then update the PINMAP dropdown and
+      <code>PINMAP_TO_ENV</code> / <code>PINMAP_MCU</code> mappings here.</p>
 
     <h4>Can I run this offline?</h4>
     <p>You can generate Config.h offline &mdash; this page works fully offline once loaded. Compiling needs
