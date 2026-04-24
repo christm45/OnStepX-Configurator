@@ -4378,10 +4378,10 @@ function setupFieldHelp() {
   function cancelHide() {
     if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
   }
-  // When the mouse leaves the icon, don't hide right away — give a short
-  // grace period for the mouse to land on the bubble. If it does, the
-  // bubble's own mouseenter cancels the timer.
-  function scheduleHide(delay = 250) {
+  // When the mouse leaves the icon, don't hide right away — give the user
+  // plenty of time to land on the bubble. If they do, the bubble's own
+  // mouseenter cancels the timer.
+  function scheduleHide(delay = 3000) {
     if (isPinned) return;
     cancelHide();
     hideTimer = setTimeout(hide, delay);
@@ -4408,9 +4408,21 @@ function setupFieldHelp() {
       a.className = 'field-help-learn';
       a.href = '#' + info.learn;
       a.textContent = 'Learn more →';
-      // Navigating the anchor hides naturally via the scroll handler; also
-      // explicitly hide so the bubble doesn't linger during the scroll.
-      a.addEventListener('click', () => hide());
+      // The help sections live inside the Help tab (display:none when
+      // another tab is active), so a plain anchor jump does nothing.
+      // Switch to the Help tab first, then scroll to the target after
+      // the tab-swap has laid out.
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        const anchor = info.learn;
+        hide();
+        if (typeof showTab === 'function') showTab('help');
+        requestAnimationFrame(() => {
+          const target = document.getElementById(anchor);
+          if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          if (history && history.replaceState) history.replaceState(null, '', '#' + anchor);
+        });
+      });
       bubble.appendChild(a);
     }
     bubble.hidden = false;
