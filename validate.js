@@ -12,6 +12,7 @@
 // has an env for are listed. Unknown pinmaps fall through to a soft warning.
 export const PINMAP_MCU = {
   MaxPCB4: 'teensy41',
+  MaxESP3: 'esp32',
   MaxESP4: 'esp32',
   FYSETC_E4: 'esp32',
   MaxSTM3: 'blackpill_f411',

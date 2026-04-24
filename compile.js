@@ -13,6 +13,7 @@ export const WORKER_URL = 'https://onstepx-build-bridge.craciun-vlad.workers.dev
 // have a matching env for are listed here. Others get "No default — pick
 // manually" on the UI.
 export const PINMAP_TO_ENV = {
+  MaxESP3: 'esp32',
   MaxESP4: 'esp32',
   FYSETC_E4: 'esp32',
   MaxPCB4: 'teensy41',

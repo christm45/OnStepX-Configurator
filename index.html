@@ -122,6 +122,63 @@
   .hint-adjust { background: #2a6a4a; color: #ccc; }
   .hint-infreq { background: #333; color: #888; }
 
+  /* Per-field help (? icons) */
+  .help-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    margin-left: 5px;
+    padding: 0;
+    background: var(--accent);
+    color: var(--label);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    font-size: 0.72em;
+    font-weight: bold;
+    font-family: inherit;
+    cursor: help;
+    line-height: 1;
+    vertical-align: middle;
+  }
+  .help-icon:hover,
+  .help-icon:focus,
+  .help-icon[aria-expanded="true"] {
+    background: var(--green);
+    color: #0d1b2a;
+    border-color: var(--green);
+    outline: none;
+  }
+  #field-help-bubble {
+    position: absolute;
+    z-index: 1000;
+    max-width: 340px;
+    background: var(--card);
+    border: 1px solid var(--green);
+    border-radius: 4px;
+    padding: 10px 12px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.5);
+    font-size: 0.82em;
+    color: var(--text);
+    line-height: 1.45;
+  }
+  #field-help-bubble[hidden] { display: none; }
+  #field-help-bubble .field-help-title {
+    color: var(--green);
+    font-weight: bold;
+    font-family: Consolas, monospace;
+    margin-bottom: 4px;
+    font-size: 0.95em;
+  }
+  #field-help-bubble .field-help-learn {
+    display: block;
+    margin-top: 8px;
+    color: var(--green);
+    text-decoration: none;
+  }
+  #field-help-bubble .field-help-learn:hover { text-decoration: underline; }
+
   select, input[type="text"], input[type="number"] {
     background: var(--input-bg);
     color: var(--text);
@@ -655,6 +712,7 @@
       <select id="PINMAP">
         <option value="OFF">OFF</option>
         <option value="MaxPCB4">MaxPCB4 (Teensy 4.1)</option>
+        <option value="MaxESP3">MaxESP3 (ESP32)</option>
         <option value="MaxESP4">MaxESP4 (ESP32)</option>
         <option value="MaxSTM3" selected>MaxSTM3 (STM32F411)</option>
         <option value="FYSETC_E4">FYSETC_E4 (ESP32)</option>
@@ -3140,8 +3198,9 @@ function generateConfig() {
   L(pad('HOST_NAME', q(v('HOST_NAME')), q('nStep'), 'Hostname for this device up to 16 chars.                                 Adjust'));
   L('');
   L('// PINMAP ------------------------------------------------- see https://onstep.groups.io/g/main/wiki/Configuration_Controller#PINMAP');
-  L(pad('PINMAP', v('PINMAP'), 'OFF,', 'Choose from: MiniPCB, MiniPCB2, MaxPCB4, MaxESP4, MaxSTM3, FYSETC_E4,   <-Req\'d'));
-  L('                                          //         BTT_SKR_PRO, etc.  Other boards and more info. in ~/src/Constants.h');
+  L(pad('PINMAP', v('PINMAP'), 'OFF,', 'Choose from: MiniPCB, MiniPCB2, MaxPCB4, MaxESP3, MaxESP4, MaxSTM3,     <-Req\'d'));
+  L('                                          //         FYSETC_E4, BTT_SKR_PRO, CNC3, CNC3_2, etc.');
+  L('                                          //         Other boards and more info. in ~/src/Constants.h');
   L('');
   L('// SERIAL PORT COMMAND CHANNELS --------------------- see https://onstep.groups.io/g/main/wiki/Configuration_Controller#SERIAL_PORTS');
   L(pad('SERIAL_A_BAUD_DEFAULT', v('SERIAL_A_BAUD_DEFAULT'), '9600,', 'n. Where n=9600,19200,57600,115200,230400,460800 (common baud rates.)    Infreq'));
@@ -3672,6 +3731,21 @@ const BOARD_DEFAULTS = {
     liveFetch: 'https://raw.githubusercontent.com/hjd1964/OnStepX/E4/Config.h',
     fields: {}, // applied via live fetch + plugin auto-tick in applyBoardDefaults.
   },
+  MaxESP3: {
+    label: 'MaxESP3',
+    note: 'ESP32-based predecessor to MaxESP4. Default driver mix is TMC2209 UART on the mount axes and focuser; if your MaxESP3 was wired for SPI drivers (TMC2130 etc.) override the driver-model fields below.',
+    fields: {
+      AXIS1_DRIVER_MODEL: 'TMC2209', AXIS2_DRIVER_MODEL: 'TMC2209',
+      AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
+      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
+      AXIS1_DRIVER_IRUN: '600', AXIS2_DRIVER_IRUN: '600',
+      AXIS3_DRIVER_MODEL: 'OFF',
+      AXIS4_DRIVER_MODEL: 'TMC2209',
+      AXIS4_DRIVER_MICROSTEPS: '8',
+      AXIS4_DRIVER_IRUN: '200', AXIS4_DRIVER_IHOLD: '200',
+      MOUNT_TYPE: 'GEM',
+    },
+  },
   MaxESP4: {
     label: 'MaxESP4',
     note: 'ESP32 with 4× TMC2209 UART drivers on a shared serial bus. All axes use TMC2209.',
@@ -4059,6 +4133,168 @@ const restored = restoreFormState();
 document.addEventListener('change', () => { queueSave(); runPreflight(); });
 document.addEventListener('input', queueSave);
 if (restored) showStatus?.('Restored saved form state.');
+
+// ---------------------------------------------------------------------------
+// Per-field help (? icons)
+// ---------------------------------------------------------------------------
+// Registry-driven: add a new entry here and the decorator below injects a
+// ? icon next to that field's label at page load. `tip` is one sentence,
+// `learn` is an optional help-tab anchor (scroll target) shown as "Learn
+// more →". Keep tip text tight — the bubble stays readable up to ~2 lines.
+const FIELD_HELP = {
+  // -- Required fields new users must get right ---------------------------
+  PINMAP: {
+    tip: 'Which physical board you have. This selection determines every pin assignment — must match what you actually wired.',
+    learn: 'help-boards',
+  },
+  MOUNT_TYPE: {
+    tip: 'GEM = German Equatorial (counterweight + saddle). FORK = fork on equatorial wedge. ALTAZM = alt-azimuth (Dobson, push-to, etc.).',
+  },
+  AXIS1_STEPS_PER_DEGREE: {
+    tip: 'Motor steps per degree of RA/Azimuth. Use the Steps Per Degree Calculator above — wrong values break both pointing and tracking.',
+  },
+  AXIS2_STEPS_PER_DEGREE: {
+    tip: 'Motor steps per degree of Dec/Altitude. Same calculator as Axis1; the number differs if your Dec gear ratio differs.',
+  },
+  AXIS1_DRIVER_MICROSTEPS: {
+    tip: 'Microsteps during tracking (not goto). Higher = smoother motion, lower max slew. 64 / 128 typical on TMC2209; 32 on TMC2130/5160.',
+  },
+  AXIS2_DRIVER_MICROSTEPS: {
+    tip: 'Microsteps during tracking for Dec/Alt. Usually matches Axis1 unless your Dec gearing is very different.',
+  },
+  SLEW_RATE_BASE_DESIRED: {
+    tip: 'Target slew speed in °/s. The MCU + driver combination can cap you below this; preflight warns when you ask for more than the platform delivers.',
+    learn: 'help-preflight',
+  },
+  PEC_STEPS_PER_WORM_ROTATION: {
+    tip: 'Motor steps for one full RA worm revolution. Needed for PEC record/playback — set to 0 if you don\'t use PEC.',
+  },
+  DISPLAY_OLED: {
+    tip: 'OLED controller model. Leave OFF if you have no display attached; otherwise pick the chip on your module (SSD1306 or SH1106).',
+  },
+  OPERATIONAL_MODE: {
+    tip: 'SmartWebServer transport: WIFI (ESP32 onboard radio), ETHERNET_W5500 (SPI add-on), or ETHERNET_TEENSY41 (native Ethernet on MaxPCB4).',
+  },
+  SERIAL_ONSTEP: {
+    tip: 'SHC only: which serial port on the hand-controller board talks to the mount\'s OnStep controller.',
+  },
+  STEP_WAVE_FORM: {
+    tip: 'SQUARE uses two edges per step and is safer under load. Required on Teensy 4.x. PULSE is legacy and typically uses more CPU.',
+    learn: 'help-preflight',
+  },
+  // -- Common "Option" fields that routinely trip up new users ------------
+  TIME_LOCATION_SOURCE: {
+    tip: 'Where OnStep gets time + coordinates at boot: OFF (client app sends them), DS3231/SD3031 (battery-backed I²C RTC), TEENSY (Teensy 3.2 internal RTC), GPS, or NTP (ESP32 WiFi only).',
+  },
+  AXIS1_REVERSE: {
+    tip: 'Flip RA motor direction without rewiring. Toggle if tracking runs the wrong way or gotos land on the wrong side of the sky.',
+  },
+  AXIS2_REVERSE: {
+    tip: 'Flip Dec motor direction — toggle if Dec moves opposite to what commands tell it to.',
+  },
+  SERIAL_A_BAUD_DEFAULT: {
+    tip: 'Baud of the primary serial port (usually USB to your PC / SkySafari). 9600 is OnStep\'s classic default; 115200 is fine and faster for LX200 apps.',
+  },
+};
+
+function setupFieldHelp() {
+  let bubble = document.getElementById('field-help-bubble');
+  if (!bubble) {
+    bubble = document.createElement('div');
+    bubble.id = 'field-help-bubble';
+    bubble.hidden = true;
+    bubble.setAttribute('role', 'tooltip');
+    document.body.appendChild(bubble);
+  }
+  let activeIcon = null;
+
+  function showFor(icon) {
+    const id = icon.dataset.fieldId;
+    const info = FIELD_HELP[id];
+    if (!info) return;
+    bubble.innerHTML = '';
+    const title = document.createElement('div');
+    title.className = 'field-help-title';
+    title.textContent = id;
+    bubble.appendChild(title);
+    const body = document.createElement('div');
+    body.textContent = info.tip;
+    bubble.appendChild(body);
+    if (info.learn) {
+      const a = document.createElement('a');
+      a.className = 'field-help-learn';
+      a.href = '#' + info.learn;
+      a.textContent = 'Learn more →';
+      a.addEventListener('click', () => hide());
+      bubble.appendChild(a);
+    }
+    // Reveal so we can measure, then position right-of-icon with fallbacks.
+    bubble.hidden = false;
+    const r = icon.getBoundingClientRect();
+    const bw = bubble.offsetWidth;
+    const bh = bubble.offsetHeight;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let left = r.right + 8 + window.scrollX;
+    let top  = r.top + window.scrollY;
+    if (r.right + 8 + bw > vw - 8) {
+      left = Math.max(8 + window.scrollX, r.left + window.scrollX);
+      top  = r.bottom + 6 + window.scrollY;
+    }
+    if (r.top + bh > vh - 8 && r.top - bh - 6 > 8) {
+      top = r.top - bh - 6 + window.scrollY;
+    }
+    bubble.style.left = left + 'px';
+    bubble.style.top  = top + 'px';
+    icon.setAttribute('aria-expanded', 'true');
+    activeIcon = icon;
+  }
+
+  function hide() {
+    if (activeIcon) activeIcon.setAttribute('aria-expanded', 'false');
+    activeIcon = null;
+    bubble.hidden = true;
+  }
+
+  for (const id of Object.keys(FIELD_HELP)) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const row = el.closest('.field-row');
+    if (!row) continue;
+    const label = row.querySelector('.field-label');
+    if (!label || label.querySelector('.help-icon')) continue;
+    const icon = document.createElement('button');
+    icon.type = 'button';
+    icon.className = 'help-icon';
+    icon.textContent = '?';
+    icon.dataset.fieldId = id;
+    icon.setAttribute('aria-label', `Help for ${id}`);
+    icon.setAttribute('aria-expanded', 'false');
+    // Hover/focus = preview; click = pin open (toggle). Tap on touch devices
+    // triggers click only, which is the desired behavior.
+    icon.addEventListener('mouseenter', () => showFor(icon));
+    icon.addEventListener('focus',       () => showFor(icon));
+    icon.addEventListener('mouseleave', () => { if (activeIcon === icon) hide(); });
+    icon.addEventListener('blur',       () => { if (activeIcon === icon) hide(); });
+    icon.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (activeIcon === icon) hide(); else showFor(icon);
+    });
+    label.appendChild(icon);
+  }
+
+  document.addEventListener('click', (e) => {
+    if (bubble.hidden) return;
+    if (e.target.closest('.help-icon') || e.target.closest('#field-help-bubble')) return;
+    hide();
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hide(); });
+  window.addEventListener('scroll', hide, true);
+  window.addEventListener('resize', hide);
+}
+
+setupFieldHelp();
 
 // --- SHC Config.h generator -------------------------------------------------
 function generateSHCConfig() {
