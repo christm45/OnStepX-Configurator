@@ -195,6 +195,20 @@ export function validateConfig(values) {
     }
   }
 
+  // FEATURE*_PIN = AUX is rejected by OnStepX's current Validate.h
+  // (AUX is defined as -4, and the check `!= OFF && < 0` fires the #error
+  // before Features.cpp's runtime AUX substitution ever runs). Catch this
+  // before the compile round-trip.
+  for (let i = 1; i <= 8; i++) {
+    const key = `FEATURE${i}_PIN`;
+    const v = values[key];
+    if (v === 'AUX') {
+      add('error', key,
+        `${key}=AUX isn't accepted by OnStepX main — pick OFF or a real pin number ` +
+        `(or one of the board's AUXn_PIN aliases, e.g. AUX${i}_PIN).`);
+    }
+  }
+
   const counts = {
     error: issues.filter((i) => i.level === 'error').length,
     warn: issues.filter((i) => i.level === 'warn').length,

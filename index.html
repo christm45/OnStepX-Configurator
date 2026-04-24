@@ -3056,7 +3056,13 @@ function buildFeatures() {
     {n:5, purpose:'OFF', name:'FEATURE5', pin:'OFF', onState:'HIGH'},
     {n:6, purpose:'OFF', name:'FEATURE6', pin:'OFF', onState:'HIGH'},
     {n:7, purpose:'OFF', name:'FEATURE7', pin:'OFF', onState:'HIGH'},
-    {n:8, purpose:'INTERVALOMETER', name:'CANON 20D', pin:'AUX', onState:'HIGH'},
+    // Feature 8 used to default to INTERVALOMETER + PIN=AUX. OnStepX's current
+    // Validate.h rejects FEATURE*_PIN=AUX (the AUX sentinel is -4, and the
+    // check `FEATURE*_PIN != OFF && FEATURE*_PIN < 0` fires the #error
+    // before Features.cpp's AUX -> auxPins[n] substitution ever runs).
+    // Safe cross-board default is OFF; users who want an intervalometer
+    // can set PURPOSE=INTERVALOMETER and PIN to a real GPIO pin number.
+    {n:8, purpose:'OFF', name:'FEATURE8', pin:'OFF', onState:'HIGH'},
   ];
   let html = '';
   for (const f of defaults) {
