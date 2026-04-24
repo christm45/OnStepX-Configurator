@@ -4372,11 +4372,29 @@ function setupFieldHelp() {
     document.body.appendChild(bubble);
   }
   let activeIcon = null;
+  let isPinned = false;
+  let hideTimer = null;
 
-  function showFor(icon) {
+  function cancelHide() {
+    if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+  }
+  // When the mouse leaves the icon, don't hide right away — give a short
+  // grace period for the mouse to land on the bubble. If it does, the
+  // bubble's own mouseenter cancels the timer.
+  function scheduleHide(delay = 250) {
+    if (isPinned) return;
+    cancelHide();
+    hideTimer = setTimeout(hide, delay);
+  }
+
+  function showFor(icon, { pinned = false } = {}) {
+    cancelHide();
     const id = icon.dataset.fieldId;
     const info = FIELD_HELP[id];
     if (!info) return;
+    if (activeIcon && activeIcon !== icon) {
+      activeIcon.setAttribute('aria-expanded', 'false');
+    }
     bubble.innerHTML = '';
     const title = document.createElement('div');
     title.className = 'field-help-title';
@@ -4390,10 +4408,11 @@ function setupFieldHelp() {
       a.className = 'field-help-learn';
       a.href = '#' + info.learn;
       a.textContent = 'Learn more →';
+      // Navigating the anchor hides naturally via the scroll handler; also
+      // explicitly hide so the bubble doesn't linger during the scroll.
       a.addEventListener('click', () => hide());
       bubble.appendChild(a);
     }
-    // Reveal so we can measure, then position right-of-icon with fallbacks.
     bubble.hidden = false;
     const r = icon.getBoundingClientRect();
     const bw = bubble.offsetWidth;
@@ -4413,13 +4432,23 @@ function setupFieldHelp() {
     bubble.style.top  = top + 'px';
     icon.setAttribute('aria-expanded', 'true');
     activeIcon = icon;
+    isPinned = pinned;
   }
 
   function hide() {
+    cancelHide();
     if (activeIcon) activeIcon.setAttribute('aria-expanded', 'false');
     activeIcon = null;
+    isPinned = false;
     bubble.hidden = true;
   }
+
+  // Bubble is a "second home" for the cursor: entering it keeps the tooltip
+  // open; leaving it starts the hide timer. Clicks inside don't bubble up to
+  // the outside-click handler.
+  bubble.addEventListener('mouseenter', cancelHide);
+  bubble.addEventListener('mouseleave', () => scheduleHide());
+  bubble.addEventListener('click', (e) => e.stopPropagation());
 
   for (const id of Object.keys(FIELD_HELP)) {
     const el = document.getElementById(id);
@@ -4435,16 +4464,18 @@ function setupFieldHelp() {
     icon.dataset.fieldId = id;
     icon.setAttribute('aria-label', `Help for ${id}`);
     icon.setAttribute('aria-expanded', 'false');
-    // Hover/focus = preview; click = pin open (toggle). Tap on touch devices
-    // triggers click only, which is the desired behavior.
+    // Hover/focus = preview (dismisses on mouse-leave after a grace period);
+    // click = pin open (only explicit dismissal closes it). Tap on touch
+    // devices fires click only, so pinned mode is the touch default.
     icon.addEventListener('mouseenter', () => showFor(icon));
     icon.addEventListener('focus',       () => showFor(icon));
-    icon.addEventListener('mouseleave', () => { if (activeIcon === icon) hide(); });
-    icon.addEventListener('blur',       () => { if (activeIcon === icon) hide(); });
+    icon.addEventListener('mouseleave', () => scheduleHide());
+    icon.addEventListener('blur',       () => scheduleHide());
     icon.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      if (activeIcon === icon) hide(); else showFor(icon);
+      if (isPinned && activeIcon === icon) hide();
+      else showFor(icon, { pinned: true });
     });
     label.appendChild(icon);
   }
