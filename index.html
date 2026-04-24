@@ -3562,7 +3562,13 @@ function generateConfig() {
     L(pad('FEATURE'+n+'_PURPOSE', v('FEATURE'+n+'_PURPOSE'), 'OFF,', 'SWITCH, MOMENTARY_SWITCH, ANALOG_OUT, DEW_HEATER, INTERVALOMETER.        Option'));
     L(pad('FEATURE'+n+'_NAME', q(v('FEATURE'+n+'_NAME')), '"FE..",', 'Name of feature being controlled.                                        Adjust'));
     L(pad('FEATURE'+n+'_TEMP', v('FEATURE'+n+'_TEMP'), 'OFF,', 'THERMISTOR or n. Where n is the ds18b20 s/n. For DEW_HEATER temperature. Adjust'));
-    L(pad('FEATURE'+n+'_PIN', v('FEATURE'+n+'_PIN'), 'OFF,', 'AUX for auxiliary pin, n. Where n is the pin#.                           Adjust'));
+    // OnStepX's current Validate.h rejects FEATURE*_PIN=AUX (the AUX sentinel
+    // is -4, trips the `!= OFF && < 0` guard before the runtime substitution
+    // in Features.cpp ever runs). Sanitize here so a stale form field never
+    // leaks into Config.h regardless of what the Auxiliary tab says.
+    let pinVal = v('FEATURE'+n+'_PIN');
+    if (pinVal === 'AUX') pinVal = 'OFF';
+    L(pad('FEATURE'+n+'_PIN', pinVal, 'OFF,', 'OFF or a valid GPIO pin number. (AUX sentinel is NOT accepted.)         Adjust'));
     L(pad('FEATURE'+n+'_VALUE_DEFAULT', v('FEATURE'+n+'_VALUE_DEFAULT'), 'OFF,', 'ON, n. Where n=0..255 for ANALOG_OUT purpose.                            Adjust'));
     L(pad('FEATURE'+n+'_VALUE_MEMORY', v('FEATURE'+n+'_VALUE_MEMORY'), 'OFF,', 'ON remembers state across power cycles.                                 Adjust'));
     L(pad('FEATURE'+n+'_ON_STATE', v('FEATURE'+n+'_ON_STATE'), 'HIGH,', 'LOW to invert so "ON" is 0V and "OFF" is Vcc (3.3V usually.)             Adjust'));
