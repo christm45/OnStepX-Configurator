@@ -4287,9 +4287,29 @@ window.resetToDefaults = function () {
 
 // Restore BEFORE wiring change listeners so we don't immediately re-save.
 const restored = restoreFormState();
+
+// One-time migration: older saved state may have FEATURE*_PIN="AUX", which
+// OnStepX's current Validate.h rejects at compile (AUX = -4, tripping the
+// `!= OFF && < 0` guard). Heal silently to OFF so the user doesn't burn a
+// build minute on a legacy default.
+let healedAuxFields = 0;
+for (let i = 1; i <= 8; i++) {
+  const el = document.getElementById(`FEATURE${i}_PIN`);
+  if (el && el.value === 'AUX') { el.value = 'OFF'; healedAuxFields++; }
+}
+if (healedAuxFields > 0) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(collectFormState())); } catch {}
+  showStatus?.(`Auto-fixed ${healedAuxFields} FEATURE*_PIN field(s) that had legacy value "AUX" (not accepted by OnStepX main).`, 'warn');
+}
+
 document.addEventListener('change', () => { queueSave(); runPreflight(); });
 document.addEventListener('input', queueSave);
 if (restored) showStatus?.('Restored saved form state.');
+
+// Run preflight once on load so any latent issues (required-field gaps,
+// FEATURE*_PIN oddities, PINMAP<->MCU mismatches) surface in the checklist
+// before the user clicks Compile — not only after they touch a field.
+try { runPreflight(); } catch {}
 
 // ---------------------------------------------------------------------------
 // Per-field help (? icons)
