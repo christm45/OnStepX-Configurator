@@ -724,9 +724,9 @@
         <option value="BTT_SKR_PRO">BTT_SKR_PRO V1.2 (STM32F407)</option>
       </select>
       <span class="field-hint">
-        Board pinmap selection. Teensy 3.2 boards flash via .hex download + Teensy Loader
-        (no one-click flash yet). BTT_SKR_PRO flashes via WebUSB DFU — put it in DFU mode
-        (BOOT0 jumper + reset) before clicking Flash.
+        Board pinmap selection. Teensy 3.2 (MiniPCB), Teensy 4.0/4.1 (MaxPCB4, CNC3) all one-click
+        flash via WebHID — press the white program button when prompted. BTT_SKR_PRO flashes via
+        WebUSB DFU (BOOT0 jumper + reset to enter DFU mode).
       </span>
     </div>
     <div class="field-row">
@@ -2376,7 +2376,7 @@
         CDN on first use.</li>
       <li><b>WebUSB + DFU</b> for STM32 BlackPill &mdash; we wrote a small DFU client that speaks the same
         protocol as <code>dfu-util</code>.</li>
-      <li><b>WebHID</b> for Teensy 4.0/4.1 &mdash; we speak the HalfKay bootloader protocol directly from the
+      <li><b>WebHID</b> for Teensy 3.2 / 4.0 / 4.1 &mdash; we speak the HalfKay bootloader protocol directly from the
         browser (same wire format as <code>teensy_loader_cli</code>: 1024-byte blocks, 64-byte header with a
         little-endian flash offset, final <code>0xFFFFFF</code> report to reboot into the app). You still
         have to press the white program button to put the Teensy into bootloader mode &mdash; HalfKay is only
@@ -2418,11 +2418,14 @@
       as "reboot into the app." The bootloader often resets mid-ACK, so a missing reply on that final
       packet is expected, not an error.</p>
 
-    <p>Parsing the firmware is its own step. PlatformIO emits an Intel HEX file whose data records carry
-      absolute addresses starting at <code>0x60000000</code> (the IMXRT1062 flash base). We walk the
-      records, handle extended-linear-address prefixes (record type <code>0x04</code>), verify each line's
-      checksum, and collapse everything into a flat <code>Uint8Array</code> indexed from offset 0. Unused
-      gaps are filled with <code>0xFF</code> so they look like erased flash.</p>
+    <p>Parsing the firmware is its own step. On Teensy 4.x, PlatformIO emits an Intel HEX file whose data
+      records carry absolute addresses starting at <code>0x60000000</code> (the IMXRT1062 flash base); on
+      Teensy 3.2 the addresses start at 0. The parser auto-detects which by looking at the first data
+      record, handles extended-linear-address prefixes (record type <code>0x04</code>), verifies each
+      line's checksum, and collapses everything into a flat <code>Uint8Array</code> indexed from offset 0.
+      Unused gaps are filled with <code>0xFF</code> so they look like erased flash. The <code>code_size</code>
+      picked from the env name (2 MB for 4.0, 8 MB for 4.1, 256 KB for 3.2) bounds the write and catches
+      "wrong firmware for this board" early.</p>
 
     <p>Everything above lives in <code>flash/teensy.js</code> &mdash; roughly 300 lines, no external
       dependencies beyond the ES-module imports this page uses everywhere. If the browser doesn't expose
@@ -2697,16 +2700,19 @@
       Same Windows WinUSB / Zadig note as the BlackPill applies.</p>
 
     <h4>MiniPCB v1 / v1.3 / v2 (Teensy 3.2)</h4>
-    <p>Teensy 3.2 uses the HalfKay bootloader (same family as 4.0/4.1), but the wire-format differs (smaller
-      block size, different HID layout). The WebHID path above only covers 4.x right now, so MiniPCB boards
-      always go through the <code>.hex</code> download fallback:</p>
+    <p>Teensy 3.2 uses the HalfKay bootloader in the same "block_size ≥ 512" branch as 4.0/4.1
+      (1088-byte HID reports, 3-byte little-endian flash offsets), just with a 256 KB flash instead of
+      2 / 8 MB. The WebHID flasher covers it:</p>
     <ol>
-      <li>Click <b>Flash to Board</b> &mdash; the configurator saves <code>firmware.hex</code>.</li>
-      <li>Open <a href="https://www.pjrc.com/teensy/loader.html" target="_blank">Teensy Loader</a>
-        (from <a href="https://www.pjrc.com/teensy/td_download.html" target="_blank">Teensyduino</a>).</li>
-      <li>Drop the <code>.hex</code> onto Teensy Loader, then tap the white program button on the Teensy.</li>
+      <li>Plug the Teensy 3.2 into USB.</li>
+      <li>Click <b>Flash to Board</b>.</li>
+      <li>When the browser picker appears, press the white program button — "Teensy" shows up in the
+        dialog, pick it and click Connect.</li>
+      <li>Progress streams to the flash log; the board reboots into OnStepX when done.</li>
     </ol>
-    <p>CLI alternative: <code>teensy_loader_cli --mcu=mk20dx256 -w -v firmware.hex</code>.</p>
+    <p><b>Fallback</b> (Firefox / Safari / WebHID unavailable): we save <code>firmware.hex</code>; drop it
+      into Teensy Loader and press the white program button. CLI alternative:
+      <code>teensy_loader_cli --mcu=mk20dx256 -w -v firmware.hex</code>.</p>
     <p>Reference wikis:
       <a href="https://onstep.groups.io/g/main/wiki/28526" target="_blank">MiniPCB v1.3</a> &middot;
       <a href="https://onstep.groups.io/g/main/wiki/3990" target="_blank">MiniPCB overview</a> &middot;
@@ -2746,7 +2752,7 @@ teensy_loader_cli --mcu=TEENSY40 -w -v firmware.hex   # 4.0</pre>
         <th style="padding:6px;text-align:left;border:1px solid var(--border);">Configurator &amp; Compile</th>
         <th style="padding:6px;text-align:left;border:1px solid var(--border);">ESP32 / ESP8266 flash</th>
         <th style="padding:6px;text-align:left;border:1px solid var(--border);">STM32 DFU flash</th>
-        <th style="padding:6px;text-align:left;border:1px solid var(--border);">Teensy 4.0/4.1 flash</th>
+        <th style="padding:6px;text-align:left;border:1px solid var(--border);">Teensy 3.2 / 4.0 / 4.1 flash</th>
       </tr>
       <tr>
         <td style="padding:6px;border:1px solid var(--border);">Chrome, Edge, Opera, Brave (Chromium)</td>
@@ -4231,18 +4237,23 @@ const FIELD_HELP = {
   },
   MOUNT_TYPE: {
     tip: 'GEM = German Equatorial (counterweight + saddle). FORK = fork on equatorial wedge. ALTAZM = alt-azimuth (Dobson, push-to, etc.).',
+    learn: 'help-essentials',
   },
   AXIS1_STEPS_PER_DEGREE: {
     tip: 'Motor steps per degree of RA/Azimuth. Use the Steps Per Degree Calculator above — wrong values break both pointing and tracking.',
+    learn: 'help-essentials',
   },
   AXIS2_STEPS_PER_DEGREE: {
     tip: 'Motor steps per degree of Dec/Altitude. Same calculator as Axis1; the number differs if your Dec gear ratio differs.',
+    learn: 'help-essentials',
   },
   AXIS1_DRIVER_MICROSTEPS: {
     tip: 'Microsteps during tracking (not goto). Higher = smoother motion, lower max slew. 64 / 128 typical on TMC2209; 32 on TMC2130/5160.',
+    learn: 'help-essentials',
   },
   AXIS2_DRIVER_MICROSTEPS: {
     tip: 'Microsteps during tracking for Dec/Alt. Usually matches Axis1 unless your Dec gearing is very different.',
+    learn: 'help-essentials',
   },
   SLEW_RATE_BASE_DESIRED: {
     tip: 'Target slew speed in °/s. The MCU + driver combination can cap you below this; preflight warns when you ask for more than the platform delivers.',
@@ -4250,15 +4261,18 @@ const FIELD_HELP = {
   },
   PEC_STEPS_PER_WORM_ROTATION: {
     tip: 'Motor steps for one full RA worm revolution. Needed for PEC record/playback — set to 0 if you don\'t use PEC.',
+    learn: 'help-essentials',
   },
   DISPLAY_OLED: {
     tip: 'OLED controller model. Leave OFF if you have no display attached; otherwise pick the chip on your module (SSD1306 or SH1106).',
   },
   OPERATIONAL_MODE: {
     tip: 'SmartWebServer transport: WIFI (ESP32 onboard radio), ETHERNET_W5500 (SPI add-on), or ETHERNET_TEENSY41 (native Ethernet on MaxPCB4).',
+    learn: 'help-boards',
   },
   SERIAL_ONSTEP: {
     tip: 'SHC only: which serial port on the hand-controller board talks to the mount\'s OnStep controller.',
+    learn: 'help-shc',
   },
   STEP_WAVE_FORM: {
     tip: 'SQUARE uses two edges per step and is safer under load. Required on Teensy 4.x. PULSE is legacy and typically uses more CPU.',
@@ -4267,15 +4281,19 @@ const FIELD_HELP = {
   // -- Common "Option" fields that routinely trip up new users ------------
   TIME_LOCATION_SOURCE: {
     tip: 'Where OnStep gets time + coordinates at boot: OFF (client app sends them), DS3231/SD3031 (battery-backed I²C RTC), TEENSY (Teensy 3.2 internal RTC), GPS, or NTP (ESP32 WiFi only).',
+    learn: 'help-essentials',
   },
   AXIS1_REVERSE: {
     tip: 'Flip RA motor direction without rewiring. Toggle if tracking runs the wrong way or gotos land on the wrong side of the sky.',
+    learn: 'help-essentials',
   },
   AXIS2_REVERSE: {
     tip: 'Flip Dec motor direction — toggle if Dec moves opposite to what commands tell it to.',
+    learn: 'help-essentials',
   },
   SERIAL_A_BAUD_DEFAULT: {
     tip: 'Baud of the primary serial port (usually USB to your PC / SkySafari). 9600 is OnStep\'s classic default; 115200 is fine and faster for LX200 apps.',
+    learn: 'help-essentials',
   },
 };
 
@@ -4921,13 +4939,12 @@ function refreshFlashSupportHint() {
     msgs.push('Your browser does not support WebUSB — STM32 flashing needs Chrome/Edge/Opera.');
   }
   if (isTeensy) {
-    const canWebHid = (env === 'teensy40' || env === 'teensy41') && teensyFlasher.webhidSupported();
+    const isOnStepXTeensy = env === 'teensy32' || env === 'teensy40' || env === 'teensy41';
+    const canWebHid = isOnStepXTeensy && teensyFlasher.webhidSupported();
     if (canWebHid) {
       msgs.push('Teensy: clicking "Flash to Board" will ask to connect via WebHID — press the white program button, pick the Teensy in the dialog, and it flashes in-browser.');
-    } else if (env === 'teensy40' || env === 'teensy41') {
+    } else if (isOnStepXTeensy) {
       msgs.push('Teensy: your browser lacks WebHID (need Chrome/Edge) — "Flash to Board" will save firmware.hex and open Teensy Loader instructions.');
-    } else if (env === 'teensy32') {
-      msgs.push('Teensy 3.2: browser flashing isn\'t wired up for 3.2 yet — "Flash to Board" will save firmware.hex and open Teensy Loader instructions.');
     } else {
       msgs.push('Teensy (SHC build): "Flash to Board" will save firmware.hex and open Teensy Loader instructions.');
     }

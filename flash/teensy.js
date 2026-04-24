@@ -27,6 +27,10 @@ import { downloadBlob } from '../compile.js';
 const HALFKAY_VID = 0x16C0;
 const HALFKAY_PID = 0x0478;
 
+// Teensy 3.2 (MK20DX256) is half-covered by HalfKay's "block_size >= 512"
+// branch in teensy_loader_cli: same 1088-byte report (64-byte header + 1024
+// payload), same 3-byte little-endian address. Just a smaller flash.
+const T32_CODE_SIZE = 262144;
 const T40_CODE_SIZE = 2031616;
 const T41_CODE_SIZE = 8126464;
 const BLOCK_SIZE    = 1024;
@@ -36,6 +40,8 @@ const REPORT_SIZE   = HEADER_SIZE + BLOCK_SIZE; // 1088
 // IMXRT1062 flash is mapped at 0x60000000 in CPU space; .hex files from
 // Teensyduino/PlatformIO use those absolute addresses. HalfKay itself wants
 // offsets relative to flash start, so we strip this base when parsing.
+// Teensy 3.2 .hex files already start at offset 0, so the auto-detect in
+// parseIntelHex falls through to flashBase=0.
 const IMXRT_FLASH_BASE = 0x60000000;
 
 export function supported() { return true; }
@@ -116,8 +122,9 @@ function parseIntelHex(hexText, codeSize) {
 function codeSizeForEnv(env) {
   if (env === 'teensy41') return T41_CODE_SIZE;
   if (env === 'teensy40') return T40_CODE_SIZE;
-  // WebHID path is only advertised for teensy40/teensy41 envs. Anything else
-  // (shc_teensy40, shc_teensy32) should fall back to download.
+  if (env === 'teensy32') return T32_CODE_SIZE;
+  // SHC variants (shc_teensy40, shc_teensy32) still fall back to download —
+  // the build zip layout is different enough that we don't auto-flash them.
   return null;
 }
 
@@ -159,7 +166,7 @@ async function pickTeensy(log) {
 
 // sendReport + timeout, with late-error swallowing so the Promise that loses
 // the race can't turn into an unhandled rejection.
-function sendReportWithTimeout(device, report, timeoutSec) {
+function sendReportOnce(device, report, timeoutSec) {
   return new Promise((resolve, reject) => {
     let settled = false;
     const timer = setTimeout(() => {
@@ -183,6 +190,18 @@ function sendReportWithTimeout(device, report, timeoutSec) {
       },
     );
   });
+}
+
+// One transient HID hiccup shouldn't lose the whole flash — we get one retry
+// with a short backoff. More retries hide real failures; zero retries make
+// the flasher flaky on marginal USB links.
+async function sendReportWithRetry(device, report, timeoutSec) {
+  try {
+    await sendReportOnce(device, report, timeoutSec);
+  } catch (err) {
+    await new Promise((r) => setTimeout(r, 100));
+    await sendReportOnce(device, report, timeoutSec);
+  }
 }
 
 // --------------------------------------------------------------------------
@@ -231,7 +250,7 @@ export async function flashWebHID(files, env, log = console.log) {
 
       const timeoutSec = blockIdx <= 4 ? 45.0 : 0.5;
       try {
-        await sendReportWithTimeout(device, report, timeoutSec);
+        await sendReportWithRetry(device, report, timeoutSec);
       } catch (err) {
         throw new Error(
           `block ${blockIdx} @ 0x${offset.toString(16)} failed: ${err.message}`,
