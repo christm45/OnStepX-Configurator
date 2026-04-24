@@ -718,12 +718,15 @@
         <option value="FYSETC_E4">FYSETC_E4 (ESP32)</option>
         <option value="CNC3">CNC3 (Teensy 4.0)</option>
         <option value="CNC3_2">CNC3_2 (Teensy 4.0)</option>
-        <option value="BTT_SKR_PRO" disabled>BTT_SKR_PRO (STM32F407 — no matching build env)</option>
+        <option value="MiniPCB">MiniPCB v1 (Teensy 3.2)</option>
+        <option value="MiniPCB13">MiniPCB v1.3 (Teensy 3.2)</option>
+        <option value="MiniPCB2">MiniPCB v2 (Teensy 3.2)</option>
+        <option value="BTT_SKR_PRO">BTT_SKR_PRO V1.2 (STM32F407)</option>
       </select>
       <span class="field-hint">
-        Board pinmap selection. <b>Note:</b> MiniPCB / MiniPCB2 (Teensy 3.2) aren't offered &mdash;
-        this service has no teensy32 OnStepX env. BTT_SKR_PRO needs STM32F407 which we don't
-        ship (closest env is blackpill_f411, different flash size — disabled to avoid silent breakage).
+        Board pinmap selection. Teensy 3.2 boards flash via .hex download + Teensy Loader
+        (no one-click flash yet). BTT_SKR_PRO flashes via WebUSB DFU — put it in DFU mode
+        (BOOT0 jumper + reset) before clicking Flash.
       </span>
     </div>
     <div class="field-row">
@@ -2144,9 +2147,11 @@
       <label class="field-label">Target MCU <span class="hint-tag hint-reqd">Req'd</span></label>
       <select id="COMPILE_ENV">
         <option value="esp32">ESP32 (MaxESP3, MaxESP4, FYSETC_E4, …)</option>
+        <option value="teensy32">Teensy 3.2 (MiniPCB / MiniPCB2)</option>
         <option value="teensy40">Teensy 4.0</option>
         <option value="teensy41">Teensy 4.1 / MaxPCB4</option>
         <option value="blackpill_f411">STM32 BlackPill F411CE / MaxSTM3</option>
+        <option value="skr_pro_f407">STM32F407 / BTT SKR PRO V1.2</option>
       </select>
       <span class="field-hint" id="pinmap-hint">Auto-selected from your PINMAP choice</span>
     </div>
@@ -2646,6 +2651,9 @@
         <i>CP2102</i>, <i>CH340</i>, or <i>USB JTAG/serial debug unit</i>).</li>
       <li>Flashing takes 15&ndash;40 s. Board auto-resets into firmware when done.</li>
     </ol>
+    <p>Reference wikis:
+      <a href="https://onstep.groups.io/g/main/wiki/28525" target="_blank">MaxESP v3</a> &middot;
+      <a href="https://onstep.groups.io/g/main/wiki/15166" target="_blank">MaxESP build notes</a>.</p>
 
     <h4>ESP8266 (NodeMCU, Wemos D1 mini, ESP-01 &mdash; SWS only)</h4>
     <ol>
@@ -2673,6 +2681,36 @@
       If the browser can't open the device, install <a href="https://zadig.akeo.ie/" target="_blank">Zadig</a>,
       select "STM32 BOOTLOADER", and replace the driver with <b>WinUSB</b>.
     </div>
+
+    <h4>BTT SKR PRO V1.2 (STM32F407)</h4>
+    <p>BigTreeTech's 3D-printer board repurposed for OnStep. Same ST DFU protocol as the BlackPill, just
+      a different entry procedure:</p>
+    <ol>
+      <li>Power off the board.</li>
+      <li>Place the <b>BOOT0</b> jumper (pins are silkscreened next to the reset button) to hold BOOT0 high.</li>
+      <li>Power on via USB &mdash; the board comes up as <i>STM32 BOOTLOADER</i> (VID <code>0483</code> /
+        PID <code>DF11</code>) instead of running the old firmware.</li>
+      <li>Click <b>Flash to Board</b>, pick <i>STM32 BOOTLOADER</i> in the picker.</li>
+      <li>After "Flash complete", power off, remove the BOOT0 jumper, power back on. Board boots into OnStepX.</li>
+    </ol>
+    <p>Reference wiki: <a href="https://onstep.groups.io/g/main/wiki/36080" target="_blank">BTT SKR PRO on OnStep wiki</a>.
+      Same Windows WinUSB / Zadig note as the BlackPill applies.</p>
+
+    <h4>MiniPCB v1 / v1.3 / v2 (Teensy 3.2)</h4>
+    <p>Teensy 3.2 uses the HalfKay bootloader (same family as 4.0/4.1), but the wire-format differs (smaller
+      block size, different HID layout). The WebHID path above only covers 4.x right now, so MiniPCB boards
+      always go through the <code>.hex</code> download fallback:</p>
+    <ol>
+      <li>Click <b>Flash to Board</b> &mdash; the configurator saves <code>firmware.hex</code>.</li>
+      <li>Open <a href="https://www.pjrc.com/teensy/loader.html" target="_blank">Teensy Loader</a>
+        (from <a href="https://www.pjrc.com/teensy/td_download.html" target="_blank">Teensyduino</a>).</li>
+      <li>Drop the <code>.hex</code> onto Teensy Loader, then tap the white program button on the Teensy.</li>
+    </ol>
+    <p>CLI alternative: <code>teensy_loader_cli --mcu=mk20dx256 -w -v firmware.hex</code>.</p>
+    <p>Reference wikis:
+      <a href="https://onstep.groups.io/g/main/wiki/28526" target="_blank">MiniPCB v1.3</a> &middot;
+      <a href="https://onstep.groups.io/g/main/wiki/3990" target="_blank">MiniPCB overview</a> &middot;
+      <a href="https://onstep.groups.io/g/main/wiki/8768" target="_blank">MiniPCB v2</a>.</p>
 
     <h4>Teensy 4.0 / 4.1 / MaxPCB4</h4>
     <p><b>One-click browser flash (Chrome / Edge):</b></p>
@@ -3794,9 +3832,51 @@ const BOARD_DEFAULTS = {
       MOUNT_TYPE: 'GEM',
     },
   },
-  // BTT_SKR_PRO (STM32F407) — removed: no matching PlatformIO env in the
-  // build service. F411 BlackPill's flash size differs enough to not be a
-  // safe substitute. Re-add here if/when an F407 env ships.
+  BTT_SKR_PRO: {
+    label: 'BTT SKR PRO V1.2',
+    note: 'BigTreeTech 3D-printer board repurposed for OnStep (STM32F407ZGT6). Defaults assume TMC2209 UART step-sticks — if you\'ve got TMC5160 SPI drivers plugged in, override the driver-model fields. Flash via WebUSB DFU (BOOT0 jumper + reset to enter DFU mode).',
+    fields: {
+      AXIS1_DRIVER_MODEL: 'TMC2209', AXIS2_DRIVER_MODEL: 'TMC2209',
+      AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
+      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
+      AXIS1_DRIVER_IRUN: '600', AXIS2_DRIVER_IRUN: '600',
+      AXIS3_DRIVER_MODEL: 'OFF',
+      AXIS4_DRIVER_MODEL: 'TMC2209',
+      AXIS4_DRIVER_MICROSTEPS: '8',
+      AXIS4_DRIVER_IRUN: '200', AXIS4_DRIVER_IHOLD: '200',
+      MOUNT_TYPE: 'GEM',
+    },
+  },
+  MiniPCB: {
+    label: 'MiniPCB v1 (Teensy 3.2)',
+    note: 'Original small 2-axis OnStep design on Teensy 3.2. Most MiniPCB builds use DRV8825 step-sticks — override if yours has TMC drivers instead.',
+    fields: {
+      AXIS1_DRIVER_MODEL: 'DRV8825', AXIS2_DRIVER_MODEL: 'DRV8825',
+      AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
+      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
+      MOUNT_TYPE: 'GEM',
+    },
+  },
+  MiniPCB13: {
+    label: 'MiniPCB v1.3 (Teensy 3.2)',
+    note: 'Revision 1.3 of MiniPCB — adds ESP-01 flashing support and optional I2C. Same driver defaults as MiniPCB v1.',
+    fields: {
+      AXIS1_DRIVER_MODEL: 'DRV8825', AXIS2_DRIVER_MODEL: 'DRV8825',
+      AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
+      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
+      MOUNT_TYPE: 'GEM',
+    },
+  },
+  MiniPCB2: {
+    label: 'MiniPCB v2 (Teensy 3.2)',
+    note: 'MiniPCB v2 for small aluminium case — same pin family as MiniPCB v1, different board layout. DRV8825 defaults; override for TMC.',
+    fields: {
+      AXIS1_DRIVER_MODEL: 'DRV8825', AXIS2_DRIVER_MODEL: 'DRV8825',
+      AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
+      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
+      MOUNT_TYPE: 'GEM',
+    },
+  },
   CNC3: {
     label: 'CNC3 (Teensy 4.0)',
     note: 'Teensy 4.0 on a generic CNC shield — driver is whatever step-stick you plug in. Defaults to DRV8825.',
@@ -4017,9 +4097,11 @@ function updateCompileBoardOptions() {
   } else {
     options = [
       ['esp32', 'ESP32 (MaxESP3, MaxESP4, FYSETC_E4, …)'],
+      ['teensy32', 'Teensy 3.2 (MiniPCB / MiniPCB2)'],
       ['teensy40', 'Teensy 4.0'],
       ['teensy41', 'Teensy 4.1 / MaxPCB4'],
       ['blackpill_f411', 'STM32 BlackPill F411CE / MaxSTM3'],
+      ['skr_pro_f407', 'STM32F407 / BTT SKR PRO V1.2'],
     ];
   }
   sel.innerHTML = '';
@@ -4830,11 +4912,12 @@ function refreshFlashSupportHint() {
   if (!hint) return;
   const msgs = [];
   const isEsp = env === 'esp32' || env === 'shc_esp32' || env === 'sws_esp32' || env === 'sws_esp8266';
-  const isTeensy = /^teensy4[01]$|^shc_teensy(40|32)$/.test(env);
+  const isTeensy = /^teensy(32|4[01])$|^shc_teensy(40|32)$/.test(env);
+  const isStm32 = env === 'blackpill_f411' || env === 'skr_pro_f407';
   if (isEsp && !esp32Flasher.supported()) {
     msgs.push('Your browser does not support Web Serial — ESP32/ESP8266 flashing needs Chrome/Edge/Opera.');
   }
-  if (env === 'blackpill_f411' && !stm32Flasher.supported()) {
+  if (isStm32 && !stm32Flasher.supported()) {
     msgs.push('Your browser does not support WebUSB — STM32 flashing needs Chrome/Edge/Opera.');
   }
   if (isTeensy) {
@@ -4843,9 +4926,14 @@ function refreshFlashSupportHint() {
       msgs.push('Teensy: clicking "Flash to Board" will ask to connect via WebHID — press the white program button, pick the Teensy in the dialog, and it flashes in-browser.');
     } else if (env === 'teensy40' || env === 'teensy41') {
       msgs.push('Teensy: your browser lacks WebHID (need Chrome/Edge) — "Flash to Board" will save firmware.hex and open Teensy Loader instructions.');
+    } else if (env === 'teensy32') {
+      msgs.push('Teensy 3.2: browser flashing isn\'t wired up for 3.2 yet — "Flash to Board" will save firmware.hex and open Teensy Loader instructions.');
     } else {
       msgs.push('Teensy (SHC build): "Flash to Board" will save firmware.hex and open Teensy Loader instructions.');
     }
+  }
+  if (env === 'skr_pro_f407') {
+    msgs.push('BTT SKR PRO: put the board in DFU mode (BOOT0 jumper + reset) before clicking Flash — the picker will show "STM32 BOOTLOADER".');
   }
   hint.textContent = msgs.join(' ');
   hint.style.color = msgs.length ? 'var(--warn)' : 'var(--label)';
@@ -4971,10 +5059,11 @@ window.flashBoard = async function () {
     // based on which files are in the bundle.
     const isEsp = env === 'esp32' || env === 'shc_esp32' || env === 'sws_esp32' || env === 'sws_esp8266';
     const isTeensy =
-      env === 'teensy40' || env === 'teensy41' ||
+      env === 'teensy32' || env === 'teensy40' || env === 'teensy41' ||
       env === 'shc_teensy40' || env === 'shc_teensy32';
+    const isStm32Dfu = env === 'blackpill_f411' || env === 'skr_pro_f407';
     if (isEsp) await esp32Flasher.flash(files, log);
-    else if (env === 'blackpill_f411') await stm32Flasher.flash(files, log);
+    else if (isStm32Dfu) await stm32Flasher.flash(files, log);
     else if (isTeensy) await teensyFlasher.flash(files, env, log);
     else throw new Error(`no flasher for env ${env}`);
 

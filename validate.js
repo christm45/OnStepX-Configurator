@@ -18,6 +18,10 @@ export const PINMAP_MCU = {
   MaxSTM3: 'blackpill_f411',
   CNC3: 'teensy40',
   CNC3_2: 'teensy40',
+  MiniPCB: 'teensy32',
+  MiniPCB13: 'teensy32',
+  MiniPCB2: 'teensy32',
+  BTT_SKR_PRO: 'skr_pro_f407',
 };
 
 // Microstep values typically supported by each driver family.

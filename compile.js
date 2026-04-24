@@ -20,13 +20,19 @@ export const PINMAP_TO_ENV = {
   CNC3: 'teensy40',
   CNC3_2: 'teensy40',
   MaxSTM3: 'blackpill_f411',
+  MiniPCB: 'teensy32',
+  MiniPCB13: 'teensy32',
+  MiniPCB2: 'teensy32',
+  BTT_SKR_PRO: 'skr_pro_f407',
 };
 
 export const ENV_LABELS = {
   esp32: 'ESP32',
+  teensy32: 'Teensy 3.2',
   teensy40: 'Teensy 4.0',
   teensy41: 'Teensy 4.1 / MaxPCB4',
   blackpill_f411: 'STM32 BlackPill F411CE',
+  skr_pro_f407: 'STM32F407 / BTT SKR PRO V1.2',
 };
 
 // ==========================================================================
