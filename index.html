@@ -2149,7 +2149,7 @@
       <li><b>ESP32</b> — most boards auto-reset; if not, hold BOOT and tap EN/RST.</li>
       <li><b>ESP8266</b> (NodeMCU / Wemos D1) — most boards auto-reset. Bare ESP-01 modules: pull GPIO0 to GND, power cycle.</li>
       <li><b>STM32 BlackPill</b> — hold BOOT0 and tap NRST. Board should appear as "STM32 BOOTLOADER".</li>
-      <li><b>Teensy 4.0/4.1</b> — no browser flashing yet; we'll download firmware.hex and hand it off to the Teensy Loader app.</li>
+      <li><b>Teensy 4.0/4.1</b> — one-click flash via WebHID (Chrome/Edge). Press the white program button when prompted and pick the Teensy in the browser dialog. On Firefox/Safari we fall back to downloading firmware.hex for Teensy Loader.</li>
     </ul>
     <div id="staleFlashWarn" style="display:none;margin-bottom:8px;padding:8px 10px;background:rgba(255,107,53,0.12);border-left:3px solid var(--warn);border-radius:3px;color:var(--warn);font-size:0.85em;">
       Your config has changed since this firmware was built. Recompile before flashing, or the board
@@ -2313,10 +2313,60 @@
         CDN on first use.</li>
       <li><b>WebUSB + DFU</b> for STM32 BlackPill &mdash; we wrote a small DFU client that speaks the same
         protocol as <code>dfu-util</code>.</li>
-      <li><b>Download + hand off</b> for Teensy &mdash; HalfKay bootloader support in the browser is still
-        experimental; instead we save <code>firmware.hex</code> and you drag it into the PJRC Teensy Loader app
-        (which takes about 3 seconds).</li>
+      <li><b>WebHID</b> for Teensy 4.0/4.1 &mdash; we speak the HalfKay bootloader protocol directly from the
+        browser (same wire format as <code>teensy_loader_cli</code>: 1024-byte blocks, 64-byte header with a
+        little-endian flash offset, final <code>0xFFFFFF</code> report to reboot into the app). You still
+        have to press the white program button to put the Teensy into bootloader mode &mdash; HalfKay is only
+        reachable after that. On browsers without WebHID we fall back to downloading <code>firmware.hex</code>
+        for the PJRC Teensy Loader app.</li>
     </ul>
+
+    <h4>Under the hood: the Teensy WebHID flasher</h4>
+    <p>Of the three browser flashers, the Teensy one is the most custom. PJRC's official tool is
+      <a href="https://github.com/PaulStoffregen/teensy_loader_cli" target="_blank"><code>teensy_loader_cli</code></a>,
+      a small C program that talks to the Teensy's HalfKay bootloader over USB HID using libusb/hidapi. The
+      Teensy has no serial bootloader and no DFU interface &mdash; HalfKay is the only path in. To do the same
+      thing from a browser we need an API that can send HID output reports to an arbitrary vendor device, and
+      that's exactly what <b>WebHID</b> gives us (Chrome/Edge only; no Firefox or Safari support yet).</p>
+
+    <p>The Teensy 4.x sits in ROM as HalfKay whenever you press the white program button. In that mode it
+      appears as a USB HID device with vendor/product IDs <code>0x16C0</code> / <code>0x0478</code>. The
+      browser's device picker filters on those IDs, so only a Teensy in bootloader mode shows up in the
+      dialog &mdash; the running OnStepX sketch, with its own USB identity, is ignored. That also means the
+      dialog is empty until you press the program button; Chrome polls for new devices, so the Teensy pops in
+      as soon as HalfKay activates.</p>
+
+    <p>Once the device is open, flashing is a loop of 1088-byte HID output reports with this layout:</p>
+
+    <pre>
+ byte  0   1   2   3 ............. 63  64 ........................ 1087
+      +---+---+---+------ zeros ------+------ 1024 bytes of data -------+
+      |   flash offset  |  padding    |    .hex payload for this page   |
+      |  little-endian  |  (61 bytes) |                                 |
+      |    3 bytes      |             |                                 |
+      +---+---+---+-----+-------------+---------------------------------+
+    </pre>
+
+    <p>Block 0 is always sent, even if blank, because that's the trigger that erases the whole chip;
+      subsequent all-<code>0xFF</code> pages are skipped to speed things up. The first five blocks get a
+      long 45-second timeout because the chip erase takes a few seconds before the first write is
+      acknowledged; later blocks complete in milliseconds. After the last data block we send one more
+      1088-byte report with the offset bytes set to <code>0xFF 0xFF 0xFF</code> &mdash; HalfKay reads that
+      as "reboot into the app." The bootloader often resets mid-ACK, so a missing reply on that final
+      packet is expected, not an error.</p>
+
+    <p>Parsing the firmware is its own step. PlatformIO emits an Intel HEX file whose data records carry
+      absolute addresses starting at <code>0x60000000</code> (the IMXRT1062 flash base). We walk the
+      records, handle extended-linear-address prefixes (record type <code>0x04</code>), verify each line's
+      checksum, and collapse everything into a flat <code>Uint8Array</code> indexed from offset 0. Unused
+      gaps are filled with <code>0xFF</code> so they look like erased flash.</p>
+
+    <p>Everything above lives in <code>flash/teensy.js</code> &mdash; roughly 300 lines, no external
+      dependencies beyond the ES-module imports this page uses everywhere. If the browser doesn't expose
+      WebHID, or you dismiss the device picker, or any step throws mid-flash, we fall back to the original
+      path: save <code>firmware.hex</code> and show the Teensy Loader instructions. HalfKay is in ROM and
+      cannot be overwritten, so a partial flash never bricks the board &mdash; worst case you click Flash
+      again and retry.</p>
 
     <div class="help-tip">
       <b>Nothing runs on anyone's private server.</b> All three free-tier services are transparent: you can
@@ -2567,8 +2617,20 @@
     </div>
 
     <h4>Teensy 4.0 / 4.1 / MaxPCB4</h4>
+    <p><b>One-click browser flash (Chrome / Edge):</b></p>
     <ol>
-      <li>Click <b>Flash to Board</b> &mdash; it saves <code>firmware.hex</code> to your Downloads folder.</li>
+      <li>Plug the Teensy into USB.</li>
+      <li>Click <b>Flash to Board</b>.</li>
+      <li>When the browser picker appears, press the white program button on the Teensy. It'll show up as
+        "Teensy" in the dialog &mdash; pick it and click Connect.</li>
+      <li>Progress streams to the flash log; the Teensy reboots into the new firmware when it's done.
+        Typical time: 3&ndash;8 seconds.</li>
+    </ol>
+    <p>If the browser dialog is empty, the Teensy isn't in HalfKay bootloader mode yet &mdash; just press
+      the white program button and it'll pop in.</p>
+    <p><b>Fallback (Firefox / Safari / WebHID unavailable):</b> we save <code>firmware.hex</code> to your
+      Downloads folder. Then:</p>
+    <ol>
       <li>Open <a href="https://www.pjrc.com/teensy/loader.html" target="_blank">Teensy Loader</a>
         (comes with <a href="https://www.pjrc.com/teensy/td_download.html" target="_blank">Teensyduino</a>).</li>
       <li>Drop <code>firmware.hex</code> onto the window.</li>
@@ -2588,33 +2650,33 @@ teensy_loader_cli --mcu=TEENSY40 -w -v firmware.hex   # 4.0</pre>
         <th style="padding:6px;text-align:left;border:1px solid var(--border);">Configurator &amp; Compile</th>
         <th style="padding:6px;text-align:left;border:1px solid var(--border);">ESP32 / ESP8266 flash</th>
         <th style="padding:6px;text-align:left;border:1px solid var(--border);">STM32 DFU flash</th>
-        <th style="padding:6px;text-align:left;border:1px solid var(--border);">Teensy .hex download</th>
+        <th style="padding:6px;text-align:left;border:1px solid var(--border);">Teensy 4.0/4.1 flash</th>
       </tr>
       <tr>
         <td style="padding:6px;border:1px solid var(--border);">Chrome, Edge, Opera, Brave (Chromium)</td>
         <td style="padding:6px;border:1px solid var(--border);color:var(--green);">yes</td>
         <td style="padding:6px;border:1px solid var(--border);color:var(--green);">yes (Web Serial)</td>
         <td style="padding:6px;border:1px solid var(--border);color:var(--green);">yes (WebUSB)</td>
-        <td style="padding:6px;border:1px solid var(--border);color:var(--green);">yes</td>
+        <td style="padding:6px;border:1px solid var(--border);color:var(--green);">yes (WebHID)</td>
       </tr>
       <tr>
         <td style="padding:6px;border:1px solid var(--border);">Firefox</td>
         <td style="padding:6px;border:1px solid var(--border);color:var(--green);">yes</td>
         <td style="padding:6px;border:1px solid var(--border);color:var(--warn);">no</td>
         <td style="padding:6px;border:1px solid var(--border);color:var(--warn);">no</td>
-        <td style="padding:6px;border:1px solid var(--border);color:var(--green);">yes</td>
+        <td style="padding:6px;border:1px solid var(--border);color:var(--warn);">no (download .hex)</td>
       </tr>
       <tr>
         <td style="padding:6px;border:1px solid var(--border);">Safari</td>
         <td style="padding:6px;border:1px solid var(--border);color:var(--green);">yes</td>
         <td style="padding:6px;border:1px solid var(--border);color:var(--warn);">no</td>
         <td style="padding:6px;border:1px solid var(--border);color:var(--warn);">no</td>
-        <td style="padding:6px;border:1px solid var(--border);color:var(--green);">yes</td>
+        <td style="padding:6px;border:1px solid var(--border);color:var(--warn);">no (download .hex)</td>
       </tr>
     </table>
     <p>Firefox / Safari can generate a config, trigger a compile, and <b>download</b> the firmware &mdash;
       they just can't flash via the browser. If you're on one of those, download the firmware and use
-      <code>esptool.py</code> (ESP32) or <code>dfu-util</code> (STM32) locally.</p>
+      <code>esptool.py</code> (ESP32), <code>dfu-util</code> (STM32), or Teensy Loader (Teensy) locally.</p>
   </div>
 
   <div class="section help-body" id="help-privacy">
@@ -4540,7 +4602,14 @@ function refreshFlashSupportHint() {
     msgs.push('Your browser does not support WebUSB — STM32 flashing needs Chrome/Edge/Opera.');
   }
   if (isTeensy) {
-    msgs.push('Teensy: clicking "Flash to Board" will save firmware.hex and open Teensy Loader instructions.');
+    const canWebHid = (env === 'teensy40' || env === 'teensy41') && teensyFlasher.webhidSupported();
+    if (canWebHid) {
+      msgs.push('Teensy: clicking "Flash to Board" will ask to connect via WebHID — press the white program button, pick the Teensy in the dialog, and it flashes in-browser.');
+    } else if (env === 'teensy40' || env === 'teensy41') {
+      msgs.push('Teensy: your browser lacks WebHID (need Chrome/Edge) — "Flash to Board" will save firmware.hex and open Teensy Loader instructions.');
+    } else {
+      msgs.push('Teensy (SHC build): "Flash to Board" will save firmware.hex and open Teensy Loader instructions.');
+    }
   }
   hint.textContent = msgs.join(' ');
   hint.style.color = msgs.length ? 'var(--warn)' : 'var(--label)';
@@ -4670,7 +4739,7 @@ window.flashBoard = async function () {
       env === 'shc_teensy40' || env === 'shc_teensy32';
     if (isEsp) await esp32Flasher.flash(files, log);
     else if (env === 'blackpill_f411') await stm32Flasher.flash(files, log);
-    else if (isTeensy) await teensyFlasher.flash(files, log);
+    else if (isTeensy) await teensyFlasher.flash(files, env, log);
     else throw new Error(`no flasher for env ${env}`);
 
     // Flash succeeded — auto-reset the OnStepX form to the current board's
