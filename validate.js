@@ -16,8 +16,11 @@ export const PINMAP_MCU = {
   MaxESP4: 'esp32',
   FYSETC_E4: 'esp32',
   MaxSTM3: 'blackpill_f411',
-  CNC3: 'teensy40',
-  CNC3_2: 'teensy40',
+  // CNC3 = Arduino CNC Shield V3 on WeMos D1 R32 (ESP32). Deprecated per the
+  // OnStep wiki (only legacy CNC option). Confirmed by OnStepX
+  // src/pinmaps/Pins.CNC3.h: `#if defined(ESP32)` and Constants.h comment
+  // "Arduino CNC Sheild on WeMos D1 R32 (ESP32)".
+  CNC3: 'esp32',
   MiniPCB: 'teensy32',
   MiniPCB13: 'teensy32',
   MiniPCB2: 'teensy32',

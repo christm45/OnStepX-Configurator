@@ -6,89 +6,113 @@
 <title>OnStepX Configuration Generator</title>
 <style>
   :root {
-    --bg: #1a1a2e;
-    --card: #16213e;
-    --accent: #0f3460;
-    --highlight: #e94560;
-    --green: #4ecca3;
-    --text: #e0e0e0;
-    --input-bg: #0d1b2a;
-    --border: #2a3a5c;
-    --label: #a0b4d0;
-    --section-title: #e94560;
-    --calc-bg: #0a2a1a;
-    --calc-border: #4ecca3;
-    --warn: #ff6b35;
+    /* SmartWebServer palette (htmlHeaders.h) */
+    --bg: #26262A;            /* COLOR_BODY_BACKGROUND */
+    --card: #111111;          /* COLOR_BACKGROUND - panel */
+    --light-card: #222222;    /* COLOR_LIGHT_BACKGROUND */
+    --accent: #181818;        /* COLOR_CONTROL_BACKGROUND */
+    --highlight: #B02020;     /* COLOR_CONTROL - red */
+    --green: #A07070;         /* COLOR_LINK - dusty rose link */
+    --text: #999999;          /* COLOR_FOREGROUND */
+    --input-bg: #B02020;      /* SWS input bg (red) */
+    --input-text: #ffffff;
+    --border: #551111;        /* COLOR_BORDER - dark red, used 5px thick */
+    --label: #AAAAAA;         /* COLOR_LIGHT_FOREGROUND */
+    --section-title: #B02020;
+    --calc-bg: #181818;
+    --calc-border: #551111;
+    --warn: #FFFF00;          /* COLOR_ALERT - yellow */
+    --link-bg: #332222;        /* COLOR_LINK_BACKGROUND */
+    --link-bg-active: #552222; /* COLOR_LINK_SELECTED_BACKGROUND */
+    --link-border: red;        /* COLOR_LINK_BORDER */
+    --collapsible-bg: #500808;
+    --collapsible-active: #661111;
+    --collapsible-content: #301212;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  #matrixCanvas {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    z-index: -1;
-    pointer-events: none;
-  }
+  #matrixCanvas { display: none !important; }
   body {
-    font-family: 'Segoe UI', Consolas, monospace;
-    background: transparent;
+    font-family: Arial, Helvetica, sans-serif;
+    background: var(--bg);
     color: var(--text);
-    padding: 20px;
+    padding: 10px;
     line-height: 1.5;
     position: relative;
   }
   html {
     background: var(--bg);
   }
+  /* SWS-style title tile: thick red border, page-wide, title left + version right */
   h1 {
-    text-align: center;
-    color: var(--highlight);
-    margin-bottom: 5px;
-    font-size: 1.8em;
+    text-align: left;
+    color: var(--text);
+    margin: 0 auto 0;
+    max-width: 1200px;
+    padding: 10px 14px;
+    border: 5px solid var(--border);
+    background: var(--card);
+    font-size: 1.6em;
+    font-weight: bold;
   }
+  h1 b { color: var(--highlight); }
   .subtitle {
-    text-align: center;
+    text-align: right;
     color: var(--label);
-    margin-bottom: 20px;
-    font-size: 0.9em;
+    margin: 0 auto 16px;
+    max-width: 1200px;
+    padding: 6px 14px;
+    border-left: 5px solid var(--border);
+    border-right: 5px solid var(--border);
+    border-bottom: 5px solid var(--border);
+    background: var(--card);
+    font-size: 0.85em;
   }
   .tabs {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
-    margin-bottom: 20px;
-    border-bottom: 2px solid var(--accent);
-    padding-bottom: 4px;
+    max-width: 1200px;
+    margin: 0 auto 16px;
+    padding: 10px;
+    background: var(--card);
+    border: 5px solid var(--border);
   }
+  /* SWS link-style buttons: red border, dark-red bg, dusty-rose text */
   .tab-btn {
-    padding: 8px 16px;
-    background: var(--accent);
-    color: var(--label);
-    border: 1px solid var(--border);
-    border-bottom: none;
-    border-radius: 6px 6px 0 0;
+    padding: 5px 10px;
+    background: var(--link-bg);
+    color: var(--green);
+    border: 1px solid var(--link-border);
+    border-radius: 0;
     cursor: pointer;
-    font-size: 0.85em;
-    transition: all 0.2s;
+    font-size: 0.9em;
+    font-family: inherit;
+    text-decoration: none;
+    transition: background 0.15s;
   }
-  .tab-btn:hover { background: var(--highlight); color: #fff; }
-  .tab-btn.active { background: var(--highlight); color: #fff; font-weight: bold; }
+  .tab-btn:hover { background: var(--link-border); color: #fff; }
+  .tab-btn.active { background: var(--link-bg-active); color: var(--green); font-weight: bold; }
   .tab-content { display: none; }
   .tab-content.active { display: block; }
 
+  /* SWS .t / .b tile style: 5px solid dark-red border on a near-black panel */
   .section {
     background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 16px;
+    border: 5px solid var(--border);
+    border-radius: 0;
+    padding: 14px;
+    margin: 0 auto 16px;
+    max-width: 1200px;
+    color: var(--text);
   }
   .section-title {
     color: var(--section-title);
-    font-size: 1.1em;
+    font-size: 1.05em;
     font-weight: bold;
     border-bottom: 1px solid var(--border);
     padding-bottom: 6px;
     margin-bottom: 12px;
+    text-transform: none;
   }
   .field-row {
     display: grid;
@@ -98,14 +122,14 @@
     margin-bottom: 8px;
     padding: 4px 0;
   }
-  .field-row:hover { background: rgba(78,204,163,0.05); border-radius: 4px; }
+  .field-row:hover { background: rgba(176,32,32,0.07); border-radius: 0; }
   .field-label {
     color: var(--label);
     font-size: 0.85em;
     font-family: Consolas, monospace;
   }
   .field-hint {
-    color: #6a7a9a;
+    color: #777;
     font-size: 0.75em;
   }
   .hint-tag {
@@ -117,10 +141,10 @@
     margin-left: 4px;
   }
   .hint-reqd { background: var(--highlight); color: #fff; }
-  .hint-often { background: var(--warn); color: #fff; }
-  .hint-option { background: var(--accent); color: var(--label); }
-  .hint-adjust { background: #2a6a4a; color: #ccc; }
-  .hint-infreq { background: #333; color: #888; }
+  .hint-often { background: #8a4a00; color: #fff; }
+  .hint-option { background: var(--link-bg); color: var(--green); border: 1px solid var(--border); }
+  .hint-adjust { background: #444; color: #ddd; }
+  .hint-infreq { background: #2a2a2a; color: #888; }
 
   /* Per-field help (? icons) */
   .help-icon {
@@ -131,9 +155,9 @@
     height: 16px;
     margin-left: 5px;
     padding: 0;
-    background: var(--accent);
-    color: var(--label);
-    border: 1px solid var(--border);
+    background: var(--link-bg);
+    color: var(--green);
+    border: 1px solid var(--link-border);
     border-radius: 50%;
     font-size: 0.72em;
     font-weight: bold;
@@ -145,9 +169,9 @@
   .help-icon:hover,
   .help-icon:focus,
   .help-icon[aria-expanded="true"] {
-    background: var(--green);
-    color: #0d1b2a;
-    border-color: var(--green);
+    background: var(--link-border);
+    color: #fff;
+    border-color: var(--link-border);
     outline: none;
   }
   #field-help-bubble {
@@ -155,17 +179,17 @@
     z-index: 1000;
     max-width: 340px;
     background: var(--card);
-    border: 1px solid var(--green);
-    border-radius: 4px;
+    border: 2px solid var(--border);
+    border-radius: 0;
     padding: 10px 12px;
-    box-shadow: 0 6px 16px rgba(0,0,0,0.5);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.7);
     font-size: 0.82em;
     color: var(--text);
     line-height: 1.45;
   }
   #field-help-bubble[hidden] { display: none; }
   #field-help-bubble .field-help-title {
-    color: var(--green);
+    color: var(--highlight);
     font-weight: bold;
     font-family: Consolas, monospace;
     margin-bottom: 4px;
@@ -177,40 +201,45 @@
     color: var(--green);
     text-decoration: none;
   }
-  #field-help-bubble .field-help-learn:hover { text-decoration: underline; }
+  #field-help-bubble .field-help-learn:hover { text-decoration: underline; color: #fff; }
 
+  /* SWS-style controls: red bg, bold text, 2px border, slight 5px radius like SWS buttons */
   select, input[type="text"], input[type="number"] {
     background: var(--input-bg);
-    color: var(--text);
-    border: 1px solid var(--border);
-    padding: 6px 10px;
-    border-radius: 4px;
+    color: var(--input-text);
+    border: 1px solid var(--link-border);
+    padding: 4px 8px;
+    border-radius: 5px;
     font-family: Consolas, monospace;
     font-size: 0.9em;
+    font-weight: bold;
     width: 100%;
+    text-align: center;
   }
+  select { padding: 4px 6px; }
   select:focus, input:focus {
     outline: none;
-    border-color: var(--green);
-    box-shadow: 0 0 4px rgba(78,204,163,0.3);
+    border-color: var(--warn);
+    box-shadow: 0 0 4px rgba(255,255,0,0.4);
   }
+  /* Calculated/derived fields: dark bg with yellow alert-style readout */
   input.calc-result {
     background: var(--calc-bg);
-    border-color: var(--calc-border);
-    color: var(--green);
+    border-color: var(--border);
+    color: var(--warn);
     font-weight: bold;
   }
 
   .calc-box {
-    background: var(--calc-bg);
-    border: 1px solid var(--calc-border);
-    border-radius: 8px;
-    padding: 14px;
-    margin-bottom: 16px;
+    background: var(--light-card);
+    border: 3px solid var(--border);
+    border-radius: 0;
+    padding: 12px 14px;
+    margin-bottom: 14px;
   }
-  .calc-box .section-title { color: var(--green); border-color: var(--calc-border); }
+  .calc-box .section-title { color: var(--warn); border-color: var(--border); }
   .calc-formula {
-    color: var(--green);
+    color: var(--warn);
     font-size: 0.8em;
     font-style: italic;
     margin-top: 4px;
@@ -223,8 +252,8 @@
     font-size: 0.8em;
   }
   .platform-table th {
-    background: var(--accent);
-    color: var(--label);
+    background: var(--link-bg);
+    color: var(--green);
     padding: 6px 10px;
     text-align: left;
     border: 1px solid var(--border);
@@ -235,84 +264,92 @@
     transition: background 0.3s, color 0.3s;
   }
   .platform-table td.rate-ok {
-    background: rgba(78,204,163,0.2);
-    color: var(--green);
+    background: rgba(160,112,112,0.18);
+    color: var(--text);
   }
   .platform-table td.rate-exceed {
-    background: rgba(233,69,96,0.35);
-    color: #ff4466;
+    background: rgba(176,32,32,0.45);
+    color: var(--warn);
     font-weight: bold;
   }
   .platform-table tr.rate-row-exceed td:first-child {
-    background: rgba(233,69,96,0.15);
-    color: #ff6b6b;
+    background: rgba(176,32,32,0.25);
+    color: var(--warn);
   }
   .platform-table tr.rate-row-ok td:first-child {
-    background: rgba(78,204,163,0.1);
+    background: rgba(0,0,0,0.25);
   }
   .rate-warning {
-    color: #ff4466;
+    color: var(--warn);
     font-weight: bold;
     font-size: 0.85em;
     margin-top: 8px;
     padding: 8px 12px;
-    background: rgba(233,69,96,0.15);
-    border: 1px solid #ff4466;
-    border-radius: 6px;
+    background: rgba(176,32,32,0.25);
+    border: 2px solid var(--highlight);
+    border-radius: 0;
     display: none;
   }
   .rate-warning.show { display: block; }
 
   .btn-row {
     display: flex;
-    gap: 10px;
+    gap: 6px;
     justify-content: center;
     margin: 20px 0;
     flex-wrap: wrap;
   }
+  /* SWS-style buttons: red bg, bold, 5px radius */
   .btn {
-    padding: 12px 28px;
-    border: none;
-    border-radius: 6px;
-    font-size: 1em;
+    padding: 8px 14px;
+    border: 1px solid var(--link-border);
+    border-radius: 5px;
+    font-size: 0.95em;
     cursor: pointer;
     font-weight: bold;
-    transition: all 0.2s;
+    background: var(--highlight);
+    color: #fff;
+    transition: background 0.15s;
+    font-family: inherit;
   }
-  .btn-generate { background: var(--green); color: #000; }
-  .btn-generate:hover { background: #3dba8f; transform: translateY(-1px); }
-  .btn-copy { background: var(--accent); color: var(--text); }
-  .btn-copy:hover { background: #1a4a8a; }
+  .btn:hover { background: var(--link-border); }
+  .btn-generate { background: var(--highlight); color: #fff; }
+  .btn-generate:hover { background: var(--link-border); }
+  .btn-copy { background: var(--link-bg); color: var(--green); }
+  .btn-copy:hover { background: var(--link-bg-active); }
   .btn-download { background: var(--highlight); color: #fff; }
-  .btn-download:hover { background: #d03050; }
-  .btn-load { background: #6a4aaa; color: #fff; }
-  .btn-load:hover { background: #7a5aba; }
+  .btn-download:hover { background: var(--link-border); }
+  .btn-load { background: var(--link-bg-active); color: var(--green); }
+  .btn-load:hover { background: var(--link-border); color: #fff; }
 
   .output-area {
-    background: var(--input-bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px;
+    background: #000;
+    border: 3px solid var(--border);
+    border-radius: 0;
+    padding: 14px;
     margin-top: 16px;
   }
+  /* Config preview: dark background, dusty-rose monospace text */
   #configOutput {
     width: 100%;
     min-height: 500px;
-    background: var(--input-bg);
+    background: #000;
     color: var(--green);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: 0;
     padding: 12px;
     font-family: Consolas, 'Courier New', monospace;
     font-size: 0.82em;
     line-height: 1.4;
     resize: vertical;
+    text-align: left;
+    font-weight: normal;
   }
   .status-bar {
     text-align: center;
     padding: 8px;
     font-size: 0.85em;
-    color: var(--green);
+    color: var(--warn);
     display: none;
   }
   .status-bar.show { display: block; }
@@ -323,36 +360,36 @@
     }
   }
 
-  /* Mode switch (OnStepX / SHC) */
+  /* Mode switch (OnStepX / SHC / SWS) - SWS link-row aesthetic */
   .mode-switch {
     display: flex;
     gap: 6px;
     justify-content: center;
     margin: 0 auto 16px;
     max-width: 600px;
-    padding: 6px;
+    padding: 8px;
     background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    border: 5px solid var(--border);
+    border-radius: 0;
   }
   .mode-btn {
     flex: 1;
-    padding: 10px 14px;
-    background: transparent;
-    color: var(--label);
-    border: 1px solid transparent;
-    border-radius: 6px;
+    padding: 8px 12px;
+    background: var(--link-bg);
+    color: var(--green);
+    border: 1px solid var(--link-border);
+    border-radius: 0;
     cursor: pointer;
     font-size: 0.9em;
     font-family: inherit;
-    transition: all 0.15s;
+    transition: background 0.15s;
   }
-  .mode-btn:hover { background: var(--accent); color: var(--text); }
+  .mode-btn:hover { background: var(--link-border); color: #fff; }
   .mode-btn.active {
-    background: var(--highlight);
-    color: #fff;
+    background: var(--link-bg-active);
+    color: var(--warn);
     font-weight: bold;
-    border-color: var(--highlight);
+    border-color: var(--link-border);
   }
   .mode-btn .mode-sub {
     display: block;
@@ -366,12 +403,12 @@
   /* Help tab */
   .help-body { line-height: 1.6; color: var(--text); }
   .help-body p { margin-bottom: 10px; }
-  .help-body h3 { color: var(--green); margin: 16px 0 8px; font-size: 1.05em; }
-  .help-body h4 { color: var(--highlight); margin: 12px 0 6px; font-size: 0.95em; }
+  .help-body h3 { color: var(--highlight); margin: 16px 0 8px; font-size: 1.05em; }
+  .help-body h4 { color: var(--warn); margin: 12px 0 6px; font-size: 0.95em; }
   .help-body ol, .help-body ul { margin-left: 22px; margin-bottom: 10px; }
   .help-body li { margin-bottom: 6px; }
   .help-body code {
-    background: var(--input-bg);
+    background: var(--accent);
     padding: 1px 6px;
     border-radius: 3px;
     border: 1px solid var(--border);
@@ -383,7 +420,7 @@
     background: #000;
     color: var(--green);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: 0;
     padding: 10px;
     overflow-x: auto;
     font-family: Consolas, monospace;
@@ -391,44 +428,56 @@
     margin-bottom: 10px;
   }
   .help-body kbd {
-    background: var(--accent);
-    border: 1px solid var(--border);
+    background: var(--link-bg);
+    border: 1px solid var(--link-border);
     border-radius: 3px;
     padding: 1px 6px;
     font-family: Consolas, monospace;
     font-size: 0.85em;
-    color: var(--text);
+    color: var(--green);
   }
   .help-body a { color: var(--green); }
-  .help-body a:hover { color: var(--highlight); }
+  .help-body a:hover { color: var(--warn); }
   .help-warn {
-    background: rgba(255, 107, 53, 0.1);
-    border-left: 3px solid var(--warn);
+    background: rgba(176, 32, 32, 0.18);
+    border-left: 3px solid var(--highlight);
     padding: 8px 12px;
     margin: 10px 0;
-    border-radius: 3px;
+    border-radius: 0;
   }
   .help-tip {
-    background: rgba(78, 204, 163, 0.08);
+    background: rgba(160, 112, 112, 0.12);
     border-left: 3px solid var(--green);
     padding: 8px 12px;
     margin: 10px 0;
-    border-radius: 3px;
+    border-radius: 0;
   }
   .help-toc {
-    background: var(--input-bg);
+    background: var(--accent);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: 0;
     padding: 10px 10px 10px 30px;
     margin-bottom: 16px;
   }
   .help-toc li { margin-bottom: 4px; }
+
+  /* Generic links inside content */
+  a { color: var(--green); }
+  a:hover { color: var(--warn); }
+
+  /* Width container so SWS-style tiles align */
+  .tab-content { max-width: 1200px; margin: 0 auto; }
+
+  /* SWS uses a centered layout; on smaller screens we give a little padding */
+  @media (max-width: 1240px) {
+    h1, .subtitle, .section, .tabs { max-width: 100%; }
+  }
 </style>
 </head>
 <body>
 <canvas id="matrixCanvas"></canvas>
 
-<h1 id="pageTitle">OnStep Configuration Generator</h1>
+<h1 id="pageTitle"><span style="float:right;font-size:0.8em;color:var(--label);font-weight:normal;">OnStepX&nbsp;Configurator</span><b>OnStep</b> Configuration Generator</h1>
 <p class="subtitle" id="pageSubtitle">Generate Config.h, compile online, and flash over USB</p>
 
 <div style="display:flex;align-items:stretch;gap:8px;max-width:820px;margin:0 auto 16px;">
@@ -448,7 +497,7 @@
   </div>
   <button type="button" id="resetAllBtn" onclick="resetToDefaults()"
           title="Clear all saved form state (every tab, every mode) and reload the page"
-          style="padding:0 16px;background:var(--accent);color:var(--label);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:0.85em;font-family:inherit;white-space:nowrap;transition:all 0.15s;">
+          style="padding:0 16px;background:var(--link-bg);color:var(--green);border:1px solid var(--link-border);border-radius:5px;cursor:pointer;font-size:0.85em;font-family:inherit;white-space:nowrap;transition:all 0.15s;">
     ↻ Reset<br>to Defaults
   </button>
 </div>
@@ -666,7 +715,7 @@
       <div class="field-label" style="margin-bottom: 6px; margin-top:10px;">
         Platform Rate Limits (minimum &mu;s/step) &mdash;
         <span style="color:var(--green);">green</span> = OK,
-        <span style="color:#ff4466;">red</span> = too fast for this MCU at fastest (2x) slew:
+        <span style="color:var(--warn);">red</span> = too fast for this MCU at fastest (2x) slew:
       </div>
       <table class="platform-table" id="platformTable">
         <tr><th>Platform</th><th>SQUARE min</th><th>PULSE min</th><th>Status</th></tr>
@@ -716,17 +765,17 @@
         <option value="MaxESP4">MaxESP4 (ESP32)</option>
         <option value="MaxSTM3" selected>MaxSTM3 (STM32F411)</option>
         <option value="FYSETC_E4">FYSETC_E4 (ESP32)</option>
-        <option value="CNC3">CNC3 (Teensy 4.0)</option>
-        <option value="CNC3_2">CNC3_2 (Teensy 4.0)</option>
+        <option value="CNC3">CNC3 — WeMos D1 R32 (ESP32) — Deprecated</option>
         <option value="MiniPCB">MiniPCB v1 (Teensy 3.2)</option>
         <option value="MiniPCB13">MiniPCB v1.3 (Teensy 3.2)</option>
         <option value="MiniPCB2">MiniPCB v2 (Teensy 3.2)</option>
         <option value="BTT_SKR_PRO">BTT_SKR_PRO V1.2 (STM32F407)</option>
       </select>
       <span class="field-hint">
-        Board pinmap selection. Teensy 3.2 (MiniPCB), Teensy 4.0/4.1 (MaxPCB4, CNC3) all one-click
-        flash via WebHID — press the white program button when prompted. BTT_SKR_PRO flashes via
-        WebUSB DFU (BOOT0 jumper + reset to enter DFU mode).
+        Board pinmap selection. Teensy 3.2 (MiniPCB) and Teensy 4.1 (MaxPCB4) flash one-click via
+        WebHID — press the white program button when prompted. ESP32 boards (MaxESP3/4, FYSETC_E4,
+        CNC3/WeMos R32) flash via WebSerial. BTT_SKR_PRO flashes via WebUSB DFU (BOOT0 jumper +
+        reset). CNC3 is deprecated — see the OnStep wiki for current recommendations.
       </span>
     </div>
     <div class="field-row">
@@ -2094,7 +2143,7 @@
     <code>github.com/.../blob/...</code>). Leave empty to pull the FYSETC E4 reference config.
   </div>
   <div id="statusBar" class="status-bar"></div>
-  <div id="configOutputSource" style="display:none; margin-top:8px; padding:6px 10px; background:rgba(78,204,163,0.10); border-left:3px solid var(--green); border-radius:3px; color:var(--green); font-size:0.85em; font-family:Consolas,monospace;"></div>
+  <div id="configOutputSource" style="display:none; margin-top:8px; padding:6px 10px; background:rgba(160,112,112,0.12); border-left:3px solid var(--green); border-radius:0; color:var(--green); font-size:0.85em; font-family:Consolas,monospace;"></div>
   <div class="output-area">
     <textarea id="configOutput" placeholder="Click 'Generate Config.h' to generate the configuration file, or 'Import from URL' to fetch one..." spellcheck="false"></textarea>
   </div>
@@ -2119,7 +2168,7 @@
 
     <!-- Context-aware info box for the FYSETC E4 recipe. Shown only when
          PINMAP=FYSETC_E4 on the Controller tab. -->
-    <div id="e4RecipeBox" style="display:none; margin-bottom:12px; padding:10px 12px; background:rgba(78,204,163,0.08); border-left:3px solid var(--green); border-radius:3px; font-size:0.85em;">
+    <div id="e4RecipeBox" style="display:none; margin-bottom:12px; padding:10px 12px; background:rgba(160,112,112,0.12); border-left:3px solid var(--green); border-radius:0; font-size:0.85em;">
       <div style="font-weight:bold; color:var(--green); margin-bottom:6px;">FYSETC E4 recipe (what will happen when you click Compile)</div>
       <ol style="margin-left:18px; color:var(--label);">
         <li>Source ref stays on <code style="color:var(--green);">main</code> &mdash; you get the latest OnStepX.</li>
@@ -2167,7 +2216,7 @@
     <div id="refResolved" style="margin-top:4px;margin-bottom:4px;padding:8px 10px;background:var(--input-bg);border:1px solid var(--border);border-radius:4px;font-family:Consolas,monospace;font-size:0.8em;color:var(--label);">
       <span style="color:var(--label);">Will build:</span> <span id="refResolvedBody">resolving…</span>
     </div>
-    <div id="refAutoPinBanner" style="display:none; margin-bottom:10px; padding:8px 10px; background:rgba(78,204,163,0.10); border-left:3px solid var(--green); border-radius:3px; color:var(--green); font-size:0.85em;"></div>
+    <div id="refAutoPinBanner" style="display:none; margin-bottom:10px; padding:8px 10px; background:rgba(160,112,112,0.12); border-left:3px solid var(--green); border-radius:0; color:var(--green); font-size:0.85em;"></div>
 
     <!-- OnStepX plugins (hidden in SHC / SWS modes) -->
     <div id="pluginsSection" style="margin-top:6px; padding:10px; background:var(--input-bg); border:1px solid var(--border); border-radius:4px; font-size:0.85em;">
@@ -2200,7 +2249,7 @@
       Idle — click "Compile Firmware" to begin.
     </div>
     <div id="sizeIndicator" style="display:none;margin-top:10px;padding:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:4px;font-size:0.85em;"></div>
-    <pre id="compileLog" style="margin-top:10px;padding:10px;background:#000;color:#4ecca3;border:1px solid var(--border);border-radius:4px;max-height:250px;overflow:auto;font-family:Consolas,monospace;font-size:0.8em;white-space:pre-wrap;display:none;"></pre>
+    <pre id="compileLog" style="margin-top:10px;padding:10px;background:#000;color:var(--green);border:1px solid var(--border);border-radius:0;max-height:250px;overflow:auto;font-family:Consolas,monospace;font-size:0.8em;white-space:pre-wrap;display:none;"></pre>
   </div>
 
   <div class="section">
@@ -2214,7 +2263,7 @@
       <li><b>STM32 BlackPill</b> — hold BOOT0 and tap NRST. Board should appear as "STM32 BOOTLOADER".</li>
       <li><b>Teensy 4.0/4.1</b> — one-click flash via WebHID (Chrome/Edge). Press the white program button when prompted and pick the Teensy in the browser dialog. On Firefox/Safari we fall back to downloading firmware.hex for Teensy Loader.</li>
     </ul>
-    <div id="staleFlashWarn" style="display:none;margin-bottom:8px;padding:8px 10px;background:rgba(255,107,53,0.12);border-left:3px solid var(--warn);border-radius:3px;color:var(--warn);font-size:0.85em;">
+    <div id="staleFlashWarn" style="display:none;margin-bottom:8px;padding:8px 10px;background:rgba(176,32,32,0.18);border-left:3px solid var(--warn);border-radius:0;color:var(--warn);font-size:0.85em;">
       Your config has changed since this firmware was built. Recompile before flashing, or the board
       will run stale firmware.
     </div>
@@ -2222,7 +2271,7 @@
       <button class="btn btn-generate" id="flashBtn" onclick="flashBoard()" disabled>Flash to Board</button>
     </div>
     <div id="flashSupport" style="margin-top:8px;color:var(--warn);font-size:0.8em;"></div>
-    <pre id="flashLog" style="margin-top:10px;padding:10px;background:#000;color:#4ecca3;border:1px solid var(--border);border-radius:4px;max-height:250px;overflow:auto;font-family:Consolas,monospace;font-size:0.8em;white-space:pre-wrap;display:none;"></pre>
+    <pre id="flashLog" style="margin-top:10px;padding:10px;background:#000;color:var(--green);border:1px solid var(--border);border-radius:0;max-height:250px;overflow:auto;font-family:Consolas,monospace;font-size:0.8em;white-space:pre-wrap;display:none;"></pre>
   </div>
 </div>
 
@@ -2513,7 +2562,7 @@
     <ol>
       <li>Open the <b>Controller</b> tab. Set <code>PINMAP</code> to whatever board you have &mdash;
         <code>MaxPCB4</code>, <code>MaxESP3</code>/<code>MaxESP4</code>, <code>MaxSTM3</code>,
-        <code>FYSETC_E4</code>, <code>CNC3</code>/<code>CNC3_2</code>, <code>MiniPCB</code>
+        <code>FYSETC_E4</code>, <code>CNC3</code> (WeMos R32 — deprecated), <code>MiniPCB</code>
         (v1 / v1.3 / v2), or <code>BTT_SKR_PRO</code>. Click <b>Apply board defaults</b> right below the
         PINMAP dropdown to autofill driver model, microsteps, and run current for that board.</li>
       <li>Open the <b>Calculator</b> tab. Fill in your mount's worm teeth, motor steps/rev, and gear ratio for
@@ -2651,7 +2700,7 @@
     <ul>
       <li><b>PINMAP &harr; MCU match</b> &mdash; every PINMAP is pinned to a specific MCU family in the
         validator. Current map: MaxESP3/MaxESP4/FYSETC_E4 &rarr; <code>esp32</code>; MaxPCB4 &rarr;
-        <code>teensy41</code>; CNC3/CNC3_2 &rarr; <code>teensy40</code>; MiniPCB (v1/v1.3/v2) &rarr;
+        <code>teensy41</code>; CNC3 (WeMos D1 R32) &rarr; <code>esp32</code>; MiniPCB (v1/v1.3/v2) &rarr;
         <code>teensy32</code>; MaxSTM3 &rarr; <code>blackpill_f411</code>; BTT_SKR_PRO &rarr;
         <code>skr_pro_f407</code>. Mismatches are caught before they hit the runner.</li>
       <li><b>Required fields</b> &mdash; <code>PINMAP</code>, <code>MOUNT_TYPE</code>, axis driver model, and
@@ -2979,9 +3028,8 @@ teensy_loader_cli --mcu=TEENSY40 -w -v firmware.hex   # 4.0</pre>
     <p>Everything in the <code>PINMAP</code> dropdown is wired to a matching PlatformIO env on the build
       side. Today that covers:</p>
     <ul>
-      <li><b>ESP32</b> &mdash; MaxESP3, MaxESP4, FYSETC_E4, generic dev boards.</li>
+      <li><b>ESP32</b> &mdash; MaxESP3, MaxESP4, FYSETC_E4, CNC3 (WeMos D1 R32 &mdash; deprecated), generic dev boards.</li>
       <li><b>Teensy 3.2</b> &mdash; MiniPCB v1 / v1.3 / v2.</li>
-      <li><b>Teensy 4.0</b> &mdash; CNC3, CNC3_2.</li>
       <li><b>Teensy 4.1</b> &mdash; MaxPCB4.</li>
       <li><b>STM32F411 BlackPill</b> &mdash; MaxSTM3.</li>
       <li><b>STM32F407</b> &mdash; BTT SKR PRO V1.2.</li>
@@ -3314,7 +3362,7 @@ function generateConfig() {
   L('');
   L('// PINMAP ------------------------------------------------- see https://onstep.groups.io/g/main/wiki/Configuration_Controller#PINMAP');
   L(pad('PINMAP', v('PINMAP'), 'OFF,', 'Choose from: MiniPCB, MiniPCB2, MaxPCB4, MaxESP3, MaxESP4, MaxSTM3,     <-Req\'d'));
-  L('                                          //         FYSETC_E4, BTT_SKR_PRO, CNC3, CNC3_2, etc.');
+  L('                                          //         FYSETC_E4, BTT_SKR_PRO, CNC3 (WeMos R32, deprecated), etc.');
   L('                                          //         Other boards and more info. in ~/src/Constants.h');
   L('');
   L('// SERIAL PORT COMMAND CHANNELS --------------------- see https://onstep.groups.io/g/main/wiki/Configuration_Controller#SERIAL_PORTS');
@@ -3961,20 +4009,10 @@ const BOARD_DEFAULTS = {
     },
   },
   CNC3: {
-    label: 'CNC3 (Teensy 4.0)',
-    note: 'Teensy 4.0 on a generic CNC shield — driver is whatever step-stick you plug in. Defaults to DRV8825.',
+    label: 'CNC3 / WeMos D1 R32 (ESP32)',
+    note: 'Arduino CNC Shield V3 on WeMos D1 R32 (ESP32). Deprecated per the OnStep wiki — kept for legacy builds. Recommended drivers per the wiki: LV8729 or S109 at 12V. Default below uses LV8729.',
     fields: {
-      AXIS1_DRIVER_MODEL: 'DRV8825', AXIS2_DRIVER_MODEL: 'DRV8825',
-      AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
-      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
-      MOUNT_TYPE: 'GEM',
-    },
-  },
-  CNC3_2: {
-    label: 'CNC3 v2 (Teensy 4.0)',
-    note: 'Teensy 4.0 CNC shield v2 — driver is whatever step-stick you plug in. Defaults to DRV8825.',
-    fields: {
-      AXIS1_DRIVER_MODEL: 'DRV8825', AXIS2_DRIVER_MODEL: 'DRV8825',
+      AXIS1_DRIVER_MODEL: 'LV8729', AXIS2_DRIVER_MODEL: 'LV8729',
       AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
       AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
       MOUNT_TYPE: 'GEM',
