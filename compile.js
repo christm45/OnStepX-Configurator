@@ -21,6 +21,7 @@ export const PINMAP_TO_ENV = {
   // OnStep wiki; only legacy CNC option. OnStepX Pins.CNC3.h confirms ESP32.
   CNC3: 'esp32',
   MaxSTM3: 'blackpill_f411',
+  MaxSTM3I: 'blackpill_f411',
   MiniPCB: 'teensy32',
   MiniPCB13: 'teensy32',
   MiniPCB2: 'teensy32',

@@ -35,13 +35,7 @@ const WORKFLOW_FILE = 'build.yml';
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    const origin = env.ALLOWED_ORIGIN || 'https://christm45.github.io';
-    const cors = {
-      'Access-Control-Allow-Origin': origin,
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-      'Access-Control-Max-Age': '86400',
-    };
+    const cors = buildCorsHeaders(request, env);
 
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: cors });
@@ -287,6 +281,25 @@ function withCors(res, cors) {
   const headers = new Headers(res.headers);
   for (const [k, v] of Object.entries(cors)) headers.set(k, v);
   return new Response(res.body, { status: res.status, headers });
+}
+
+// Build CORS headers per request. Echoes back the request Origin if it matches
+// an allowlist (prod GitHub Pages origin from env, plus localhost/127.0.0.1 on
+// any port for local dev). Falls back to the production origin so legitimate
+// no-Origin requests (e.g., curl) keep working.
+function buildCorsHeaders(request, env) {
+  const prodOrigin = env.ALLOWED_ORIGIN || 'https://christm45.github.io';
+  const reqOrigin = request.headers.get('Origin') || '';
+  const allowed =
+    reqOrigin === prodOrigin ||
+    /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(reqOrigin);
+  return {
+    'Access-Control-Allow-Origin': allowed && reqOrigin ? reqOrigin : prodOrigin,
+    'Vary': 'Origin',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Max-Age': '86400',
+  };
 }
 
 function b64encodeUtf8(s) {

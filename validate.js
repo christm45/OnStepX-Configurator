@@ -21,6 +21,7 @@ export const PINMAP_MCU = {
   // src/pinmaps/Pins.CNC3.h: `#if defined(ESP32)` and Constants.h comment
   // "Arduino CNC Sheild on WeMos D1 R32 (ESP32)".
   CNC3: 'esp32',
+  MaxSTM3I: 'blackpill_f411',
   MiniPCB: 'teensy32',
   MiniPCB13: 'teensy32',
   MiniPCB2: 'teensy32',
@@ -33,6 +34,7 @@ export const PINMAP_MCU = {
 export const DRIVER_MICROSTEPS = {
   A4988:   [1, 2, 4, 8, 16],
   DRV8825: [1, 2, 4, 8, 16, 32],
+  GENERIC: [1, 2, 4, 8, 16, 32, 64, 128, 256],
   LV8729:  [1, 2, 4, 8, 16, 32, 64, 128],
   RAPS128: [1, 2, 4, 8, 16, 32, 64, 128],
   S109:    [1, 2, 4, 8, 16, 32, 64, 128],
@@ -45,6 +47,11 @@ export const DRIVER_MICROSTEPS = {
   TMC2130: [1, 2, 4, 8, 16, 32, 64, 128, 256],
   TMC5160: [1, 2, 4, 8, 16, 32, 64, 128, 256],
   TMC5161: [1, 2, 4, 8, 16, 32, 64, 128, 256],
+  // Servo drivers don't have a "microsteps" concept — accept any value
+  SERVO_PE: null,
+  SERVO_EE: null,
+  SERVO_TMC2209: null,
+  SERVO_TMC5160: null,
 };
 
 export const MOUNT_TYPES_COMMON = ['GEM', 'FORK', 'FORK_ALT', 'ALTAZM'];

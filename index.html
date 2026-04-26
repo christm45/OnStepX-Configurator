@@ -760,11 +760,12 @@
       <label class="field-label">PINMAP <span class="hint-tag hint-reqd">Req'd</span></label>
       <select id="PINMAP">
         <option value="OFF">OFF</option>
-        <option value="MaxPCB4">MaxPCB4 (Teensy 4.1)</option>
-        <option value="MaxESP3">MaxESP3 (ESP32)</option>
-        <option value="MaxESP4">MaxESP4 (ESP32)</option>
-        <option value="MaxSTM3" selected>MaxSTM3 (STM32F411)</option>
-        <option value="FYSETC_E4">FYSETC_E4 (ESP32)</option>
+        <option value="MaxPCB4">MaxPCB4 (Teensy 4.1) — covers MaxPCB4w (WiFi) / MaxPCB4e (Ethernet)</option>
+        <option value="MaxESP4">MaxESP4 (ESP32) — covers MaxESP4i (dual-ESP32 + FRAM)</option>
+        <option value="MaxESP3">MaxESP3 (ESP32) — older 3-axis ESP32, MaxESP4 recommended</option>
+        <option value="MaxSTM3" selected>MaxSTM3 (STM32F411 BlackPill)</option>
+        <option value="MaxSTM3I">MaxSTM3I (STM32F411 + onboard M24C64 EEPROM)</option>
+        <option value="FYSETC_E4">FYSETC_E4 (ESP32) — beginner-friendly all-in-one</option>
         <option value="CNC3">CNC3 — WeMos D1 R32 (ESP32) — Deprecated</option>
         <option value="MiniPCB">MiniPCB v1 (Teensy 3.2)</option>
         <option value="MiniPCB13">MiniPCB v1.3 (Teensy 3.2)</option>
@@ -772,10 +773,12 @@
         <option value="BTT_SKR_PRO">BTT_SKR_PRO V1.2 (STM32F407)</option>
       </select>
       <span class="field-hint">
-        Board pinmap selection. Teensy 3.2 (MiniPCB) and Teensy 4.1 (MaxPCB4) flash one-click via
-        WebHID — press the white program button when prompted. ESP32 boards (MaxESP3/4, FYSETC_E4,
-        CNC3/WeMos R32) flash via WebSerial. BTT_SKR_PRO flashes via WebUSB DFU (BOOT0 jumper +
-        reset). CNC3 is deprecated — see the OnStep wiki for current recommendations.
+        Board pinmap selection. MaxPCB4w (WiFi) and MaxPCB4e (Ethernet) variants share the
+        <code>MaxPCB4</code> pinmap — the difference is on-PCB wiring, not the firmware constant.
+        Same goes for MaxESP4i: pick <code>MaxESP4</code> here and set <code>NV_DRIVER=NV_MB85RC64</code>
+        below for the FRAM variant. Teensy 3.2 / 4.1 boards flash one-click via WebHID; ESP32 boards
+        (MaxESP3/4, FYSETC_E4, CNC3) flash via WebSerial; BTT_SKR_PRO flashes via WebUSB DFU
+        (BOOT0 jumper + reset). CNC3 is deprecated — see the OnStep wiki for alternatives.
       </span>
     </div>
     <div class="field-row">
@@ -904,17 +907,23 @@
     <div class="field-row">
       <label class="field-label">STEP_WAVE_FORM <span class="hint-tag hint-adjust">Adjust</span></label>
       <select id="STEP_WAVE_FORM">
-        <option value="SQUARE">SQUARE</option>
-        <option value="PULSE" selected>PULSE</option>
+        <option value="SQUARE">SQUARE — best signal integrity (required for Teensy 4.x)</option>
+        <option value="PULSE" selected>PULSE — ~1.6× higher step rate (short wiring runs only)</option>
       </select>
-      <span class="field-hint">Step signal wave form</span>
+      <span class="field-hint">Step pulse waveform. Use SQUARE on long wiring or Teensy 4.x; PULSE squeezes more rate out of slower MCUs.</span>
     </div>
     <div class="field-row">
       <label class="field-label">NV_DRIVER <span class="hint-tag hint-option">Option</span></label>
       <select id="NV_DRIVER">
-        <option value="NV_DEFAULT" selected>NV_DEFAULT</option>
+        <option value="NV_DEFAULT" selected>NV_DEFAULT — platform default (use this for almost every board)</option>
+        <option value="NV_MB85RC64">NV_MB85RC64 — 8KB I2C FRAM @ 0x50 (MaxESP4i and similar)</option>
+        <option value="NV_MB85RC256">NV_MB85RC256 — 32KB I2C FRAM @ 0x50</option>
+        <option value="NV_AT24C32">NV_AT24C32 — 4KB I2C EEPROM @ 0x57 (ZS042 module)</option>
+        <option value="NV_2464">NV_2464 — 8KB I2C EEPROM @ 0x50</option>
+        <option value="NV_2432">NV_2432 — 4KB I2C EEPROM @ 0x50</option>
+        <option value="NV_2416">NV_2416 — 2KB I2C EEPROM @ 0x50</option>
       </select>
-      <span class="field-hint">Non-volatile memory driver</span>
+      <span class="field-hint">Where OnStepX stores runtime settings. Leave on NV_DEFAULT unless your board has a documented external EEPROM/FRAM (e.g. MaxESP4i ⇒ NV_MB85RC64).</span>
     </div>
   </div>
 </div>
@@ -929,14 +938,19 @@
         <option value="OFF" selected>OFF</option>
         <option value="A4988">A4988</option>
         <option value="DRV8825">DRV8825</option>
+        <option value="GENERIC">GENERIC — external step/dir (NEMA34+, big servo drives)</option>
         <option value="LV8729">LV8729</option>
         <option value="S109">S109</option>
-        <option value="TMC2130">TMC2130</option>
-        <option value="TMC5160">TMC5160</option>
-        <option value="TMC2209">TMC2209</option>
-        <option value="TMC2226">TMC2226</option>
-        <option value="SERVO_TMC2209">SERVO_TMC2209</option>
-        <option value="SERVO_TMC5160">SERVO_TMC5160</option>
+        <option value="TMC2130">TMC2130 (SPI)</option>
+        <option value="TMC5160">TMC5160 (SPI)</option>
+        <option value="TMC2209">TMC2209 (UART) — recommended</option>
+        <option value="TMC2226">TMC2226 (UART) — SMD equiv. of TMC2209</option>
+        <option value="TMC2208">TMC2208 (UART) ⚠ legacy — no stall detect</option>
+        <option value="TMC2225">TMC2225 (UART) ⚠ legacy — no stall detect</option>
+        <option value="SERVO_PE">SERVO_PE — DC servo, phase + enable PWM</option>
+        <option value="SERVO_EE">SERVO_EE — DC servo, dual PWM (enable/enable)</option>
+        <option value="SERVO_TMC2209">SERVO_TMC2209 — closed-loop TMC2209 (VACTUAL)</option>
+        <option value="SERVO_TMC5160">SERVO_TMC5160 — closed-loop TMC5160 (VMAX)</option>
       </select>
       <span class="field-hint">Motor driver model</span>
     </div>
@@ -1054,11 +1068,22 @@
     <div class="field-row">
       <label class="field-label">AXIS2_DRIVER_MODEL <span class="hint-tag hint-often">Often</span></label>
       <select id="AXIS2_DRIVER_MODEL">
-        <option value="OFF" selected>OFF</option><option value="A4988">A4988</option>
-        <option value="DRV8825">DRV8825</option><option value="LV8729">LV8729</option>
-        <option value="S109">S109</option><option value="TMC2130">TMC2130</option>
-        <option value="TMC5160">TMC5160</option><option value="TMC2209">TMC2209</option>
-        <option value="TMC2226">TMC2226</option>
+        <option value="OFF" selected>OFF</option>
+        <option value="A4988">A4988</option>
+        <option value="DRV8825">DRV8825</option>
+        <option value="GENERIC">GENERIC — external step/dir (NEMA34+, big servo drives)</option>
+        <option value="LV8729">LV8729</option>
+        <option value="S109">S109</option>
+        <option value="TMC2130">TMC2130 (SPI)</option>
+        <option value="TMC5160">TMC5160 (SPI)</option>
+        <option value="TMC2209">TMC2209 (UART) — recommended</option>
+        <option value="TMC2226">TMC2226 (UART) — SMD equiv. of TMC2209</option>
+        <option value="TMC2208">TMC2208 (UART) ⚠ legacy — no stall detect</option>
+        <option value="TMC2225">TMC2225 (UART) ⚠ legacy — no stall detect</option>
+        <option value="SERVO_PE">SERVO_PE — DC servo, phase + enable PWM</option>
+        <option value="SERVO_EE">SERVO_EE — DC servo, dual PWM (enable/enable)</option>
+        <option value="SERVO_TMC2209">SERVO_TMC2209 — closed-loop TMC2209 (VACTUAL)</option>
+        <option value="SERVO_TMC5160">SERVO_TMC5160 — closed-loop TMC5160 (VMAX)</option>
       </select>
       <span class="field-hint">Motor driver model</span>
     </div>
@@ -1472,11 +1497,20 @@
     <div class="field-row">
       <label class="field-label">AXIS3_DRIVER_MODEL <span class="hint-tag hint-option">Option</span></label>
       <select id="AXIS3_DRIVER_MODEL">
-        <option value="OFF" selected>OFF</option><option value="A4988">A4988</option>
-        <option value="DRV8825">DRV8825</option><option value="LV8729">LV8729</option>
-        <option value="S109">S109</option><option value="TMC2130">TMC2130</option>
-        <option value="TMC5160">TMC5160</option><option value="TMC2209">TMC2209</option>
-        <option value="TMC2226">TMC2226</option>
+        <option value="OFF" selected>OFF</option>
+        <option value="A4988">A4988</option>
+        <option value="DRV8825">DRV8825</option>
+        <option value="GENERIC">GENERIC — external step/dir (NEMA34+, big servo drives)</option>
+        <option value="LV8729">LV8729</option>
+        <option value="S109">S109</option>
+        <option value="TMC2130">TMC2130 (SPI)</option>
+        <option value="TMC5160">TMC5160 (SPI)</option>
+        <option value="TMC2209">TMC2209 (UART) — recommended</option>
+        <option value="TMC2226">TMC2226 (UART) — SMD equiv. of TMC2209</option>
+        <option value="TMC2208">TMC2208 (UART) ⚠ legacy — no stall detect</option>
+        <option value="TMC2225">TMC2225 (UART) ⚠ legacy — no stall detect</option>
+        <option value="SERVO_PE">SERVO_PE — DC servo, phase + enable PWM</option>
+        <option value="SERVO_EE">SERVO_EE — DC servo, dual PWM (enable/enable)</option>
       </select>
       <span class="field-hint">Motor driver model</span>
     </div>
@@ -1584,11 +1618,20 @@
     <div class="field-row">
       <label class="field-label">AXIS4_DRIVER_MODEL <span class="hint-tag hint-option">Option</span></label>
       <select id="AXIS4_DRIVER_MODEL">
-        <option value="OFF" selected>OFF</option><option value="A4988">A4988</option>
-        <option value="DRV8825">DRV8825</option><option value="LV8729">LV8729</option>
-        <option value="S109">S109</option><option value="TMC2130">TMC2130</option>
-        <option value="TMC5160">TMC5160</option><option value="TMC2209">TMC2209</option>
-        <option value="TMC2226">TMC2226</option>
+        <option value="OFF" selected>OFF</option>
+        <option value="A4988">A4988</option>
+        <option value="DRV8825">DRV8825</option>
+        <option value="GENERIC">GENERIC — external step/dir (NEMA34+, big servo drives)</option>
+        <option value="LV8729">LV8729</option>
+        <option value="S109">S109</option>
+        <option value="TMC2130">TMC2130 (SPI)</option>
+        <option value="TMC5160">TMC5160 (SPI)</option>
+        <option value="TMC2209">TMC2209 (UART) — recommended</option>
+        <option value="TMC2226">TMC2226 (UART) — SMD equiv. of TMC2209</option>
+        <option value="TMC2208">TMC2208 (UART) ⚠ legacy — no stall detect</option>
+        <option value="TMC2225">TMC2225 (UART) ⚠ legacy — no stall detect</option>
+        <option value="SERVO_PE">SERVO_PE — DC servo, phase + enable PWM</option>
+        <option value="SERVO_EE">SERVO_EE — DC servo, dual PWM (enable/enable)</option>
       </select>
       <span class="field-hint">Motor driver model</span>
     </div>
@@ -2561,10 +2604,11 @@
 
     <ol>
       <li>Open the <b>Controller</b> tab. Set <code>PINMAP</code> to whatever board you have &mdash;
-        <code>MaxPCB4</code>, <code>MaxESP3</code>/<code>MaxESP4</code>, <code>MaxSTM3</code>,
-        <code>FYSETC_E4</code>, <code>CNC3</code> (WeMos R32 — deprecated), <code>MiniPCB</code>
-        (v1 / v1.3 / v2), or <code>BTT_SKR_PRO</code>. Click <b>Apply board defaults</b> right below the
-        PINMAP dropdown to autofill driver model, microsteps, and run current for that board.</li>
+        <code>MaxPCB4</code> (covers MaxPCB4w/MaxPCB4e variants), <code>MaxESP3</code>/<code>MaxESP4</code>
+        (covers MaxESP4i + FRAM), <code>MaxSTM3</code>/<code>MaxSTM3I</code>, <code>FYSETC_E4</code>,
+        <code>CNC3</code> (WeMos R32 — deprecated), <code>MiniPCB</code> (v1 / v1.3 / v2), or
+        <code>BTT_SKR_PRO</code>. Click <b>Apply board defaults</b> right below the PINMAP dropdown to
+        autofill driver model, microsteps, and run current for that board.</li>
       <li>Open the <b>Calculator</b> tab. Fill in your mount's worm teeth, motor steps/rev, and gear ratio for
         each axis &mdash; the steps/deg values used by Axis1/Axis2 are calculated from this.</li>
       <li>Open <b>Axis1</b> and <b>Axis2</b>. Set <code>AXIS_DRIVER_MODEL</code> to whatever you're using
@@ -2701,7 +2745,7 @@
       <li><b>PINMAP &harr; MCU match</b> &mdash; every PINMAP is pinned to a specific MCU family in the
         validator. Current map: MaxESP3/MaxESP4/FYSETC_E4 &rarr; <code>esp32</code>; MaxPCB4 &rarr;
         <code>teensy41</code>; CNC3 (WeMos D1 R32) &rarr; <code>esp32</code>; MiniPCB (v1/v1.3/v2) &rarr;
-        <code>teensy32</code>; MaxSTM3 &rarr; <code>blackpill_f411</code>; BTT_SKR_PRO &rarr;
+        <code>teensy32</code>; MaxSTM3 / MaxSTM3I &rarr; <code>blackpill_f411</code>; BTT_SKR_PRO &rarr;
         <code>skr_pro_f407</code>. Mismatches are caught before they hit the runner.</li>
       <li><b>Required fields</b> &mdash; <code>PINMAP</code>, <code>MOUNT_TYPE</code>, axis driver model, and
         steps/deg must all be set.</li>
@@ -3362,7 +3406,7 @@ function generateConfig() {
   L('');
   L('// PINMAP ------------------------------------------------- see https://onstep.groups.io/g/main/wiki/Configuration_Controller#PINMAP');
   L(pad('PINMAP', v('PINMAP'), 'OFF,', 'Choose from: MiniPCB, MiniPCB2, MaxPCB4, MaxESP3, MaxESP4, MaxSTM3,     <-Req\'d'));
-  L('                                          //         FYSETC_E4, BTT_SKR_PRO, CNC3 (WeMos R32, deprecated), etc.');
+  L('                                          //         MaxSTM3I, FYSETC_E4, BTT_SKR_PRO, CNC3 (WeMos R32, deprecated), etc.');
   L('                                          //         Other boards and more info. in ~/src/Constants.h');
   L('');
   L('// SERIAL PORT COMMAND CHANNELS --------------------- see https://onstep.groups.io/g/main/wiki/Configuration_Controller#SERIAL_PORTS');
@@ -3951,6 +3995,21 @@ const BOARD_DEFAULTS = {
   MaxSTM3: {
     label: 'MaxSTM3',
     note: 'STM32F411. Pinmap is wired for TMC SPI drivers (shared MOSI/SCK/MISO bus). All axes use TMC2130 (TMC5160 also works — swap the #define).',
+    fields: {
+      AXIS1_DRIVER_MODEL: 'TMC2130', AXIS2_DRIVER_MODEL: 'TMC2130',
+      AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
+      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
+      AXIS1_DRIVER_IRUN: '600', AXIS2_DRIVER_IRUN: '600',
+      AXIS3_DRIVER_MODEL: 'OFF',
+      AXIS4_DRIVER_MODEL: 'TMC2130',
+      AXIS4_DRIVER_MICROSTEPS: '8',
+      AXIS4_DRIVER_IRUN: '200', AXIS4_DRIVER_IHOLD: '200',
+      MOUNT_TYPE: 'GEM',
+    },
+  },
+  MaxSTM3I: {
+    label: 'MaxSTM3I',
+    note: 'MaxSTM3 with integrated STM32F411CE + onboard M24C64 EEPROM (8KB). Same TMC SPI driver bus as MaxSTM3 — defaults to TMC2130.',
     fields: {
       AXIS1_DRIVER_MODEL: 'TMC2130', AXIS2_DRIVER_MODEL: 'TMC2130',
       AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
