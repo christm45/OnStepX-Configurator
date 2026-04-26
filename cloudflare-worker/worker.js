@@ -16,7 +16,8 @@
 
 const ALLOWED_BOARDS = new Set([
   // OnStepX (mount controller) build environments
-  'esp32', 'teensy32', 'teensy40', 'teensy41', 'blackpill_f411', 'skr_pro_f407',
+  'esp32', 'teensy32', 'teensy40', 'teensy41',
+  'blackpill_f411', 'f446_fysetc_s6', 'skr_pro_f407',
   // SmartHandController (hand pendant) build environments
   'shc_esp32', 'shc_teensy40', 'shc_teensy32',
   // SmartWebServer (web UI bridge) build environments

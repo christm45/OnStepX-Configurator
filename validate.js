@@ -22,11 +22,21 @@ export const PINMAP_MCU = {
   // "Arduino CNC Sheild on WeMos D1 R32 (ESP32)".
   CNC3: 'esp32',
   MaxSTM3I: 'blackpill_f411',
+  FYSETC_S6: 'f446_fysetc_s6',
+  FYSETC_S6_2: 'f446_fysetc_s6',
   MiniPCB: 'teensy32',
   MiniPCB13: 'teensy32',
   MiniPCB2: 'teensy32',
   BTT_SKR_PRO: 'skr_pro_f407',
 };
+
+// PINMAPs that the OnStep wiki documents as incompatible with TMC UART
+// drivers (TMC2208 / 2209 / 2225 / 2226). The board is wired for SPI TMC or
+// step/dir only; picking a UART driver here silently fails at runtime.
+//   FYSETC S6: https://onstep.groups.io/g/main/wiki/21159 — "Do not use any
+//              other driver than: TMC5160, TMC2130, LV8729 or S109."
+const PINMAPS_NO_TMC_UART = new Set(['FYSETC_S6', 'FYSETC_S6_2']);
+const TMC_UART_DRIVERS = new Set(['TMC2208', 'TMC2209', 'TMC2225', 'TMC2226']);
 
 // Microstep values typically supported by each driver family.
 // Numbers outside this set may still work on TMC drivers via interpolation,
@@ -163,6 +173,22 @@ export function validateConfig(values) {
     const n = Number(v);
     if (!Number.isFinite(n) || n < r.lo || n > r.hi) {
       add('error', r.id, `${r.id}=${v} is outside the valid range (${r.hint}).`);
+    }
+  }
+
+  // FYSETC S6: per the OnStep wiki, only SPI TMC (2130/5160) or step/dir
+  // (LV8729/S109) are supported on this board. UART steppers compile but
+  // don't talk to the drivers — silent fail at runtime.
+  if (PINMAPS_NO_TMC_UART.has(values.PINMAP)) {
+    for (const axis of [1, 2, 3, 4]) {
+      const key = `AXIS${axis}_DRIVER_MODEL`;
+      const v = values[key];
+      if (v && TMC_UART_DRIVERS.has(v)) {
+        add('error', key,
+          `${key}=${v} won't work on PINMAP=${values.PINMAP}. ` +
+          `Per the OnStep wiki this board only supports TMC2130 / TMC5160 (SPI), LV8729 or S109. ` +
+          `Switch ${key} to one of those, or pick a different PINMAP.`);
+      }
     }
   }
 

@@ -1,8 +1,13 @@
-// STM32 BlackPill F411 flasher — minimal WebUSB DFU (USB DFU 1.1 + DfuSe).
+// STM32 ROM-bootloader DFU flasher — minimal WebUSB DFU (USB DFU 1.1 + DfuSe).
 // Target VID:PID = 0x0483:0xDF11 (STMicro ST-DFU), flash base 0x08000000.
+// Covers BlackPill F411CE, BTT SKR PRO V1.2 (F407ZG), and FYSETC S6 (F446VE)
+// — all three share the F4 sector layout for the first 512 KB, which is more
+// than OnStepX firmware ever uses, so the F411 sector table below is reused.
 //
 // User flow:
 //   1. Hold BOOT0, tap NRST → board enumerates as "STM32 BOOTLOADER".
+//      (SKR PRO uses a BOOT0 jumper instead of a button; S6 V2 has a 3-pin
+//      BOOT0 header — centre + right pin = boot to DFU.)
 //   2. Click "Flash STM32" → browser shows the DFU device picker.
 //   3. We download firmware.bin to 0x08000000.
 //   4. Detach → user taps NRST (or unplugs) to run the app.

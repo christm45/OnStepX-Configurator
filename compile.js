@@ -22,6 +22,8 @@ export const PINMAP_TO_ENV = {
   CNC3: 'esp32',
   MaxSTM3: 'blackpill_f411',
   MaxSTM3I: 'blackpill_f411',
+  FYSETC_S6: 'f446_fysetc_s6',
+  FYSETC_S6_2: 'f446_fysetc_s6',
   MiniPCB: 'teensy32',
   MiniPCB13: 'teensy32',
   MiniPCB2: 'teensy32',
@@ -34,6 +36,7 @@ export const ENV_LABELS = {
   teensy40: 'Teensy 4.0',
   teensy41: 'Teensy 4.1 / MaxPCB4',
   blackpill_f411: 'STM32 BlackPill F411CE',
+  f446_fysetc_s6: 'STM32F446VE / FYSETC S6',
   skr_pro_f407: 'STM32F407 / BTT SKR PRO V1.2',
 };
 
