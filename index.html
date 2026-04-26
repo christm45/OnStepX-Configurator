@@ -4112,7 +4112,7 @@ const BOARD_DEFAULTS = {
   },
   MaxESP3: {
     label: 'MaxESP3',
-    note: 'ESP32-based predecessor to MaxESP4. Default driver mix is TMC2209 UART on the mount axes and focuser; if your MaxESP3 was wired for SPI drivers (TMC2130 etc.) override the driver-model fields below.',
+    note: 'ESP32-based predecessor to MaxESP4. Default driver mix is TMC2209 UART on the mount axes and focuser; if your MaxESP3 was wired for SPI drivers (TMC2130 etc.) override the driver-model fields below. Note: this pinmap routes both STATUS_LED and STATUS_BUZZER to the same AUX8_PIN, so we default the buzzer OFF — flip it back ON only if you set STATUS_LED=OFF.',
     fields: {
       AXIS1_DRIVER_MODEL: 'TMC2209', AXIS2_DRIVER_MODEL: 'TMC2209',
       AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
@@ -4123,11 +4123,16 @@ const BOARD_DEFAULTS = {
       AXIS4_DRIVER_MICROSTEPS: '8',
       AXIS4_DRIVER_IRUN: '200', AXIS4_DRIVER_IHOLD: '200',
       MOUNT_TYPE: 'GEM',
+      // Pins.MaxESP3.h auto-assigns STATUS_LED_PIN and STATUS_BUZZER_PIN to
+      // the same AUX8_PIN; OnStepX's Validate.h refuses to compile if both
+      // are ON. STATUS_LED is the more useful default; users who want the
+      // buzzer instead can set STATUS_LED=OFF and STATUS_BUZZER=ON manually.
+      STATUS_BUZZER: 'OFF',
     },
   },
   MaxESP4: {
     label: 'MaxESP4',
-    note: 'ESP32 with 4× TMC2209 UART drivers on a shared serial bus. All axes use TMC2209.',
+    note: 'ESP32 with 4× TMC2209 UART drivers on a shared serial bus. All axes use TMC2209. Note: STATUS_LED and STATUS_BUZZER both default to GPIO 12 on this pinmap, so we default the buzzer OFF — flip it back ON only if you set STATUS_LED=OFF.',
     fields: {
       // Mount — Axis1 & Axis2
       AXIS1_DRIVER_MODEL: 'TMC2209', AXIS2_DRIVER_MODEL: 'TMC2209',
@@ -4141,6 +4146,10 @@ const BOARD_DEFAULTS = {
       AXIS4_DRIVER_MICROSTEPS: '8',
       AXIS4_DRIVER_IRUN: '200', AXIS4_DRIVER_IHOLD: '200',
       MOUNT_TYPE: 'GEM',
+      // Pins.MaxESP4.h hard-wires STATUS_LED_PIN=12 and STATUS_BUZZER_PIN=12;
+      // Validate.h fires AUX8-style conflict if both are ON. Default buzzer
+      // OFF for the same reason as MaxESP3.
+      STATUS_BUZZER: 'OFF',
     },
   },
   MaxPCB4: {
@@ -5010,7 +5019,7 @@ document.getElementById('configOutput')?.addEventListener('input', () => {
 // --- Preflight check --------------------------------------------------------
 const relevantIds = [
   'PINMAP', 'COMPILE_ENV', 'MOUNT_TYPE', 'STEP_WAVE_FORM', 'SERIAL_RADIO',
-  'STATUS_LED', 'RETICLE_LED_MEMORY', 'RETICLE_LED_INVERT',
+  'STATUS_LED', 'STATUS_BUZZER', 'RETICLE_LED_MEMORY', 'RETICLE_LED_INVERT',
   'MOUNT_COORDS_MEMORY', 'MOUNT_ENABLE_IN_STANDBY',
   'TRACK_AUTOSTART', 'ST4_INTERFACE', 'ST4_HAND_CONTROL',
   'GUIDE_DISABLE_BACKLASH', 'GOTO_FEATURE',
@@ -5029,6 +5038,9 @@ function snapshotForValidation() {
     const el = document.getElementById(id);
     if (el) s[id] = el.value;
   }
+  // Bundle the selected plugin list so validateConfig can rule on
+  // plugin-vs-config interactions (e.g. Website needs SERIAL_RADIO=WIFI_*).
+  s._plugins = (typeof getSelectedPlugins === 'function') ? getSelectedPlugins() : [];
   return s;
 }
 function snapshotForShcValidation() {

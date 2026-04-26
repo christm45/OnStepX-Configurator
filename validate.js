@@ -41,6 +41,29 @@ export const PINMAP_MCU = {
 const PINMAPS_NO_TMC_UART = new Set(['FYSETC_S6', 'FYSETC_S6_2']);
 const TMC_UART_DRIVERS = new Set(['TMC2208', 'TMC2209', 'TMC2225', 'TMC2226']);
 
+// PINMAPs whose Pins.<Board>.h auto-assigns STATUS_LED_PIN and
+// STATUS_BUZZER_PIN to the SAME GPIO. OnStepX's Validate.h hard-errors at
+// compile time if both STATUS_LED and STATUS_BUZZER are ON for these
+// boards. The user has to pick one.
+//   MaxESP3: STATUS_LED_PIN = STATUS_BUZZER_PIN = AUX8_PIN
+//   MaxESP4: STATUS_LED_PIN = STATUS_BUZZER_PIN = 12
+//   FYSETC_E4: STATUS_LED_PIN = STATUS_BUZZER_PIN = AUX8_PIN
+const PINMAPS_LED_BUZZER_SHARED_PIN = new Set([
+  'MaxESP3', 'MaxESP4', 'FYSETC_E4',
+]);
+
+// OnStepX plugin → required SERIAL_RADIO mode. Plugins that need WiFi
+// fail at compile time with a #error from the plugin's own Validate.h
+// when SERIAL_RADIO is anything else (including BLUETOOTH).
+const PLUGIN_NEEDS_WIFI = new Set([
+  'website',     // src/plugins/website/Website.h fires:
+                 //   "The website plugin requires SERIAL_RADIO be set to
+                 //    WIFI_STATION or WIFI_ACCESS_POINT"
+  'elegantota',  // pairs with Website — same WiFi requirement
+  'metrics',     // exposes /metrics over HTTP — WiFi only
+]);
+const SERIAL_RADIO_WIFI = new Set(['WIFI_STATION', 'WIFI_ACCESS_POINT']);
+
 // Microstep values typically supported by each driver family.
 // Numbers outside this set may still work on TMC drivers via interpolation,
 // but lose closed-loop accuracy — worth a warning.
@@ -189,6 +212,37 @@ export function validateConfig(values) {
     if (!Number.isFinite(n) || n < r.lo || n > r.hi) {
       add('error', r.id, `${r.id}=${v} is outside the valid range (${r.hint}).`);
     }
+  }
+
+  // STATUS_LED + STATUS_BUZZER pin-sharing: on the boards in
+  // PINMAPS_LED_BUZZER_SHARED_PIN, OnStepX's Validate.h fires
+  //   #error "Configuration (Config.h): STATUS_BUZZER enabled but AUX8_PIN
+  //   is already in use, choose one feature on AUX8_PIN"
+  // when both are ON. Catch it locally — saves a 30-second CI round-trip.
+  if (PINMAPS_LED_BUZZER_SHARED_PIN.has(values.PINMAP) &&
+      values.STATUS_LED && values.STATUS_LED !== 'OFF' &&
+      values.STATUS_BUZZER && values.STATUS_BUZZER !== 'OFF') {
+    add('error', 'STATUS_BUZZER',
+      `On PINMAP=${values.PINMAP} the pinmap routes STATUS_LED and STATUS_BUZZER to the same GPIO. ` +
+      `OnStepX's Validate.h refuses to compile with both ON. Set either STATUS_LED=OFF or ` +
+      `STATUS_BUZZER=OFF on the Controller tab.`);
+  }
+
+  // Plugins that require WiFi: if any are ticked but SERIAL_RADIO is OFF /
+  // BLUETOOTH, the plugin's own Validate.h fires (e.g. for "website":
+  //   "The website plugin requires SERIAL_RADIO be set to WIFI_STATION or
+  //    WIFI_ACCESS_POINT").
+  // We surface that locally so users don't waste a build minute on a config
+  // mismatch they could fix in 2 clicks.
+  const selectedPlugins = Array.isArray(values._plugins) ? values._plugins : [];
+  const wifiPlugins = selectedPlugins.filter((p) => PLUGIN_NEEDS_WIFI.has(p));
+  if (wifiPlugins.length > 0 && !SERIAL_RADIO_WIFI.has(values.SERIAL_RADIO)) {
+    const list = wifiPlugins.join(', ');
+    add('error', 'SERIAL_RADIO',
+      `Plugin${wifiPlugins.length > 1 ? 's' : ''} '${list}' need${wifiPlugins.length > 1 ? '' : 's'} ` +
+      `WiFi to be useful, but SERIAL_RADIO=${values.SERIAL_RADIO || 'OFF'}. Set SERIAL_RADIO to ` +
+      `WIFI_STATION (joins your existing WiFi) or WIFI_ACCESS_POINT (board hosts its own AP) on the ` +
+      `Controller tab — or untick the plugin if you don't actually want WiFi.`);
   }
 
   // FYSETC S6: per the OnStep wiki, only SPI TMC (2130/5160) or step/dir
