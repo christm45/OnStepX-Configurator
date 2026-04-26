@@ -28,6 +28,18 @@
     --collapsible-bg: #500808;
     --collapsible-active: #661111;
     --collapsible-content: #301212;
+
+    /* Compile status banner — explicit feedback colours so users instantly
+       see "build done" vs "build failed" without reading the line. White
+       text on either, like the SmartWebServer status pill. */
+    --status-ok-bg: #2e7d32;     /* solid medium-light green for success */
+    --status-err-bg: #b02020;    /* matches --highlight, red for error */
+    --status-fg: #ffffff;        /* white text on either status colour */
+
+    /* Softer dark-grey panel background, used for the OnStepX-plugins box
+       (and any other "soft callout" panels that don't need the bright SWS
+       red bg). */
+    --panel-soft-bg: #1c1c20;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   #matrixCanvas { display: none !important; }
@@ -471,6 +483,23 @@
   /* SWS uses a centered layout; on smaller screens we give a little padding */
   @media (max-width: 1240px) {
     h1, .subtitle, .section, .tabs { max-width: 100%; }
+  }
+
+  /* Compile status banner — terminal-style box that flips green on success
+     and red on error so the user can read the outcome at a glance instead
+     of parsing the message text. !important is needed to win over the
+     inline style="background:var(--input-bg);…" on #compileStatus. */
+  #compileStatus.is-ok {
+    background: var(--status-ok-bg) !important;
+    border-color: var(--status-ok-bg) !important;
+    color: var(--status-fg) !important;
+    font-weight: bold;
+  }
+  #compileStatus.is-err {
+    background: var(--status-err-bg) !important;
+    border-color: var(--status-err-bg) !important;
+    color: var(--status-fg) !important;
+    font-weight: bold;
   }
 </style>
 </head>
@@ -2264,7 +2293,7 @@
     <div id="refAutoPinBanner" style="display:none; margin-bottom:10px; padding:8px 10px; background:rgba(160,112,112,0.12); border-left:3px solid var(--green); border-radius:0; color:var(--green); font-size:0.85em;"></div>
 
     <!-- OnStepX plugins (hidden in SHC / SWS modes) -->
-    <div id="pluginsSection" style="margin-top:6px; padding:10px; background:var(--input-bg); border:1px solid var(--border); border-radius:4px; font-size:0.85em;">
+    <div id="pluginsSection" style="margin-top:6px; padding:10px; background:var(--panel-soft-bg); border:1px solid var(--border); border-radius:4px; font-size:0.85em;">
       <div style="font-weight:bold; color:var(--green); margin-bottom:4px;">OnStepX plugins (optional)</div>
       <div style="color:var(--label); margin-bottom:8px; font-size:0.85em;">
         Check the plugins you want <b>bundled into this OnStepX firmware</b> — the workflow will clone
@@ -5176,7 +5205,15 @@ function setStatus(msg, kind = 'info') {
   const el = document.getElementById('compileStatus');
   if (!el) return;
   el.textContent = msg;
-  el.style.color = kind === 'err' ? 'var(--highlight)' : kind === 'ok' ? 'var(--green)' : 'var(--label)';
+  // Class drives the bg + text colour (see #compileStatus.is-ok / .is-err).
+  // For 'info' / progress messages we strip both classes and let the panel
+  // fall back to its inline default styling.
+  el.classList.remove('is-ok', 'is-err');
+  if (kind === 'ok') el.classList.add('is-ok');
+  else if (kind === 'err') el.classList.add('is-err');
+  // Clear any inline color override left over from previous setStatus calls;
+  // info-state colour is already set via the inline style attribute.
+  el.style.color = '';
 }
 
 function appendLog(targetId, line) {
