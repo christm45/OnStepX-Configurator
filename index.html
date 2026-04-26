@@ -29,12 +29,16 @@
     --collapsible-active: #661111;
     --collapsible-content: #301212;
 
-    /* Compile status banner — explicit feedback colours so users instantly
-       see "build done" vs "build failed" without reading the line. White
-       text on either, like the SmartWebServer status pill. */
+    /* Compile status / preflight banner — three-state feedback colours so
+       users can read state at a glance without parsing the message:
+         yellow = idle / in-progress / warnings (default while uncertain),
+         green  = passed / build complete,
+         red    = errors / build failed.
+       White text on every colour, like the SmartWebServer status pill. */
+    --status-warn-bg: #a07d00;   /* mustard amber — default + warnings */
     --status-ok-bg: #2e7d32;     /* solid medium-light green for success */
     --status-err-bg: #b02020;    /* matches --highlight, red for error */
-    --status-fg: #ffffff;        /* white text on either status colour */
+    --status-fg: #ffffff;        /* white text on every status colour */
 
     /* Softer dark-grey panel background, used for the OnStepX-plugins box
        (and any other "soft callout" panels that don't need the bright SWS
@@ -485,21 +489,40 @@
     h1, .subtitle, .section, .tabs { max-width: 100%; }
   }
 
-  /* Compile status banner — terminal-style box that flips green on success
-     and red on error so the user can read the outcome at a glance instead
-     of parsing the message text. !important is needed to win over the
-     inline style="background:var(--input-bg);…" on #compileStatus. */
-  #compileStatus.is-ok {
+  /* Compile status + preflight banners — terminal-style boxes that switch
+     yellow → green → red so the user can read the outcome at a glance
+     instead of parsing the message text. !important is needed to win
+     over the inline style="background:var(--status-warn-bg);…" on the
+     elements themselves. */
+  #compileStatus,
+  #preflight {
+    color: var(--status-fg) !important;
+  }
+  #compileStatus.is-ok,
+  #preflight.is-ok {
     background: var(--status-ok-bg) !important;
     border-color: var(--status-ok-bg) !important;
     color: var(--status-fg) !important;
     font-weight: bold;
   }
-  #compileStatus.is-err {
+  #compileStatus.is-err,
+  #preflight.is-err {
     background: var(--status-err-bg) !important;
     border-color: var(--status-err-bg) !important;
     color: var(--status-fg) !important;
     font-weight: bold;
+  }
+  /* Force every text node inside the preflight banner to white once the
+     parent has a state colour. The per-item color: var(--*) styles set
+     inline by runPreflight() and the inline override label
+     (color: var(--warn)) would otherwise clash with the green / red /
+     yellow background. */
+  #preflight #preflightSummary,
+  #preflight #preflightList li,
+  #preflight #preflightOverride,
+  #preflight #preflightOverride label,
+  #preflight #preflightOverride input {
+    color: var(--status-fg) !important;
   }
 </style>
 </head>
@@ -2305,8 +2328,8 @@
       <div id="pluginsWarning" style="display:none; margin-top:8px; padding:6px 10px; background:rgba(255,107,53,0.12); border-left:3px solid var(--warn); border-radius:3px; color:var(--warn);"></div>
     </div>
     <!-- Preflight checklist -->
-    <div id="preflight" style="margin-top:10px;padding:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:4px;font-size:0.85em;">
-      <div id="preflightSummary" style="font-weight:bold;color:var(--green);">Checking&hellip;</div>
+    <div id="preflight" style="margin-top:10px;padding:10px;background:var(--status-warn-bg);border:1px solid var(--border);border-radius:4px;font-size:0.85em;color:var(--status-fg);">
+      <div id="preflightSummary" style="font-weight:bold;">Checking&hellip;</div>
       <ul id="preflightList" style="margin:6px 0 0 18px;padding:0;color:var(--label);"></ul>
       <div id="preflightOverride" style="margin-top:8px;display:none;">
         <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:var(--warn);">
@@ -2319,7 +2342,7 @@
       <button class="btn btn-generate" id="compileBtn" onclick="startCompileFlow()">Compile Firmware</button>
       <button class="btn btn-download" id="downloadFwBtn" onclick="downloadFirmware()" disabled>Download Firmware</button>
     </div>
-    <div id="compileStatus" style="margin-top:10px;padding:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:4px;min-height:30px;font-family:Consolas,monospace;font-size:0.85em;color:var(--label);">
+    <div id="compileStatus" style="margin-top:10px;padding:10px;background:var(--status-warn-bg);border:1px solid var(--border);border-radius:4px;min-height:30px;font-family:Consolas,monospace;font-size:0.85em;color:var(--status-fg);">
       Idle — click "Compile Firmware" to begin.
     </div>
     <div id="sizeIndicator" style="display:none;margin-top:10px;padding:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:4px;font-size:0.85em;"></div>
@@ -5125,10 +5148,23 @@ function runPreflight() {
   const warnCount = issues.filter((i) => i.level === 'warn').length;
   const hasErrors = errorCount > 0;
 
+  // Banner state class:
+  //   .is-ok  → green (zero issues)
+  //   .is-err → red   (one or more errors)
+  //   neither → yellow inline default (warnings only or still computing)
+  const preflightEl = document.getElementById('preflight');
+  preflightEl?.classList.remove('is-ok', 'is-err');
+  if (issues.length === 0) preflightEl?.classList.add('is-ok');
+  else if (hasErrors) preflightEl?.classList.add('is-err');
+
+  // The CSS rules force every line in the banner to white text when a state
+  // class is active, so wipe any inline color we may have set previously
+  // (otherwise the per-item green/red leaks through on transitions).
+  summary.style.color = '';
+
   list.innerHTML = '';
   if (issues.length === 0) {
     summary.textContent = '✓ Preflight: all checks pass.';
-    summary.style.color = 'var(--green)';
     overrideBox.style.display = 'none';
     compileBtn.disabled = false;
     compileBtn.textContent = 'Compile Firmware';
@@ -5138,13 +5174,10 @@ function runPreflight() {
   summary.innerHTML = (hasErrors ? '✗' : '⚠') +
     ` Preflight: ${errorCount} error${errorCount === 1 ? '' : 's'}, ` +
     `${warnCount} warning${warnCount === 1 ? '' : 's'}`;
-  summary.style.color = hasErrors ? 'var(--highlight)' : 'var(--warn)';
 
   for (const issue of issues) {
     const li = document.createElement('li');
     const sym = issue.level === 'error' ? '✗' : '⚠';
-    const color = issue.level === 'error' ? 'var(--highlight)' : 'var(--warn)';
-    li.style.color = color;
     li.style.marginBottom = '4px';
     li.textContent = `${sym} ${issue.message}`;
     list.appendChild(li);
