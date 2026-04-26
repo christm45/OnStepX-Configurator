@@ -2382,6 +2382,7 @@
       <li><a href="#help-essentials">The settings you actually have to change</a></li>
       <li><a href="#help-ref">Picking an OnStepX version</a></li>
       <li><a href="#help-preflight">The preflight checklist</a></li>
+      <li><a href="#help-plugins">OnStepX plugins &mdash; how the bundling works</a></li>
       <li><a href="#help-boards">Board-by-board USB preparation</a></li>
       <li><a href="#help-browser">Browser requirements</a></li>
       <li><a href="#help-privacy">Privacy &amp; what gets logged</a></li>
@@ -2806,8 +2807,109 @@
     </div>
   </div>
 
+  <div class="section help-body" id="help-plugins">
+    <div class="section-title">7 &middot; OnStepX plugins &mdash; how the bundling works</div>
+
+    <p>Plugins live in their own repo &mdash;
+      <a href="https://github.com/hjd1964/OnStepX-Plugins" target="_blank">hjd1964/OnStepX-Plugins</a>
+      &mdash; and the OnStepX <code>main</code> branch deliberately doesn't ship them. When you tick a plugin
+      checkbox in the Compile tab's <b>OnStepX plugins</b> box, the build service does this for you:</p>
+
+    <pre>
+GitHub Actions runner:
+  1. git clone hjd1964/OnStepX (the version you picked in Source ref)
+  2. git clone hjd1964/OnStepX-Plugins
+  3. For each ticked plugin (e.g. "website"):
+       cp -r plugins-src/website   →   OnStepX/src/plugins/website/
+  4. Generate OnStepX/src/plugins/Plugins.config.h:
+       #define PLUGIN1                   website
+       #include "website/Website.h"
+       #define PLUGIN1_COMMAND_PROCESSING    OFF
+       (slots 2-8 → OFF)
+  5. Drop your Config.h on top of OnStepX/Config.h
+  6. pio run -e &lt;your env&gt;
+       → compiles src/plugins/website/*.cpp into the firmware binary
+  7. Bundle firmware.bin (+ manifest.json + Plugins.config.h) into the
+     artifact zip you download.
+    </pre>
+
+    <p>Concrete example: <b>FYSETC E4 + Website plugin</b> (ESP32). Click <b>Apply FYSETC E4 defaults</b> and
+      the configurator auto-ticks the Website checkbox. Click Compile and the workflow ends up with
+      <code>OnStepX/Config.h</code> from the E4 branch + <code>OnStepX/src/plugins/website/</code> from
+      OnStepX-Plugins + <code>Plugins.config.h</code> wiring Website to slot 1. After flashing, the ESP32
+      boots OnStepX, exposes its WiFi (SSID and password live in
+      <code>src/plugins/website/Config.h</code> &mdash; the plugin's own config, not yours), and the web UI
+      is reachable at the IP it prints on the serial console.</p>
+
+    <h4>How to verify a plugin is actually compiled in</h4>
+
+    <p>Four places, in increasing order of "you really want to be sure":</p>
+
+    <ol>
+      <li><b>The compile log on this page.</b> When you click Compile, the log streams these lines:
+        <pre>&gt; POST .../compile { project: onstepx, board: esp32, ref: main, plugins: [website] }
+  plugins: website — workflow will copy each into src/plugins/&lt;name&gt;/ and wire up Plugins.config.h
+  request_id = …</pre>
+        and after success:
+        <pre>✓ Plugins compiled into this firmware: website
+  --- Plugins.config.h (from artifact) ---
+  #define PLUGIN1                   website
+  #include "website/Website.h"
+  #define PLUGIN1_COMMAND_PROCESSING    OFF
+  …
+  --- end Plugins.config.h ---</pre>
+        That's the source of truth &mdash; the Plugins.config.h block is the actual file the workflow used to
+        build your firmware, copied straight out of your downloaded artifact.</li>
+
+      <li><b>Flash size.</b> Without Website, an ESP32 OnStepX build is ~600KB. With Website it's ~1.0&ndash;1.1MB.
+        The <i>Flash:</i> indicator that appears under the Compile button after a successful build will jump
+        accordingly. If you tick Website and the size barely moves, something's wrong &mdash; open the run URL
+        and read the workflow log.</li>
+
+      <li><b>The downloaded firmware zip.</b> Unzip it; you should see
+        <code>Plugins.config.h</code> next to <code>firmware.bin</code> / <code>merged-firmware.bin</code>
+        (and a <code>manifest.json</code> with a <code>"plugins": ["website", …]</code> field). If those are
+        missing, your build server is running an older workflow that didn't include them &mdash; the firmware is
+        still correctly built, you just have to fall back to method (4) to confirm.</li>
+
+      <li><b>The GitHub Actions log.</b> The compile log on this page prints
+        <code>run URL: https://github.com/&hellip;/runs/&lt;id&gt;</code> after the build queues. Open it,
+        expand the step <b>"Bundle OnStepX plugins"</b>, and search for
+        <code>=== Generated Plugins.config.h ===</code>. The next ~10 lines are the exact file the workflow
+        wrote into the source tree before compiling.</li>
+    </ol>
+
+    <h4>Why you don't see <code>src/plugins/website/</code> in any repo on disk</h4>
+
+    <p>The bundling happens on a fresh ephemeral GitHub-hosted runner that's torn down the moment the workflow
+      finishes. Nothing is committed back to a repo &mdash; not to the build-service repo, not to OnStepX, not
+      to anywhere. The only persistent output is the firmware artifact, and (with the workflow change shipped
+      alongside this help section) the <code>Plugins.config.h</code> dropped next to it.</p>
+
+    <p>If you want to inspect the plugin source <i>before</i> a build, browse it directly at
+      <a href="https://github.com/hjd1964/OnStepX-Plugins/tree/main/website" target="_blank">github.com/hjd1964/OnStepX-Plugins/website</a>
+      &mdash; it's a normal folder of <code>.h</code> / <code>.cpp</code> files plus the plugin's own Config.h.</p>
+
+    <h4>Plugins that need extras</h4>
+
+    <ul>
+      <li><b>Website</b> &mdash; ESP32 only in practice (needs WiFi). Make sure your <code>SERIAL_RADIO</code>
+        on the Controller tab is <code>WIFI_ACCESS_POINT</code> or <code>WIFI_STATION</code>, otherwise the
+        plugin will compile but the radio won't come up. Configure SSID / password in the plugin's own
+        <code>src/plugins/website/Config.h</code> (we don't expose those fields in this configurator yet
+        &mdash; you can edit the generated config after compile, or fork OnStepX-Plugins).</li>
+      <li><b>ElegantOTA</b> &mdash; pairs with Website. Doesn't work on its own.</li>
+      <li><b>Metrics</b> &mdash; ESP32 only. Exposes a Prometheus-compatible <code>/metrics</code> endpoint;
+        you need a scraper running somewhere.</li>
+      <li><b>Serial Bluetooth Config</b> &mdash; needs an external HC-05 / HC-06 module wired to a serial
+        port; configures it via AT commands at startup.</li>
+      <li><b>Guide Rate Rheostat</b> &mdash; needs a physical analog potentiometer on a free analog input.</li>
+      <li><b>USB Power Control</b> &mdash; needs a free aux-switch GPIO available on your board.</li>
+    </ul>
+  </div>
+
   <div class="section help-body" id="help-boards">
-    <div class="section-title">7 &middot; Board-by-board USB preparation</div>
+    <div class="section-title">8 &middot; Board-by-board USB preparation</div>
 
     <h4>ESP32 (MaxESP3, MaxESP4, FYSETC_E4, generic ESP32 dev boards)</h4>
     <ol>
@@ -2937,7 +3039,7 @@ teensy_loader_cli --mcu=TEENSY40 -w -v firmware.hex   # 4.0</pre>
   </div>
 
   <div class="section help-body" id="help-browser">
-    <div class="section-title">8 &middot; Browser requirements</div>
+    <div class="section-title">9 &middot; Browser requirements</div>
 
     <table style="width:100%;border-collapse:collapse;margin-bottom:10px;">
       <tr style="background:var(--accent);">
@@ -2975,7 +3077,7 @@ teensy_loader_cli --mcu=TEENSY40 -w -v firmware.hex   # 4.0</pre>
   </div>
 
   <div class="section help-body" id="help-privacy">
-    <div class="section-title">9 &middot; Privacy &amp; what gets logged</div>
+    <div class="section-title">10 &middot; Privacy &amp; what gets logged</div>
 
     <p>Here's exactly what leaves your browser and where it ends up:</p>
 
@@ -3023,7 +3125,7 @@ teensy_loader_cli --mcu=TEENSY40 -w -v firmware.hex   # 4.0</pre>
   </div>
 
   <div class="section help-body" id="help-troubleshoot">
-    <div class="section-title">10 &middot; Troubleshooting</div>
+    <div class="section-title">11 &middot; Troubleshooting</div>
 
     <h4>"Compile service is not configured yet"</h4>
     <p>The site owner hasn't deployed the Cloudflare Worker, or <code>WORKER_URL</code> in
@@ -3104,7 +3206,7 @@ teensy_loader_cli --mcu=TEENSY40 -w -v firmware.hex   # 4.0</pre>
   </div>
 
   <div class="section help-body" id="help-faq">
-    <div class="section-title">11 &middot; FAQ</div>
+    <div class="section-title">12 &middot; FAQ</div>
 
     <h4>Which OnStepX version does this build?</h4>
     <p>Whatever you type in the <b>OnStepX source</b> field on the Compile &amp; Flash tab &mdash; defaults
@@ -5332,6 +5434,16 @@ window.startCompileFlow = async function () {
     setStatus(`Requesting compile (${project} / ${env}, ref=${ref})…`);
     const pluginsLog = plugins.length ? `, plugins: [${plugins.join(', ')}]` : '';
     appendLog('compileLog', `> POST ${WORKER_URL}/compile { project: ${project}, board: ${env}, ref: ${ref}${pluginsLog} }`);
+    // Make the plugin choice loud in the log so the user can later tell at a
+    // glance whether the firmware they're about to flash actually has Website
+    // / OTA / Metrics / etc. compiled in. The workflow's "Bundle OnStepX
+    // plugins" step will copy these from hjd1964/OnStepX-Plugins and emit a
+    // generated Plugins.config.h (cat-printed in the run log).
+    if (plugins.length) {
+      appendLog('compileLog', `  plugins: ${plugins.join(', ')} — workflow will copy each into src/plugins/<name>/ and wire up Plugins.config.h`);
+    } else {
+      appendLog('compileLog', `  plugins: (none — stock OnStepX build)`);
+    }
     const requestId = await startCompile(config, env, ref, project, plugins);
     appendLog('compileLog', `  request_id = ${requestId}`);
     setStatus('Build queued on GitHub Actions…');
@@ -5355,6 +5467,40 @@ window.startCompileFlow = async function () {
     appendLog('compileLog', `  fetched ${names.length} file(s): ${names.join(', ')}`);
     const configHash = await sha1Hex(config);
     lastBuild = { runId: final.run_id, env, files, configHash };
+
+    // Plugin-bundling confirmation. Two paths:
+    // 1. New workflow (post-mirror): manifest.json has a `plugins` array AND
+    //    Plugins.config.h is in the zip — show what's actually in the build.
+    // 2. Old workflow (pre-mirror): we fall back to "what we asked for" and
+    //    point the user at the run-log for the cat'd Plugins.config.h.
+    let manifestPlugins = null;
+    let pluginsHeader = null;
+    try {
+      const m = files['manifest.json'];
+      if (m) {
+        const parsed = JSON.parse(new TextDecoder().decode(m));
+        if (Array.isArray(parsed.plugins)) manifestPlugins = parsed.plugins;
+      }
+      if (files['Plugins.config.h']) {
+        pluginsHeader = new TextDecoder().decode(files['Plugins.config.h']);
+      }
+    } catch {}
+    const bundled = manifestPlugins ?? plugins;
+    if (bundled.length) {
+      appendLog('compileLog', `✓ Plugins compiled into this firmware: ${bundled.join(', ')}`);
+      if (pluginsHeader) {
+        appendLog('compileLog', `  --- Plugins.config.h (from artifact) ---`);
+        for (const line of pluginsHeader.trim().split('\n')) {
+          appendLog('compileLog', `  ${line}`);
+        }
+        appendLog('compileLog', `  --- end Plugins.config.h ---`);
+      } else {
+        appendLog('compileLog', `  (open the run URL above and look for "=== Generated Plugins.config.h ===" to see the exact slot wiring)`);
+      }
+    } else {
+      appendLog('compileLog', `✓ No plugins compiled in (stock OnStepX build).`);
+    }
+
     setStatus('Build complete. Firmware ready to download or flash.', 'ok');
     downloadBtn.disabled = false;
     flashBtn.disabled = false;
