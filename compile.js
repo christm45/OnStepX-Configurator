@@ -24,8 +24,10 @@ export const PINMAP_TO_ENV = {
   MaxSTM3I: 'blackpill_f411',
   FYSETC_S6: 'f446_fysetc_s6',
   FYSETC_S6_2: 'f446_fysetc_s6',
+  // MiniPCB v1 / v2 — both pinmaps support Teensy 3.2 and Teensy 4.0. We
+  // default to teensy32 (the historical and far more common build); users
+  // running a Teensy 4.0 can switch the Compile-tab MCU to teensy40 manually.
   MiniPCB: 'teensy32',
-  MiniPCB13: 'teensy32',
   MiniPCB2: 'teensy32',
   BTT_SKR_PRO: 'skr_pro_f407',
 };

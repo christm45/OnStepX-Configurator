@@ -769,9 +769,8 @@
         <option value="FYSETC_S6">FYSETC_S6 V1.2 (STM32F446VE) — 6-axis 3D-printer board</option>
         <option value="FYSETC_S6_2">FYSETC_S6 V2.0 (STM32F446VE) — 6-axis, V2 connector layout</option>
         <option value="CNC3">CNC3 — WeMos D1 R32 (ESP32) — Deprecated</option>
-        <option value="MiniPCB">MiniPCB v1 (Teensy 3.2)</option>
-        <option value="MiniPCB13">MiniPCB v1.3 (Teensy 3.2)</option>
-        <option value="MiniPCB2">MiniPCB v2 (Teensy 3.2)</option>
+        <option value="MiniPCB">MiniPCB v1 (Teensy 3.2 or Teensy 4.0) — embed-in-mount</option>
+        <option value="MiniPCB2">MiniPCB v2 (Teensy 3.2 or Teensy 4.0) — standalone case</option>
         <option value="BTT_SKR_PRO">BTT_SKR_PRO V1.2 (STM32F407)</option>
       </select>
       <span class="field-hint">
@@ -2241,7 +2240,7 @@
       <label class="field-label">Target MCU <span class="hint-tag hint-reqd">Req'd</span></label>
       <select id="COMPILE_ENV">
         <option value="esp32">ESP32 (MaxESP3, MaxESP4, FYSETC_E4, …)</option>
-        <option value="teensy32">Teensy 3.2 (MiniPCB / MiniPCB2)</option>
+        <option value="teensy32">Teensy 3.2 (MiniPCB v1 / v2)</option>
         <option value="teensy40">Teensy 4.0</option>
         <option value="teensy41">Teensy 4.1 / MaxPCB4</option>
         <option value="blackpill_f411">STM32 BlackPill F411CE / MaxSTM3 / MaxSTM3I</option>
@@ -2610,7 +2609,8 @@
         <code>MaxPCB4</code> (covers MaxPCB4w/MaxPCB4e variants), <code>MaxESP3</code>/<code>MaxESP4</code>
         (covers MaxESP4i + FRAM), <code>MaxSTM3</code>/<code>MaxSTM3I</code>, <code>FYSETC_E4</code>,
         <code>FYSETC_S6</code> (V1.2 / V2.0 — STM32F446, 6-axis), <code>CNC3</code>
-        (WeMos R32 — deprecated), <code>MiniPCB</code> (v1 / v1.3 / v2), or <code>BTT_SKR_PRO</code>.
+        (WeMos R32 — deprecated), <code>MiniPCB</code> (v1 embed-in-mount or v2 stand-alone case),
+        or <code>BTT_SKR_PRO</code>.
         Click <b>Apply board defaults</b> right below the PINMAP dropdown to autofill driver model,
         microsteps, and run current for that board.</li>
       <li>Open the <b>Calculator</b> tab. Fill in your mount's worm teeth, motor steps/rev, and gear ratio for
@@ -2748,8 +2748,9 @@
     <ul>
       <li><b>PINMAP &harr; MCU match</b> &mdash; every PINMAP is pinned to a specific MCU family in the
         validator. Current map: MaxESP3/MaxESP4/FYSETC_E4 &rarr; <code>esp32</code>; MaxPCB4 &rarr;
-        <code>teensy41</code>; CNC3 (WeMos D1 R32) &rarr; <code>esp32</code>; MiniPCB (v1/v1.3/v2) &rarr;
-        <code>teensy32</code>; MaxSTM3 / MaxSTM3I &rarr; <code>blackpill_f411</code>;
+        <code>teensy41</code>; CNC3 (WeMos D1 R32) &rarr; <code>esp32</code>; MiniPCB (v1 / v2) &rarr;
+        <code>teensy32</code> by default — switch the Compile-tab MCU to <code>teensy40</code> if you
+        have a Teensy 4.0 mounted; MaxSTM3 / MaxSTM3I &rarr; <code>blackpill_f411</code>;
         FYSETC_S6 (V1.2 / V2.0) &rarr; <code>f446_fysetc_s6</code>; BTT_SKR_PRO &rarr;
         <code>skr_pro_f407</code>. Mismatches are caught before they hit the runner.</li>
       <li><b>Required fields</b> &mdash; <code>PINMAP</code>, <code>MOUNT_TYPE</code>, axis driver model, and
@@ -2850,22 +2851,34 @@
     <p>Reference wiki: <a href="https://onstep.groups.io/g/main/wiki/21159" target="_blank">FYSETC S6 on OnStep wiki</a>.
       Same Windows WinUSB / Zadig note as the BlackPill applies.</p>
 
-    <h4>MiniPCB v1 / v1.3 / v2 (Teensy 3.2)</h4>
-    <p>Teensy 3.2 uses the HalfKay bootloader in the same "block_size ≥ 512" branch as 4.0/4.1
-      (1088-byte HID reports, 3-byte little-endian flash offsets), just with a 256 KB flash instead of
-      2 / 8 MB. The WebHID flasher covers it:</p>
+    <h4>MiniPCB v1 / v2 (Teensy 3.2 or Teensy 4.0)</h4>
+    <p>Two iterations on the OnStep wiki:</p>
+    <ul>
+      <li><b>MiniPCB v1</b> &mdash; embeds inside the mount body. External: power, ST4, USB. Internal:
+        limit sense, PEC, WiFi (ESP-01) or Bluetooth (HC-05). Horizontal connectors so it sits flat
+        behind a cover plate.</li>
+      <li><b>MiniPCB v2</b> &mdash; stand-alone controller for a small aluminium project box. External
+        connectors for power, limit sense, illuminated reticle, PEC, ST4, USB. Internal header for a
+        WeMos D1 Mini (WiFi).</li>
+    </ul>
+    <p>Both run on Teensy 3.2 (moderately fast) or Teensy 4.0 (very fast). Both work with most
+      StepStick drivers (DRV8825 / A4988 / LV8729) plus TMC2130 and TMC5160. Teensy 3.2 uses the
+      HalfKay bootloader in the same "block_size ≥ 512" branch as 4.0/4.1 — the WebHID flasher
+      covers all of them:</p>
     <ol>
-      <li>Plug the Teensy 3.2 into USB.</li>
+      <li>Plug the Teensy into USB.</li>
       <li>Click <b>Flash to Board</b>.</li>
       <li>When the browser picker appears, press the white program button — "Teensy" shows up in the
         dialog, pick it and click Connect.</li>
       <li>Progress streams to the flash log; the board reboots into OnStepX when done.</li>
     </ol>
+    <p>If you have a Teensy 4.0 mounted instead of 3.2, switch the <b>Target MCU</b> on the Compile
+      &amp; Flash tab from <code>teensy32</code> to <code>teensy40</code> before clicking Compile.</p>
     <p><b>Fallback</b> (Firefox / Safari / WebHID unavailable): we save <code>firmware.hex</code>; drop it
       into Teensy Loader and press the white program button. CLI alternative:
-      <code>teensy_loader_cli --mcu=mk20dx256 -w -v firmware.hex</code>.</p>
+      <code>teensy_loader_cli --mcu=mk20dx256 -w -v firmware.hex</code> (Teensy 3.2) or
+      <code>teensy_loader_cli --mcu=imxrt1062 -w -v firmware.hex</code> (Teensy 4.0).</p>
     <p>Reference wikis:
-      <a href="https://onstep.groups.io/g/main/wiki/28526" target="_blank">MiniPCB v1.3</a> &middot;
       <a href="https://onstep.groups.io/g/main/wiki/3990" target="_blank">MiniPCB overview</a> &middot;
       <a href="https://onstep.groups.io/g/main/wiki/8768" target="_blank">MiniPCB v2</a>.</p>
 
@@ -3095,7 +3108,7 @@ teensy_loader_cli --mcu=TEENSY40 -w -v firmware.hex   # 4.0</pre>
       side. Today that covers:</p>
     <ul>
       <li><b>ESP32</b> &mdash; MaxESP3, MaxESP4, FYSETC_E4, CNC3 (WeMos D1 R32 &mdash; deprecated), generic dev boards.</li>
-      <li><b>Teensy 3.2</b> &mdash; MiniPCB v1 / v1.3 / v2.</li>
+      <li><b>Teensy 3.2 / 4.0</b> &mdash; MiniPCB v1 (embed-in-mount) and MiniPCB v2 (stand-alone case).</li>
       <li><b>Teensy 4.1</b> &mdash; MaxPCB4.</li>
       <li><b>STM32F411 BlackPill</b> &mdash; MaxSTM3.</li>
       <li><b>STM32F407</b> &mdash; BTT SKR PRO V1.2.</li>
@@ -4090,18 +4103,13 @@ const BOARD_DEFAULTS = {
     },
   },
   MiniPCB: {
-    label: 'MiniPCB v1 (Teensy 3.2)',
-    note: 'Original small 2-axis OnStep design on Teensy 3.2. Most MiniPCB builds use DRV8825 step-sticks — override if yours has TMC drivers instead.',
-    fields: {
-      AXIS1_DRIVER_MODEL: 'DRV8825', AXIS2_DRIVER_MODEL: 'DRV8825',
-      AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
-      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
-      MOUNT_TYPE: 'GEM',
-    },
-  },
-  MiniPCB13: {
-    label: 'MiniPCB v1.3 (Teensy 3.2)',
-    note: 'Revision 1.3 of MiniPCB — adds ESP-01 flashing support and optional I2C. Same driver defaults as MiniPCB v1.',
+    label: 'MiniPCB v1',
+    note: 'Compact 2-axis OnStep design intended to embed inside the mount body. ' +
+          'Runs on Teensy 3.2 (moderately fast) or Teensy 4.0 (very fast — pick teensy40 ' +
+          'on the Compile tab). Works with most StepStick drivers (DRV8825 / A4988 / LV8729), ' +
+          'plus TMC2130 and TMC5160. Defaults below assume DRV8825 step-sticks; override ' +
+          'AXIS_DRIVER_MODEL if you have TMC SPI drivers wired in. Note: Teensy 4.0 has only ' +
+          '~1KB EEPROM emulation vs Teensy 3.2\'s 2KB — affects catalog/PEC storage size.',
     fields: {
       AXIS1_DRIVER_MODEL: 'DRV8825', AXIS2_DRIVER_MODEL: 'DRV8825',
       AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
@@ -4110,8 +4118,12 @@ const BOARD_DEFAULTS = {
     },
   },
   MiniPCB2: {
-    label: 'MiniPCB v2 (Teensy 3.2)',
-    note: 'MiniPCB v2 for small aluminium case — same pin family as MiniPCB v1, different board layout. DRV8825 defaults; override for TMC.',
+    label: 'MiniPCB v2',
+    note: 'Stand-alone 2-axis OnStep controller designed for a small aluminium project box. ' +
+          'Runs on Teensy 3.2 (moderately fast) or Teensy 4.0 (very fast — pick teensy40 ' +
+          'on the Compile tab). Works with most StepStick drivers (DRV8825 / A4988 / LV8729), ' +
+          'plus TMC2130 and TMC5160. Defaults below assume DRV8825 step-sticks; override ' +
+          'AXIS_DRIVER_MODEL for TMC. Onboard WeMos D1 Mini header for WiFi.',
     fields: {
       AXIS1_DRIVER_MODEL: 'DRV8825', AXIS2_DRIVER_MODEL: 'DRV8825',
       AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
@@ -4327,7 +4339,7 @@ function updateCompileBoardOptions() {
   } else {
     options = [
       ['esp32', 'ESP32 (MaxESP3, MaxESP4, FYSETC_E4, …)'],
-      ['teensy32', 'Teensy 3.2 (MiniPCB / MiniPCB2)'],
+      ['teensy32', 'Teensy 3.2 (MiniPCB v1 / v2)'],
       ['teensy40', 'Teensy 4.0'],
       ['teensy41', 'Teensy 4.1 / MaxPCB4'],
       ['blackpill_f411', 'STM32 BlackPill F411CE / MaxSTM3 / MaxSTM3I'],

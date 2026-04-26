@@ -24,8 +24,11 @@ export const PINMAP_MCU = {
   MaxSTM3I: 'blackpill_f411',
   FYSETC_S6: 'f446_fysetc_s6',
   FYSETC_S6_2: 'f446_fysetc_s6',
+  // MiniPCB v1 / v2 — pinmap supports Teensy 3.2 and Teensy 4.0. The
+  // validator's preflight uses teensy32 as the canonical answer; if the user
+  // has manually picked teensy40 we accept it (handled in the soft check
+  // below) since OnStepX's Pins.MiniPCB.h covers __IMXRT1062__ too.
   MiniPCB: 'teensy32',
-  MiniPCB13: 'teensy32',
   MiniPCB2: 'teensy32',
   BTT_SKR_PRO: 'skr_pro_f407',
 };
@@ -75,13 +78,25 @@ export function validateConfig(values) {
   const add = (level, id, message) => issues.push({ level, id, message });
 
   // --- PINMAP ---
+  // MiniPCB v1 / v2 are dual-MCU pinmaps: Pins.MiniPCB.h gates on both
+  // __MK20DX256__ (Teensy 3.2) and __IMXRT1062__ (Teensy 4.0), so either
+  // teensy32 or teensy40 is a legitimate compile target for them.
+  const PINMAP_ALT_ENVS = {
+    MiniPCB: ['teensy32', 'teensy40'],
+    MiniPCB2: ['teensy32', 'teensy40'],
+  };
   if (!values.PINMAP || values.PINMAP === 'OFF') {
     add('error', 'PINMAP', 'PINMAP is OFF — pick a board on the Controller tab.');
   } else {
     const expected = PINMAP_MCU[values.PINMAP];
-    if (expected && values.COMPILE_ENV && expected !== values.COMPILE_ENV) {
+    const altEnvs = PINMAP_ALT_ENVS[values.PINMAP];
+    const acceptable =
+      values.COMPILE_ENV === expected ||
+      (altEnvs && altEnvs.includes(values.COMPILE_ENV));
+    if (expected && values.COMPILE_ENV && !acceptable) {
+      const accepted = altEnvs ? altEnvs.join(' or ') : expected;
       add('error', 'PINMAP',
-        `PINMAP=${values.PINMAP} is a ${expected} board, but you picked MCU target "${values.COMPILE_ENV}". Change one so they match.`);
+        `PINMAP=${values.PINMAP} expects MCU target ${accepted}, but you picked "${values.COMPILE_ENV}". Change one so they match.`);
     } else if (!expected) {
       add('warn', 'PINMAP',
         `PINMAP=${values.PINMAP} isn't in the known table — make sure your MCU target "${values.COMPILE_ENV || '?'}" is correct for this board.`);
