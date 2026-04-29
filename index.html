@@ -2023,6 +2023,153 @@
       <span class="field-hint">Onboard LED blinks while connecting, steady once connected</span>
     </div>
   </div>
+
+  <div class="section">
+    <div class="section-title">Debug</div>
+    <div class="field-row">
+      <label class="field-label">DEBUG <span class="hint-tag hint-infreq">Infreq</span></label>
+      <select id="SWS_DEBUG">
+        <option value="OFF" selected>OFF</option>
+        <option value="ON">ON</option>
+        <option value="VERBOSE">VERBOSE</option>
+        <option value="PROFILER">PROFILER</option>
+        <option value="REMOTE">REMOTE</option>
+      </select>
+      <span class="field-hint">Leave OFF for production. ON / VERBOSE prints to SERIAL_DEBUG; REMOTE streams over the network.</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">SERIAL_DEBUG <span class="hint-tag hint-infreq">Infreq</span></label>
+      <select id="SWS_SERIAL_DEBUG">
+        <option value="Serial" selected>Serial</option>
+        <option value="Serial1">Serial1</option>
+        <option value="Serial2">Serial2</option>
+      </select>
+      <span class="field-hint">Which UART to use for debug prints (only meaningful when DEBUG ≠ OFF)</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">SERIAL_DEBUG_BAUD <span class="hint-tag hint-infreq">Infreq</span></label>
+      <select id="SWS_SERIAL_DEBUG_BAUD">
+        <option value="9600" selected>9600</option>
+        <option value="19200">19200</option>
+        <option value="57600">57600</option>
+        <option value="115200">115200</option>
+      </select>
+      <span class="field-hint">Baud rate for debug UART</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">NV Storage</div>
+    <div class="field-row">
+      <label class="field-label">NV_WIPE <span class="hint-tag hint-reqd">Req'd</span></label>
+      <select id="SWS_NV_WIPE">
+        <option value="OFF" selected>OFF (normal operation)</option>
+        <option value="ON">ON ⚠ wipe NV on next boot</option>
+      </select>
+      <span class="field-hint">
+        ⚠ <b>Wipes all stored network credentials on boot.</b>
+        Use only when you need the values below to actually take effect — SWS reads them from NV after the
+        first flash and ignores any later changes here unless NV is wiped.
+        Workflow: set <b>ON</b> → flash → wait 1–2 min for the wipe to finish → set back to <b>OFF</b> → flash again.
+        Leaving it <b>ON</b> permanently will erase your settings on every boot.
+      </span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Web UI access</div>
+    <div class="field-row">
+      <label class="field-label">PASSWORD_DEFAULT <span class="hint-tag hint-reqd">Req'd</span></label>
+      <input type="text" id="SWS_PASSWORD_DEFAULT" value="password" maxlength="40">
+      <span class="field-hint">Admin password for the SWS web UI. Change from "password" before deploying.</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Access Point (SWS hosts its own WiFi)</div>
+    <div class="field-row">
+      <label class="field-label">AP_ENABLED <span class="hint-tag hint-adjust">Adjust</span></label>
+      <select id="SWS_AP_ENABLED">
+        <option value="true" selected>true</option>
+        <option value="false">false</option>
+      </select>
+      <span class="field-hint">true = SWS broadcasts its own WiFi network ("ONSTEP" by default)</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">AP_PASSWORD <span class="hint-tag hint-adjust">Adjust</span></label>
+      <input type="text" id="SWS_AP_PASSWORD" value="password" maxlength="63">
+      <span class="field-hint">Min 8 chars (WPA2). Empty string = open network.</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">AP_CHANNEL <span class="hint-tag hint-infreq">Infreq</span></label>
+      <input type="number" id="SWS_AP_CHANNEL" value="7" min="1" max="13">
+      <span class="field-hint">2.4 GHz channel 1–13</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">AP_IP_ADDR <span class="hint-tag hint-infreq">Infreq</span></label>
+      <input type="text" id="SWS_AP_IP_ADDR" value="192.168.0.1" pattern="\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" maxlength="15">
+      <span class="field-hint">SWS IP when in AP mode. Emitted as <code>{n,n,n,n}</code>.</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">AP_GW_ADDR <span class="hint-tag hint-infreq">Infreq</span></label>
+      <input type="text" id="SWS_AP_GW_ADDR" value="192.168.0.1" pattern="\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" maxlength="15">
+      <span class="field-hint">Gateway (usually identical to AP_IP_ADDR)</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">AP_SN_MASK <span class="hint-tag hint-infreq">Infreq</span></label>
+      <input type="text" id="SWS_AP_SN_MASK" value="255.255.255.0" pattern="\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" maxlength="15">
+      <span class="field-hint">Subnet mask</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Station Mode (SWS joins your existing WiFi)</div>
+    <div class="field-row">
+      <label class="field-label">STA_ENABLED <span class="hint-tag hint-adjust">Adjust</span></label>
+      <select id="SWS_STA_ENABLED">
+        <option value="false" selected>false</option>
+        <option value="true">true</option>
+      </select>
+      <span class="field-hint">true = SWS connects to your home/observatory router</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">STA_PASSWORD <span class="hint-tag hint-adjust">Adjust</span></label>
+      <input type="text" id="SWS_STA_PASSWORD" value="password" maxlength="63">
+      <span class="field-hint">Password for your existing WiFi network</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">STA_DHCP_ENABLED <span class="hint-tag hint-adjust">Adjust</span></label>
+      <select id="SWS_STA_DHCP_ENABLED">
+        <option value="true" selected>true</option>
+        <option value="false">false</option>
+      </select>
+      <span class="field-hint">true = let the router assign an IP; false = use the static IP below</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">STA_IP_ADDR <span class="hint-tag hint-infreq">Infreq</span></label>
+      <input type="text" id="SWS_STA_IP_ADDR" value="192.168.0.1" pattern="\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" maxlength="15">
+      <span class="field-hint">Static IP — only used when STA_DHCP_ENABLED = false</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">STA_GW_ADDR <span class="hint-tag hint-infreq">Infreq</span></label>
+      <input type="text" id="SWS_STA_GW_ADDR" value="192.168.0.1" pattern="\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" maxlength="15">
+      <span class="field-hint">Static gateway — only used when STA_DHCP_ENABLED = false</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">STA_SN_MASK <span class="hint-tag hint-infreq">Infreq</span></label>
+      <input type="text" id="SWS_STA_SN_MASK" value="255.255.255.0" pattern="\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" maxlength="15">
+      <span class="field-hint">Static subnet mask — only used when STA_DHCP_ENABLED = false</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Ethernet (only if OPERATIONAL_MODE = ETHERNET_*)</div>
+    <div class="field-row">
+      <label class="field-label">MAC <span class="hint-tag hint-infreq">Infreq</span></label>
+      <input type="text" id="SWS_MAC" value="DE:AD:BE:EF:FE:EE" pattern="[0-9A-Fa-f]{2}([:\-][0-9A-Fa-f]{2}){5}" maxlength="17" style="font-family:Consolas,monospace;">
+      <span class="field-hint">Six hex bytes for the W5100/W5500 Ethernet shield. Ignored in WIFI mode.</span>
+    </div>
+  </div>
 </div>
 
 <!-- ==================== SWS: WEB UI TAB ==================== -->
@@ -4919,6 +5066,23 @@ function generateSWSConfig() {
     return (el?.value ?? fallback).toString().trim() || fallback;
   };
   const q = (id, fallback) => `"${v(id, fallback).replace(/"/g, '')}"`;
+  // Parse "192.168.0.1" → "{192,168,0,1}". Falls back to fallback if malformed.
+  const ipArr = (id, fallback) => {
+    const raw = v(id, fallback);
+    const m = raw.match(/^\s*(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\s*$/);
+    if (!m) return `{${fallback.split('.').join(',')}}`;
+    return `{${m[1]},${m[2]},${m[3]},${m[4]}}`;
+  };
+  // Parse "DE:AD:BE:EF:FE:EE" (or with dashes) → "{0xDE,0xAD,0xBE,0xEF,0xFE,0xEE}"
+  const macArr = (id, fallback) => {
+    const raw = v(id, fallback).replace(/-/g, ':');
+    const parts = raw.split(':');
+    if (parts.length !== 6 || !parts.every((p) => /^[0-9A-Fa-f]{1,2}$/.test(p))) {
+      const fb = fallback.replace(/-/g, ':').split(':');
+      return `{${fb.map((p) => '0x' + p.toUpperCase()).join(',')}}`;
+    }
+    return `{${parts.map((p) => '0x' + p.toUpperCase().padStart(2, '0')).join(',')}}`;
+  };
   const lines = [];
   lines.push('// ----------------------------------------------------------------------');
   lines.push('// SmartWebServer Config.h');
@@ -4939,6 +5103,39 @@ function generateSWSConfig() {
   lines.push(`#define BLE_GP_ADDR1  ${q('SWS_BLE_GP_ADDR1', 'ff:ff:ff:ff:ff:ff')}`);
   lines.push('');
   lines.push(`#define LED_STATUS                     ${v('SWS_LED_STATUS', 'ON')}`);
+  lines.push('');
+  lines.push('// ---- Debug ----');
+  lines.push(`#define DEBUG                          ${v('SWS_DEBUG', 'OFF')}`);
+  lines.push(`#define SERIAL_DEBUG                   ${v('SWS_SERIAL_DEBUG', 'Serial')}`);
+  lines.push(`#define SERIAL_DEBUG_BAUD              ${v('SWS_SERIAL_DEBUG_BAUD', '9600')}`);
+  lines.push('');
+  lines.push('// ---- NV (non-volatile) storage ----');
+  lines.push('// ⚠ NV_WIPE: set ON, flash, wait 1-2 min, then set OFF and re-flash.');
+  lines.push('//   The network credentials below are written to NV only on first boot,');
+  lines.push('//   or any boot when NV_WIPE is ON. Leaving ON erases settings every boot.');
+  lines.push(`#define NV_WIPE                        ${v('SWS_NV_WIPE', 'OFF')}`);
+  lines.push('');
+  lines.push('// ---- Web UI ----');
+  lines.push(`#define PASSWORD_DEFAULT      ${q('SWS_PASSWORD_DEFAULT', 'password')}`);
+  lines.push('');
+  lines.push('// ---- Access Point (SWS hosts its own WiFi) ----');
+  lines.push(`#define AP_ENABLED                     ${v('SWS_AP_ENABLED', 'true')}`);
+  lines.push(`#define AP_PASSWORD           ${q('SWS_AP_PASSWORD', 'password')}`);
+  lines.push(`#define AP_CHANNEL                     ${v('SWS_AP_CHANNEL', '7')}`);
+  lines.push(`#define AP_IP_ADDR                     ${ipArr('SWS_AP_IP_ADDR', '192.168.0.1')}`);
+  lines.push(`#define AP_GW_ADDR                     ${ipArr('SWS_AP_GW_ADDR', '192.168.0.1')}`);
+  lines.push(`#define AP_SN_MASK                     ${ipArr('SWS_AP_SN_MASK', '255.255.255.0')}`);
+  lines.push('');
+  lines.push('// ---- Station Mode (SWS joins your existing WiFi) ----');
+  lines.push(`#define STA_ENABLED                    ${v('SWS_STA_ENABLED', 'false')}`);
+  lines.push(`#define STA_PASSWORD          ${q('SWS_STA_PASSWORD', 'password')}`);
+  lines.push(`#define STA_DHCP_ENABLED               ${v('SWS_STA_DHCP_ENABLED', 'true')}`);
+  lines.push(`#define STA_IP_ADDR                    ${ipArr('SWS_STA_IP_ADDR', '192.168.0.1')}`);
+  lines.push(`#define STA_GW_ADDR                    ${ipArr('SWS_STA_GW_ADDR', '192.168.0.1')}`);
+  lines.push(`#define STA_SN_MASK                    ${ipArr('SWS_STA_SN_MASK', '255.255.255.0')}`);
+  lines.push('');
+  lines.push('// ---- Ethernet MAC (only used when OPERATIONAL_MODE = ETHERNET_*) ----');
+  lines.push(`#define MAC                            ${macArr('SWS_MAC', 'DE:AD:BE:EF:FE:EE')}`);
   lines.push('');
   lines.push(`#define DISPLAY_LANGUAGE             ${v('SWS_DISPLAY_LANGUAGE', 'L_en')}`);
   lines.push(`#define DISPLAY_WEATHER                ${v('SWS_DISPLAY_WEATHER', 'ON')}`);
@@ -5096,11 +5293,21 @@ function validateShcConfig(s) {
 }
 
 function snapshotForSwsValidation() {
+  const get = (id) => document.getElementById(id)?.value;
   return {
-    SWS_OPERATIONAL_MODE: document.getElementById('SWS_OPERATIONAL_MODE')?.value,
-    SWS_BLE_GAMEPAD: document.getElementById('SWS_BLE_GAMEPAD')?.value,
-    SWS_HOST_NAME: document.getElementById('SWS_HOST_NAME')?.value,
-    COMPILE_ENV: document.getElementById('COMPILE_ENV')?.value || '',
+    SWS_OPERATIONAL_MODE: get('SWS_OPERATIONAL_MODE'),
+    SWS_BLE_GAMEPAD: get('SWS_BLE_GAMEPAD'),
+    SWS_HOST_NAME: get('SWS_HOST_NAME'),
+    SWS_NV_WIPE: get('SWS_NV_WIPE'),
+    SWS_PASSWORD_DEFAULT: get('SWS_PASSWORD_DEFAULT'),
+    SWS_AP_ENABLED: get('SWS_AP_ENABLED'),
+    SWS_AP_PASSWORD: get('SWS_AP_PASSWORD'),
+    SWS_AP_CHANNEL: get('SWS_AP_CHANNEL'),
+    SWS_STA_ENABLED: get('SWS_STA_ENABLED'),
+    SWS_STA_PASSWORD: get('SWS_STA_PASSWORD'),
+    SWS_STA_DHCP_ENABLED: get('SWS_STA_DHCP_ENABLED'),
+    SWS_MAC: get('SWS_MAC'),
+    COMPILE_ENV: get('COMPILE_ENV') || '',
   };
 }
 
@@ -5117,6 +5324,35 @@ function validateSwsConfig(s) {
   }
   if (s.SWS_HOST_NAME && s.SWS_HOST_NAME.length > 16) {
     issues.push({ level: 'warn', id: 'SWS_HOST_NAME', message: 'HOST_NAME is longer than 16 characters; SWS truncates.' });
+  }
+  // Network credentials sanity (only meaningful in WIFI mode)
+  const isWifi = s.SWS_OPERATIONAL_MODE === 'WIFI';
+  if (isWifi) {
+    if (s.SWS_AP_ENABLED === 'false' && s.SWS_STA_ENABLED === 'false') {
+      issues.push({ level: 'error', id: 'SWS_AP_ENABLED', message: 'Both AP_ENABLED and STA_ENABLED are false — SWS will boot with no network. Enable at least one.' });
+    }
+    if (s.SWS_AP_ENABLED === 'true' && s.SWS_AP_PASSWORD && s.SWS_AP_PASSWORD.length > 0 && s.SWS_AP_PASSWORD.length < 8) {
+      issues.push({ level: 'warn', id: 'SWS_AP_PASSWORD', message: 'AP_PASSWORD must be ≥ 8 chars (WPA2) or empty (open network).' });
+    }
+    if (s.SWS_AP_CHANNEL) {
+      const ch = parseInt(s.SWS_AP_CHANNEL, 10);
+      if (!(ch >= 1 && ch <= 13)) {
+        issues.push({ level: 'warn', id: 'SWS_AP_CHANNEL', message: 'AP_CHANNEL should be 1–13 (2.4 GHz).' });
+      }
+    }
+  }
+  // NV_WIPE left ON: dangerous — settings will erase every boot
+  if (s.SWS_NV_WIPE === 'ON') {
+    issues.push({ level: 'warn', id: 'SWS_NV_WIPE', message: 'NV_WIPE is ON — this firmware will erase stored network credentials every boot. Flash once with ON, wait 1–2 min, then set OFF and flash again.' });
+  }
+  // Default passwords still in place
+  if (s.SWS_PASSWORD_DEFAULT === 'password') {
+    issues.push({ level: 'warn', id: 'SWS_PASSWORD_DEFAULT', message: 'PASSWORD_DEFAULT is still "password" — change it before deploying.' });
+  }
+  // Ethernet MAC sanity
+  const isEth = s.SWS_OPERATIONAL_MODE && s.SWS_OPERATIONAL_MODE.startsWith('ETHERNET_');
+  if (isEth && s.SWS_MAC && !/^[0-9A-Fa-f]{2}([:\-][0-9A-Fa-f]{2}){5}$/.test(s.SWS_MAC)) {
+    issues.push({ level: 'error', id: 'SWS_MAC', message: 'MAC must be six hex bytes separated by ":" or "-" (e.g. DE:AD:BE:EF:FE:EE).' });
   }
   return { issues };
 }
