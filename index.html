@@ -61,13 +61,16 @@
   }
   /* Twinkling starfield. Subtle astronomy-themed background — stars are small,
      dimly lit, slowly pulsing. position: fixed pins it to the viewport so it
-     does not scroll with content. z-index: -1 keeps it behind everything. */
+     does not scroll with content. z-index: -1 keeps it behind everything.
+     --tw-speed is the base twinkle period (in seconds, expressed via a calc())
+     and is settable from the tuning panel at the bottom-right of the page. */
   .starfield {
     position: fixed;
     inset: 0;
     z-index: -1;
     pointer-events: none;
     overflow: hidden;
+    --tw-speed: 3.2s;
   }
   .starfield .star {
     position: absolute;
@@ -76,20 +79,20 @@
     background: #ffffff;
     border-radius: 50%;
     opacity: 0.55;
-    animation: twinkle 3.2s ease-in-out infinite;
+    animation: twinkle var(--tw-speed) ease-in-out infinite;
   }
   .starfield .star.s-tiny {
     width: 1px;
     height: 1px;
     opacity: 0.35;
-    animation-duration: 4.5s;
+    animation-duration: calc(var(--tw-speed) * 1.4);
   }
   .starfield .star.s-bright {
     width: 3px;
     height: 3px;
     opacity: 0.8;
     box-shadow: 0 0 4px #fff, 0 0 8px rgba(255, 255, 255, 0.4);
-    animation-duration: 2.6s;
+    animation-duration: calc(var(--tw-speed) * 0.8);
   }
   /* Rare warm-tinted star for variety (red giants / cooler stars) */
   .starfield .star.s-warm {
@@ -103,6 +106,100 @@
   /* Respect prefers-reduced-motion: hold stars at their max opacity */
   @media (prefers-reduced-motion: reduce) {
     .starfield .star { animation: none !important; }
+    .constellation-ox circle { animation: none !important; }
+  }
+  /* Tuning panel hide-class — JS toggles this to pause/resume animation */
+  .starfield.no-anim .star { animation: none !important; }
+  .starfield.no-anim .constellation-ox circle { animation: none !important; }
+
+  /* OnStep "O" + "X" constellation. Lives inside .starfield so it sits behind
+     all content cards. Cyan-white tinted to read as a "named" constellation
+     against the warmer/whiter random stars around it. */
+  .constellation-ox {
+    position: absolute;
+    top: 12vh;
+    right: 4vw;
+    width: 220px;
+    height: 100px;
+    opacity: 0.55;
+    pointer-events: none;
+  }
+  .constellation-ox circle {
+    fill: #d6ecff;
+    filter: drop-shadow(0 0 3px rgba(200, 230, 255, 0.75));
+    animation: twinkle calc(var(--tw-speed) * 1.6) ease-in-out infinite;
+    transform-origin: center;
+  }
+  .constellation-ox line {
+    stroke: rgba(180, 215, 255, 0.22);
+    stroke-width: 0.5;
+  }
+  .constellation-ox.hidden { display: none; }
+
+  /* Floating tuning panel for the starfield. Sits bottom-right, opens from
+     a small ✦ button. Settings persist in localStorage. */
+  .bg-controls {
+    position: fixed;
+    bottom: 12px;
+    right: 12px;
+    z-index: 1000;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.82em;
+    color: var(--text);
+  }
+  .bg-toggle {
+    background: rgba(28, 28, 36, 0.78);
+    border: 1px solid rgba(180, 200, 220, 0.35);
+    color: #d6ecff;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1em;
+    line-height: 1;
+    padding: 0;
+    transition: background 0.15s, transform 0.2s;
+  }
+  .bg-toggle:hover { background: rgba(60, 70, 90, 0.92); transform: rotate(72deg); }
+  .bg-panel {
+    position: absolute;
+    bottom: 38px;
+    right: 0;
+    background: rgba(18, 18, 26, 0.94);
+    border: 1px solid rgba(180, 200, 220, 0.25);
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 240px;
+    border-radius: 4px;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  }
+  .bg-panel[hidden] { display: none; }
+  .bg-panel .bg-title {
+    font-weight: bold;
+    color: #d6ecff;
+    margin-bottom: 4px;
+    font-size: 0.95em;
+  }
+  .bg-panel label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(220, 225, 235, 0.88);
+    cursor: pointer;
+    user-select: none;
+  }
+  .bg-panel label input[type="range"] {
+    flex: 1;
+    accent-color: #4a8ec7;
+  }
+  .bg-panel .bg-val {
+    min-width: 32px;
+    text-align: right;
+    color: rgba(180, 200, 220, 0.7);
+    font-variant-numeric: tabular-nums;
   }
   /* SWS-style title tile: thick red border, page-wide, title left + version right */
   h1 {
@@ -587,7 +684,64 @@
 </head>
 <body>
 <canvas id="matrixCanvas"></canvas>
-<div class="starfield" id="starfield" aria-hidden="true"></div>
+<div class="starfield" id="starfield" aria-hidden="true">
+  <svg class="constellation-ox" id="constellationOx" viewBox="0 0 220 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <!-- Faint connecting lines (drawn first so stars sit on top) -->
+    <g>
+      <!-- O: octagonal ring -->
+      <line x1="55" y1="15"  x2="80" y2="25" />
+      <line x1="80" y1="25"  x2="90" y2="50" />
+      <line x1="90" y1="50"  x2="80" y2="75" />
+      <line x1="80" y1="75"  x2="55" y2="85" />
+      <line x1="55" y1="85"  x2="30" y2="75" />
+      <line x1="30" y1="75"  x2="20" y2="50" />
+      <line x1="20" y1="50"  x2="30" y2="25" />
+      <line x1="30" y1="25"  x2="55" y2="15" />
+      <!-- X: two diagonals through center -->
+      <line x1="135" y1="20" x2="195" y2="80" />
+      <line x1="195" y1="20" x2="135" y2="80" />
+    </g>
+    <!-- Stars -->
+    <g>
+      <!-- O ring (8 stars) -->
+      <circle cx="55"  cy="15" r="1.6" />
+      <circle cx="80"  cy="25" r="1.4" />
+      <circle cx="90"  cy="50" r="1.6" />
+      <circle cx="80"  cy="75" r="1.4" />
+      <circle cx="55"  cy="85" r="1.6" />
+      <circle cx="30"  cy="75" r="1.4" />
+      <circle cx="20"  cy="50" r="1.6" />
+      <circle cx="30"  cy="25" r="1.4" />
+      <!-- X corners + center (5 stars; center is the brightest) -->
+      <circle cx="135" cy="20" r="1.5" />
+      <circle cx="195" cy="20" r="1.5" />
+      <circle cx="165" cy="50" r="2.2" />
+      <circle cx="135" cy="80" r="1.5" />
+      <circle cx="195" cy="80" r="1.5" />
+    </g>
+  </svg>
+</div>
+
+<!-- Starfield tuning panel: bottom-right floating widget -->
+<div class="bg-controls" id="bgControls">
+  <button type="button" class="bg-toggle" id="bgToggleBtn" title="Background settings" aria-expanded="false" aria-controls="bgPanel">✦</button>
+  <div class="bg-panel" id="bgPanel" hidden>
+    <div class="bg-title">Background</div>
+    <label><input type="checkbox" id="bgStarsToggle" checked> Stars</label>
+    <label><input type="checkbox" id="bgConstellationToggle" checked> Constellation OX</label>
+    <label><input type="checkbox" id="bgAnimateToggle" checked> Twinkle animation</label>
+    <label>
+      Density
+      <input type="range" id="bgDensitySlider" min="20" max="300" step="10" value="150">
+      <span class="bg-val" id="bgDensityVal">150</span>
+    </label>
+    <label>
+      Speed
+      <input type="range" id="bgSpeedSlider" min="10" max="80" step="2" value="32">
+      <span class="bg-val" id="bgSpeedVal">3.2s</span>
+    </label>
+  </div>
+</div>
 
 <h1 id="pageTitle"><span style="float:right;font-size:0.8em;color:var(--label);font-weight:normal;">OnStepX&nbsp;Configurator</span><b>OnStep</b> Configuration Generator</h1>
 <p class="subtitle" id="pageSubtitle">Generate Config.h, compile online, and flash over USB</p>
@@ -4240,38 +4394,119 @@ calcPEC();
 })();
 
 // ---------------------------------------------------------------------------
-// Twinkling starfield generator
+// Twinkling starfield + OX constellation + tuning panel
 // ---------------------------------------------------------------------------
-// Populates #starfield with a viewport-density-scaled count of <span> stars.
-// Each star gets a random position (vw/vh so it survives resize), a random
-// animation-delay so they twinkle out of phase, and a random size class
-// (tiny / normal / bright). ~7% of stars are warm-tinted for variety.
-// Pure-CSS animation drives the twinkle — no rAF, no per-frame work.
-(function makeStarfield() {
+// Populates #starfield with N <span> stars (density user-tunable), and wires
+// up the bottom-right tuning panel that lets the user toggle stars/constellation,
+// pause animation, and live-adjust density + twinkle speed. All settings
+// persist in localStorage under "bgPrefs".
+(function setupStarfield() {
   const sf = document.getElementById('starfield');
   if (!sf) return;
-  // Density scales with viewport area but caps to keep DOM small.
-  // ~1 star per 11k px². At 1920x1080 = ~188 stars; on phones ~50.
+  const constellation = document.getElementById('constellationOx');
+  const panel = document.getElementById('bgPanel');
+  const toggleBtn = document.getElementById('bgToggleBtn');
+  const starsCb = document.getElementById('bgStarsToggle');
+  const constCb = document.getElementById('bgConstellationToggle');
+  const animCb = document.getElementById('bgAnimateToggle');
+  const densitySlider = document.getElementById('bgDensitySlider');
+  const speedSlider = document.getElementById('bgSpeedSlider');
+  const densityVal = document.getElementById('bgDensityVal');
+  const speedVal = document.getElementById('bgSpeedVal');
+
+  // Defaults: density auto-scales to viewport area, capped 35..200.
+  // Speed slider value is twinkle period in deciseconds (so 32 = 3.2s).
   const area = window.innerWidth * window.innerHeight;
-  const N = Math.max(35, Math.min(200, Math.floor(area / 11000)));
-  const frag = document.createDocumentFragment();
-  for (let i = 0; i < N; i++) {
-    const s = document.createElement('span');
-    let cls = 'star';
-    const r = Math.random();
-    if (r < 0.18) cls += ' s-bright';
-    else if (r < 0.55) cls += ' s-tiny';
-    if (Math.random() < 0.07) cls += ' s-warm';
-    s.className = cls;
-    s.style.left = (Math.random() * 100).toFixed(2) + 'vw';
-    s.style.top = (Math.random() * 100).toFixed(2) + 'vh';
-    s.style.animationDelay = (Math.random() * 5).toFixed(2) + 's';
-    // Each star gets a slightly randomised peak opacity so the field
-    // does not look uniformly bright.
-    s.style.setProperty('--maxop', (0.35 + Math.random() * 0.5).toFixed(2));
-    frag.appendChild(s);
+  const autoDensity = Math.max(35, Math.min(200, Math.floor(area / 11000)));
+  const defaults = {
+    stars: true,
+    constellation: true,
+    animate: true,
+    density: autoDensity,
+    speed: 32,
+  };
+  let prefs = { ...defaults };
+  try {
+    const saved = JSON.parse(localStorage.getItem('bgPrefs') || '{}');
+    prefs = { ...defaults, ...saved };
+  } catch (e) { /* ignore corrupt prefs */ }
+
+  function savePrefs() {
+    try { localStorage.setItem('bgPrefs', JSON.stringify(prefs)); } catch (e) {}
   }
-  sf.appendChild(frag);
+
+  // Render N stars into #starfield. Removes any previous batch first so
+  // density changes take effect immediately. Constellation SVG is preserved.
+  function renderStars(n) {
+    // Remove only .star spans; keep the constellation SVG
+    sf.querySelectorAll('.star').forEach((el) => el.remove());
+    if (!prefs.stars) return;
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < n; i++) {
+      const s = document.createElement('span');
+      let cls = 'star';
+      const r = Math.random();
+      if (r < 0.18) cls += ' s-bright';
+      else if (r < 0.55) cls += ' s-tiny';
+      if (Math.random() < 0.07) cls += ' s-warm';
+      s.className = cls;
+      s.style.left = (Math.random() * 100).toFixed(2) + 'vw';
+      s.style.top = (Math.random() * 100).toFixed(2) + 'vh';
+      s.style.animationDelay = (Math.random() * 5).toFixed(2) + 's';
+      s.style.setProperty('--maxop', (0.35 + Math.random() * 0.5).toFixed(2));
+      frag.appendChild(s);
+    }
+    sf.appendChild(frag);
+  }
+
+  function applyAll() {
+    // Stars on/off (also nukes existing stars)
+    if (!prefs.stars) {
+      sf.querySelectorAll('.star').forEach((el) => el.remove());
+    } else {
+      renderStars(prefs.density);
+    }
+    // Constellation visibility
+    if (constellation) constellation.classList.toggle('hidden', !prefs.constellation);
+    // Animation play state (CSS-driven)
+    sf.classList.toggle('no-anim', !prefs.animate);
+    // Twinkle speed: deciseconds → seconds CSS var on .starfield
+    sf.style.setProperty('--tw-speed', (prefs.speed / 10).toFixed(1) + 's');
+    // Reflect in widget UI
+    if (starsCb) starsCb.checked = prefs.stars;
+    if (constCb) constCb.checked = prefs.constellation;
+    if (animCb) animCb.checked = prefs.animate;
+    if (densitySlider) densitySlider.value = String(prefs.density);
+    if (speedSlider) speedSlider.value = String(prefs.speed);
+    if (densityVal) densityVal.textContent = String(prefs.density);
+    if (speedVal) speedVal.textContent = (prefs.speed / 10).toFixed(1) + 's';
+  }
+
+  // Wire up tuning-panel events
+  if (toggleBtn && panel) {
+    toggleBtn.addEventListener('click', () => {
+      const open = !panel.hasAttribute('hidden');
+      if (open) panel.setAttribute('hidden', '');
+      else      panel.removeAttribute('hidden');
+      toggleBtn.setAttribute('aria-expanded', String(!open));
+    });
+  }
+  starsCb?.addEventListener('change', () => { prefs.stars = starsCb.checked; savePrefs(); applyAll(); });
+  constCb?.addEventListener('change', () => { prefs.constellation = constCb.checked; savePrefs(); applyAll(); });
+  animCb?.addEventListener('change',  () => { prefs.animate = animCb.checked; savePrefs(); applyAll(); });
+  densitySlider?.addEventListener('input', () => {
+    prefs.density = parseInt(densitySlider.value, 10);
+    if (densityVal) densityVal.textContent = String(prefs.density);
+  });
+  densitySlider?.addEventListener('change', () => { savePrefs(); renderStars(prefs.density); });
+  speedSlider?.addEventListener('input', () => {
+    prefs.speed = parseInt(speedSlider.value, 10);
+    sf.style.setProperty('--tw-speed', (prefs.speed / 10).toFixed(1) + 's');
+    if (speedVal) speedVal.textContent = (prefs.speed / 10).toFixed(1) + 's';
+  });
+  speedSlider?.addEventListener('change', () => savePrefs());
+
+  applyAll();
 })();
 </script>
 
