@@ -120,31 +120,40 @@
   .constellation-ox {
     position: absolute;
     top: 50%;
-    right: 8px;
+    right: 14px;
     transform: translateY(-50%);
-    width: 30px;
-    height: min(70vh, 560px);
-    opacity: 0.6;
+    width: 56px;
+    height: min(86vh, 760px);
+    opacity: 0.7;
     pointer-events: none;
   }
   .constellation-ox circle {
     fill: #ffb0a0;
-    filter: drop-shadow(0 0 3px rgba(255, 120, 90, 0.7));
+    filter: drop-shadow(0 0 4px rgba(255, 120, 90, 0.75));
     animation: twinkle calc(var(--tw-speed) * 1.6) ease-in-out infinite;
     transform-origin: center;
   }
   /* The "X" letter — brighter cyan-white so it reads as the OnStepX accent */
   .constellation-ox circle.x-star {
     fill: #d6ecff;
-    filter: drop-shadow(0 0 4px rgba(200, 230, 255, 0.85));
+    filter: drop-shadow(0 0 6px rgba(200, 230, 255, 0.9));
   }
   .constellation-ox line {
-    stroke: rgba(255, 140, 110, 0.22);
-    stroke-width: 0.6;
+    stroke: rgba(255, 140, 110, 0.28);
+    stroke-width: 0.7;
     stroke-linecap: round;
   }
   .constellation-ox line.x-line {
-    stroke: rgba(180, 215, 255, 0.28);
+    stroke: rgba(180, 215, 255, 0.35);
+    stroke-width: 0.8;
+  }
+  /* On narrow viewports (phones), shrink so it doesn't overlap the form */
+  @media (max-width: 720px) {
+    .constellation-ox {
+      width: 36px;
+      right: 6px;
+      opacity: 0.5;
+    }
   }
   .constellation-ox.hidden { display: none; }
 
