@@ -4,15 +4,32 @@
 //   POST /compile      {config, board}  -> {request_id}
 //   GET  /status?id=…                   -> {state, run_id?, conclusion?}
 //   GET  /firmware?run_id=…             -> application/zip (artifact, proxied)
+//   GET  /auth-info                     -> {mode: 'github-app' | 'pat', expires_at?}
 //
-// Env vars / secrets required (set via `wrangler secret put` / wrangler.toml):
-//   GITHUB_TOKEN  — fine-grained PAT with Actions:write + Contents:read on BUILD_REPO
-//   BUILD_OWNER   — GitHub username or org owning the build-service repo
-//   BUILD_REPO    — name of the build-service repo (e.g. onstepx-build-service)
+// Auth — TWO modes, App preferred when its secrets are configured:
+//
+//   Mode A: GitHub App (recommended, no manual rotation)
+//     GH_APP_ID              — numeric App ID from the App's settings page
+//     GH_APP_PRIVATE_KEY     — PKCS#8 PEM private key (multi-line OK)
+//                              Convert from GitHub's PKCS#1 default with:
+//                                openssl pkcs8 -topk8 -nocrypt -in raw.pem -out app.pem
+//     GH_APP_INSTALLATION_ID — numeric ID from the App's installation on the
+//                              build-service repo (URL: .../installations/<id>)
+//
+//   Mode B: Personal Access Token (legacy, expires every 90 days)
+//     GITHUB_TOKEN  — fine-grained PAT with Actions:write + Contents:read on BUILD_REPO
+//
+// If all three Mode A secrets are present, the Worker auto-uses App mode and
+// caches installation tokens in-isolate (1-hour TTL, refreshed 5 min before
+// expiry). Otherwise it falls back to the PAT.
+//
+// Other vars (set via wrangler.toml):
+//   BUILD_OWNER    — GitHub username or org owning the build-service repo
+//   BUILD_REPO     — name of the build-service repo (e.g. onstepx-build-service)
 //   ALLOWED_ORIGIN — the Pages origin (e.g. https://christm45.github.io)
 //
 // Optional:
-//   RATE_LIMIT    — a KV namespace binding; if present, enforces 10 builds/hr/IP
+//   RATE_LIMIT     — a KV namespace binding; if present, enforces 10 builds/hr/IP
 
 const ALLOWED_BOARDS = new Set([
   // OnStepX (mount controller) build environments
@@ -51,6 +68,9 @@ export default {
       }
       if (request.method === 'GET' && url.pathname === '/firmware') {
         return withCors(await handleFirmware(url, env), cors);
+      }
+      if (request.method === 'GET' && url.pathname === '/auth-info') {
+        return withCors(await handleAuthInfo(env), cors);
       }
       if (request.method === 'GET' && url.pathname === '/') {
         return withCors(json({ ok: true, service: 'onstepx-build-bridge' }), cors);
@@ -212,13 +232,14 @@ async function handleFirmware(url, env) {
   // Azure Storage URL. We MUST follow manually and drop the Authorization
   // header on the redirect — Azure rejects the request if GitHub's token is
   // presented there.
+  const token = await getAuthToken(env);
   const redirectRes = await fetch(
     `https://api.github.com/repos/${env.BUILD_OWNER}/${env.BUILD_REPO}/actions/artifacts/${artifact.id}/zip`,
     {
       method: 'GET',
       redirect: 'manual',
       headers: {
-        Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+        Authorization: `Bearer ${token}`,
         Accept: 'application/vnd.github+json',
         'User-Agent': 'onstepx-build-bridge',
       },
@@ -258,16 +279,174 @@ async function handleFirmware(url, env) {
 // ---------------------------------------------------------------------------
 
 async function ghFetch(env, path, init = {}) {
+  const token = await getAuthToken(env);
   return fetch(`https://api.github.com${path}`, {
     ...init,
     headers: {
-      Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+      Authorization: `Bearer ${token}`,
       Accept: 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
       'User-Agent': 'onstepx-build-bridge',
       'Content-Type': 'application/json',
       ...(init.headers || {}),
     },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Auth: GitHub App (preferred) or Personal Access Token (fallback)
+// ---------------------------------------------------------------------------
+//
+// GitHub App mode mints a fresh installation token each hour using a JWT
+// signed with the App's PKCS#8 RSA private key. Tokens are cached in the
+// isolate's module scope until 5 minutes before expiry. Each Worker isolate
+// holds its own cache; cross-isolate duplication just means a few extra
+// token mints per hour, well within GitHub's 5000/hr installation quota.
+//
+// PAT mode is the legacy path — used iff App secrets aren't all configured.
+
+let cachedInstallationToken = null; // { token: string, expiresAt: number (ms) }
+
+function isAppMode(env) {
+  return Boolean(env.GH_APP_ID && env.GH_APP_PRIVATE_KEY && env.GH_APP_INSTALLATION_ID);
+}
+
+async function getAuthToken(env) {
+  if (isAppMode(env)) {
+    return await getInstallationToken(env);
+  }
+  if (!env.GITHUB_TOKEN) {
+    throw new Error(
+      'No GitHub auth configured. Set either GH_APP_ID + GH_APP_PRIVATE_KEY + ' +
+      'GH_APP_INSTALLATION_ID (App mode) or GITHUB_TOKEN (PAT mode) via wrangler secret put.'
+    );
+  }
+  return env.GITHUB_TOKEN;
+}
+
+async function getInstallationToken(env) {
+  // Reuse cached token until 5 minutes before its expiry
+  const now = Date.now();
+  if (cachedInstallationToken && cachedInstallationToken.expiresAt - 5 * 60 * 1000 > now) {
+    return cachedInstallationToken.token;
+  }
+  const jwt = await mintAppJWT(env.GH_APP_ID, env.GH_APP_PRIVATE_KEY);
+  const res = await fetch(
+    `https://api.github.com/app/installations/${encodeURIComponent(env.GH_APP_INSTALLATION_ID)}/access_tokens`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${jwt}`,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        'User-Agent': 'onstepx-build-bridge',
+      },
+    }
+  );
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`GitHub App installation token request failed (${res.status}): ${detail.slice(0, 300)}`);
+  }
+  const data = await res.json();
+  cachedInstallationToken = {
+    token: data.token,
+    expiresAt: Date.parse(data.expires_at),
+  };
+  return data.token;
+}
+
+// JWT for GitHub App auth — RS256 signed with the App's private key.
+// Spec: https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-json-web-token-jwt-for-a-github-app
+async function mintAppJWT(appId, privateKeyPem) {
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: 'RS256', typ: 'JWT' };
+  const payload = {
+    iat: now - 60,            // 60s clock-skew tolerance
+    exp: now + 9 * 60,        // GitHub max is 10 min; we use 9 min for safety
+    iss: String(appId),
+  };
+  const headerB64 = base64UrlEncode(new TextEncoder().encode(JSON.stringify(header)));
+  const payloadB64 = base64UrlEncode(new TextEncoder().encode(JSON.stringify(payload)));
+  const signingInput = `${headerB64}.${payloadB64}`;
+  const key = await importPkcs8PrivateKey(privateKeyPem);
+  const signature = await crypto.subtle.sign(
+    { name: 'RSASSA-PKCS1-v1_5' },
+    key,
+    new TextEncoder().encode(signingInput)
+  );
+  return `${signingInput}.${base64UrlEncode(new Uint8Array(signature))}`;
+}
+
+async function importPkcs8PrivateKey(pem) {
+  // Accept either PKCS#8 ("BEGIN PRIVATE KEY") — required.
+  // GitHub serves PKCS#1 ("BEGIN RSA PRIVATE KEY") by default; user must convert
+  // with `openssl pkcs8 -topk8 -nocrypt -in raw.pem -out app.pem` before upload.
+  if (!pem.includes('BEGIN PRIVATE KEY')) {
+    throw new Error(
+      'GH_APP_PRIVATE_KEY must be in PKCS#8 PEM ("BEGIN PRIVATE KEY"). ' +
+      'GitHub gives PKCS#1 by default — convert with: ' +
+      'openssl pkcs8 -topk8 -nocrypt -in raw.pem -out app.pem'
+    );
+  }
+  const b64 = pem
+    .replace(/-----BEGIN PRIVATE KEY-----/g, '')
+    .replace(/-----END PRIVATE KEY-----/g, '')
+    .replace(/\s+/g, '');
+  const der = base64ToBytes(b64);
+  return crypto.subtle.importKey(
+    'pkcs8',
+    der,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+}
+
+// base64 string -> Uint8Array (atob handles standard base64)
+function base64ToBytes(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+// Uint8Array -> base64url (no padding, +/_ -> -_)
+function base64UrlEncode(input) {
+  let bin = '';
+  const bytes = input instanceof Uint8Array ? input : new Uint8Array(input);
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/=+$/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+}
+
+// ---------------------------------------------------------------------------
+// /auth-info — diagnostic endpoint, no secret leakage. Useful when verifying
+// the GitHub App rollout: hit it before/after `wrangler secret put` to see
+// the mode flip from "pat" to "github-app".
+async function handleAuthInfo(env) {
+  if (isAppMode(env)) {
+    let expiresAt = null;
+    let error = null;
+    try {
+      // Force a token mint so we can report its expiry — useful smoke test
+      await getInstallationToken(env);
+      expiresAt = cachedInstallationToken
+        ? new Date(cachedInstallationToken.expiresAt).toISOString()
+        : null;
+    } catch (e) {
+      error = String(e.message || e);
+    }
+    return json({
+      mode: 'github-app',
+      app_id: String(env.GH_APP_ID),
+      installation_id: String(env.GH_APP_INSTALLATION_ID),
+      installation_token_expires_at: expiresAt,
+      error,
+    });
+  }
+  return json({
+    mode: 'pat',
+    pat_set: Boolean(env.GITHUB_TOKEN),
+    note: 'Switch to GitHub App mode by setting GH_APP_ID + GH_APP_PRIVATE_KEY + GH_APP_INSTALLATION_ID.',
   });
 }
 

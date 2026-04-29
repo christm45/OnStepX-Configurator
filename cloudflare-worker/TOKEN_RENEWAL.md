@@ -1,12 +1,18 @@
 # Cloudflare Worker — GitHub PAT renewal (every 90 days)
 
+> 💡 **Skip the rotation forever:** the Worker now also supports GitHub App
+> auth, which mints fresh installation tokens hourly with no human renewal.
+> See [`GITHUB_APP_SETUP.md`](./GITHUB_APP_SETUP.md) for the one-time
+> migration (~20 min). If you've already done that and `/auth-info` reports
+> `"mode": "github-app"`, you can ignore this file.
+
 The build bridge (`onstepx-build-bridge.craciun-vlad.workers.dev`) talks to
 GitHub Actions on your behalf using a **fine-grained Personal Access Token**
 (`GITHUB_TOKEN`). GitHub fine-grained PATs default to **90-day expiry**, so
 the token has to be rotated four times a year or the configurator's
 **Compile** button stops working.
 
-This file is the playbook. Total time: ~5 minutes.
+This file is the playbook for PAT mode. Total time: ~5 minutes.
 
 ---
 
