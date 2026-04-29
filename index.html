@@ -112,24 +112,25 @@
   .starfield.no-anim .star { animation: none !important; }
   .starfield.no-anim .constellation-ox circle { animation: none !important; }
 
-  /* "ONSTEP X" vertical constellation. Lives inside .starfield so it sits
-     behind all content cards. Red-tinted stars match the OnStep brand red
-     (var(--highlight)) used in the page title. The trailing "X" is rendered
-     in a brighter cyan-white to echo the OnStepX branding (the X is the new
-     bit). Stacks letters top-to-bottom along the right edge of the viewport. */
+  /* "OnStep X" vertical constellation, modelled on the real OnStep logo:
+     mixed-case lettering, periwinkle/iris blue, gear-with-crosshair "O",
+     and a faint vertical "spine" line that mimics the original logo's
+     horizontal cross-arm extending across the full word (rotated 90° to
+     match our vertical layout). The trailing "X" stays cyan-white as the
+     OnStepX accent (X is the new bit on top of OnStep). */
   .constellation-ox {
     position: absolute;
     top: 50%;
     right: 14px;
     transform: translateY(-50%);
-    width: 56px;
+    width: 64px;
     height: min(86vh, 760px);
-    opacity: 0.7;
+    opacity: 0.75;
     pointer-events: none;
   }
   .constellation-ox circle {
-    fill: #ffb0a0;
-    filter: drop-shadow(0 0 4px rgba(255, 120, 90, 0.75));
+    fill: #8a99ee;
+    filter: drop-shadow(0 0 4px rgba(107, 125, 223, 0.85));
     animation: twinkle calc(var(--tw-speed) * 1.6) ease-in-out infinite;
     transform-origin: center;
   }
@@ -139,20 +140,28 @@
     filter: drop-shadow(0 0 6px rgba(200, 230, 255, 0.9));
   }
   .constellation-ox line {
-    stroke: rgba(255, 140, 110, 0.28);
+    stroke: rgba(140, 155, 230, 0.32);
     stroke-width: 0.7;
     stroke-linecap: round;
   }
   .constellation-ox line.x-line {
-    stroke: rgba(180, 215, 255, 0.35);
+    stroke: rgba(180, 215, 255, 0.38);
     stroke-width: 0.8;
+  }
+  /* The "spine" — faint dashed vertical line through every letter centre.
+     This is the rotated equivalent of the OnStep logo's horizontal
+     crosshair line that extends across the full width of the word. */
+  .constellation-ox line.spine {
+    stroke: rgba(140, 155, 230, 0.18);
+    stroke-width: 0.4;
+    stroke-dasharray: 1.6 2.4;
   }
   /* On narrow viewports (phones), shrink so it doesn't overlap the form */
   @media (max-width: 720px) {
     .constellation-ox {
-      width: 36px;
+      width: 40px;
       right: 6px;
-      opacity: 0.5;
+      opacity: 0.55;
     }
   }
   .constellation-ox.hidden { display: none; }
@@ -4396,40 +4405,83 @@ calcPEC();
   const constellation = document.getElementById('constellationOx');
 
   // ---------------------------------------------------------------------
-  // "ONSTEP X" letter library — each letter is a list of stars (x,y,r)
-  // and a list of line segments (x1,y1 → x2,y2) inside a 24w × 28h cell.
-  // Letters stack vertically; X is rendered last with extra spacing and a
-  // brighter cyan-white fill (the OnStepX accent vs. OnStep red).
+  // "OnStep X" letter library, modelled on the real OnStep logo.
+  // Each letter declares its own width × height (so lowercase x-height,
+  // ascenders, and descenders read correctly) plus a list of stars
+  // (cx, cy, r) and a list of line segments (x1,y1 → x2,y2) drawn under
+  // the stars. The "O" is a gear with a crosshair (the OnStep mark) —
+  // 8 main "gear body" stars + 8 "tooth tip" stars + 4 crosshair tips
+  // extending outside the gear body + 1 brighter centre.
   // ---------------------------------------------------------------------
   const SVG_NS = 'http://www.w3.org/2000/svg';
   const LETTERS = {
-    O: {
-      stars: [[12,2,1.4],[22,8,1.3],[24,14,1.4],[22,20,1.3],[12,26,1.4],[2,20,1.3],[0,14,1.4],[2,8,1.3]],
-      lines: [[12,2,22,8],[22,8,24,14],[24,14,22,20],[22,20,12,26],[12,26,2,20],[2,20,0,14],[0,14,2,8],[2,8,12,2]],
+    O: {  // gear with crosshair — the distinctive OnStep mark
+      width: 32, height: 32,
+      stars: [
+        // Centre
+        [16, 16, 1.6],
+        // Inner gear body ring (8 stars at radius ~9)
+        [16, 7, 1.3], [22.4, 9.6, 1.2], [25, 16, 1.3], [22.4, 22.4, 1.2],
+        [16, 25, 1.3], [9.6, 22.4, 1.2], [7, 16, 1.3], [9.6, 9.6, 1.2],
+        // Outer "tooth tip" stars at the 22.5°/67.5° offsets (radius ~11)
+        [19.7, 7.7, 0.9], [24.5, 12.4, 0.9], [24.5, 19.6, 0.9], [19.7, 24.3, 0.9],
+        [12.3, 24.3, 0.9], [7.5, 19.6, 0.9], [7.5, 12.4, 0.9], [12.3, 7.7, 0.9],
+        // Crosshair tips extending OUTSIDE the gear (the reticle)
+        [16, 1, 1.0], [16, 31, 1.0], [1, 16, 1.0], [31, 16, 1.0],
+      ],
+      lines: [
+        // Gear body ring (8 segments connecting the inner ring stars)
+        [16, 7, 22.4, 9.6], [22.4, 9.6, 25, 16], [25, 16, 22.4, 22.4],
+        [22.4, 22.4, 16, 25], [16, 25, 9.6, 22.4], [9.6, 22.4, 7, 16],
+        [7, 16, 9.6, 9.6], [9.6, 9.6, 16, 7],
+        // Crosshair through centre
+        [16, 1, 16, 31],   // vertical
+        [1, 16, 31, 16],   // horizontal
+      ],
     },
-    N: {
-      stars: [[2,2,1.4],[2,26,1.4],[22,2,1.4],[22,26,1.4],[12,14,1.2]],
-      lines: [[2,2,2,26],[22,2,22,26],[2,2,12,14],[12,14,22,26]],
+    n: {  // lowercase, x-height only (no ascender, no descender)
+      width: 24, height: 22,
+      stars: [[4, 6, 1.2], [4, 22, 1.2], [20, 6, 1.2], [20, 22, 1.2], [12, 4, 1.1]],
+      lines: [[4, 6, 4, 22], [20, 6, 20, 22], [4, 6, 12, 4], [12, 4, 20, 6]],
     },
-    S: {
-      stars: [[22,2,1.3],[2,2,1.3],[2,14,1.2],[22,14,1.2],[22,26,1.3],[2,26,1.3]],
-      lines: [[22,2,2,2],[2,2,2,14],[2,14,22,14],[22,14,22,26],[22,26,2,26]],
+    S: {  // capital, full height
+      width: 24, height: 28,
+      stars: [[20, 2, 1.3], [4, 2, 1.2], [4, 14, 1.2], [20, 14, 1.2], [20, 26, 1.3], [4, 26, 1.2]],
+      lines: [[20, 2, 4, 2], [4, 2, 4, 14], [4, 14, 20, 14], [20, 14, 20, 26], [20, 26, 4, 26]],
     },
-    T: {
-      stars: [[2,2,1.3],[12,2,1.4],[22,2,1.3],[12,26,1.3]],
-      lines: [[2,2,22,2],[12,2,12,26]],
+    t: {  // lowercase, ascender (taller than x-height)
+      width: 24, height: 28,
+      stars: [[12, 2, 1.3], [6, 8, 1.1], [18, 8, 1.1], [12, 26, 1.2]],
+      lines: [[12, 2, 12, 26], [6, 8, 18, 8]],
     },
-    E: {
-      stars: [[2,2,1.3],[22,2,1.3],[2,14,1.2],[18,14,1.2],[2,26,1.3],[22,26,1.3]],
-      lines: [[2,2,22,2],[2,2,2,26],[2,14,18,14],[2,26,22,26]],
+    e: {  // lowercase, x-height only — closed loop with crossbar
+      width: 24, height: 22,
+      stars: [
+        [20, 8, 1.2], [12, 4, 1.3], [4, 8, 1.2], [4, 16, 1.2],
+        [20, 14, 1.2], [12, 22, 1.3], [18, 22, 1.0],
+      ],
+      lines: [
+        [20, 8, 12, 4], [12, 4, 4, 8], [4, 8, 4, 16],
+        [4, 16, 12, 22], [12, 22, 18, 22],
+        [4, 12, 20, 14],   // the crossbar
+      ],
     },
-    P: {
-      stars: [[2,2,1.4],[22,2,1.3],[22,14,1.2],[2,14,1.2],[2,26,1.4]],
-      lines: [[2,2,22,2],[22,2,22,14],[22,14,2,14],[2,2,2,26]],
+    p: {  // lowercase, descender (extends below baseline)
+      width: 24, height: 32,
+      stars: [
+        [4, 8, 1.2], [4, 32, 1.3], [12, 4, 1.3],
+        [20, 8, 1.2], [20, 16, 1.2], [12, 20, 1.2], [4, 20, 1.2],
+      ],
+      lines: [
+        [4, 8, 4, 32],     // descender stem
+        [4, 8, 12, 4], [12, 4, 20, 8],     // top of bowl
+        [20, 8, 20, 16], [20, 16, 12, 20], [12, 20, 4, 20],   // closing the bowl
+      ],
     },
-    X: {
-      stars: [[2,2,1.5],[22,2,1.5],[12,14,2.0],[2,26,1.5],[22,26,1.5]],
-      lines: [[2,2,22,26],[22,2,2,26]],
+    X: {  // capital, the OnStepX accent
+      width: 28, height: 32,
+      stars: [[2, 2, 1.5], [26, 2, 1.5], [14, 16, 2.2], [2, 30, 1.5], [26, 30, 1.5]],
+      lines: [[2, 2, 26, 30], [26, 2, 2, 30]],
     },
   };
 
@@ -4437,25 +4489,53 @@ calcPEC();
     if (!constellation) return;
     // Clear any previous content (preserves the SVG element + classes)
     while (constellation.firstChild) constellation.removeChild(constellation.firstChild);
-    // Layout: stack ONSTEP top-to-bottom (cell height 28, gap 4),
-    // then a 12-unit gap before X. Each cell is 24w; the SVG viewBox is
-    // 30w × 240h with a 3-unit horizontal pad so letters sit centred.
-    const sequence = ['O', 'N', 'S', 'T', 'E', 'P', 'X'];
-    const xPad = 3;
+
+    const sequence = ['O', 'n', 'S', 't', 'e', 'p', 'X'];
+    const VIEWBOX_W = 36;
+    const SPINE_X = VIEWBOX_W / 2;
+    const GAP_REGULAR = 4;
+    const GAP_BEFORE_X = 14;
     const linesGroup = document.createElementNS(SVG_NS, 'g');
     const starsGroup = document.createElementNS(SVG_NS, 'g');
+
+    // First pass: compute placements and total height
+    const placements = [];
     let yCursor = 0;
-    for (const ch of sequence) {
+    for (let i = 0; i < sequence.length; i++) {
+      const ch = sequence[i];
       const def = LETTERS[ch];
       if (!def) continue;
+      const xPad = (VIEWBOX_W - def.width) / 2;
+      placements.push({ ch, def, xPad, yOffset: yCursor });
+      const gap = sequence[i + 1] === 'X' ? GAP_BEFORE_X : GAP_REGULAR;
+      yCursor += def.height + (i < sequence.length - 1 ? gap : 0);
+    }
+    const totalHeight = yCursor;
+
+    // Set the SVG viewBox to fit the computed total
+    constellation.setAttribute('viewBox', `0 0 ${VIEWBOX_W} ${totalHeight}`);
+
+    // Spine — faint dashed vertical line through every letter centre.
+    // Equivalent to the OnStep logo's horizontal crosshair extending across
+    // the word, just rotated 90° to suit our vertical layout.
+    const spine = document.createElementNS(SVG_NS, 'line');
+    spine.setAttribute('x1', String(SPINE_X));
+    spine.setAttribute('y1', '0');
+    spine.setAttribute('x2', String(SPINE_X));
+    spine.setAttribute('y2', String(totalHeight));
+    spine.setAttribute('class', 'spine');
+    linesGroup.appendChild(spine);
+
+    // Second pass: draw each letter
+    for (const { ch, def, xPad, yOffset } of placements) {
       const isX = ch === 'X';
-      // Lines (drawn under stars)
+      // Lines first (drawn under stars)
       for (const [x1, y1, x2, y2] of def.lines) {
         const ln = document.createElementNS(SVG_NS, 'line');
         ln.setAttribute('x1', String(x1 + xPad));
-        ln.setAttribute('y1', String(y1 + yCursor));
+        ln.setAttribute('y1', String(y1 + yOffset));
         ln.setAttribute('x2', String(x2 + xPad));
-        ln.setAttribute('y2', String(y2 + yCursor));
+        ln.setAttribute('y2', String(y2 + yOffset));
         if (isX) ln.setAttribute('class', 'x-line');
         linesGroup.appendChild(ln);
       }
@@ -4463,15 +4543,14 @@ calcPEC();
       for (const [cx, cy, r] of def.stars) {
         const c = document.createElementNS(SVG_NS, 'circle');
         c.setAttribute('cx', String(cx + xPad));
-        c.setAttribute('cy', String(cy + yCursor));
+        c.setAttribute('cy', String(cy + yOffset));
         c.setAttribute('r', String(r));
         if (isX) c.setAttribute('class', 'x-star');
-        // Per-star randomised animation-delay so they twinkle out of phase
+        // Per-star randomised delay + peak opacity so the field shimmers
         c.style.animationDelay = (Math.random() * 5).toFixed(2) + 's';
         c.style.setProperty('--maxop', (0.55 + Math.random() * 0.35).toFixed(2));
         starsGroup.appendChild(c);
       }
-      yCursor += 28 + (ch === 'P' ? 12 : 4); // bigger gap before X
     }
     constellation.appendChild(linesGroup);
     constellation.appendChild(starsGroup);
