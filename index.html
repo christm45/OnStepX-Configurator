@@ -49,7 +49,8 @@
   #matrixCanvas { display: none !important; }
   body {
     font-family: Arial, Helvetica, sans-serif;
-    background: var(--bg);
+    /* transparent so the .starfield (between html and body content) is visible */
+    background: transparent;
     color: var(--text);
     padding: 10px;
     line-height: 1.5;
@@ -57,6 +58,51 @@
   }
   html {
     background: var(--bg);
+  }
+  /* Twinkling starfield. Subtle astronomy-themed background — stars are small,
+     dimly lit, slowly pulsing. position: fixed pins it to the viewport so it
+     does not scroll with content. z-index: -1 keeps it behind everything. */
+  .starfield {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .starfield .star {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: #ffffff;
+    border-radius: 50%;
+    opacity: 0.55;
+    animation: twinkle 3.2s ease-in-out infinite;
+  }
+  .starfield .star.s-tiny {
+    width: 1px;
+    height: 1px;
+    opacity: 0.35;
+    animation-duration: 4.5s;
+  }
+  .starfield .star.s-bright {
+    width: 3px;
+    height: 3px;
+    opacity: 0.8;
+    box-shadow: 0 0 4px #fff, 0 0 8px rgba(255, 255, 255, 0.4);
+    animation-duration: 2.6s;
+  }
+  /* Rare warm-tinted star for variety (red giants / cooler stars) */
+  .starfield .star.s-warm {
+    background: #ffd9a8;
+    box-shadow: 0 0 3px rgba(255, 200, 140, 0.6);
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: var(--maxop, 0.55); }
+    50%      { opacity: 0.08; }
+  }
+  /* Respect prefers-reduced-motion: hold stars at their max opacity */
+  @media (prefers-reduced-motion: reduce) {
+    .starfield .star { animation: none !important; }
   }
   /* SWS-style title tile: thick red border, page-wide, title left + version right */
   h1 {
@@ -541,6 +587,7 @@
 </head>
 <body>
 <canvas id="matrixCanvas"></canvas>
+<div class="starfield" id="starfield" aria-hidden="true"></div>
 
 <h1 id="pageTitle"><span style="float:right;font-size:0.8em;color:var(--label);font-weight:normal;">OnStepX&nbsp;Configurator</span><b>OnStep</b> Configuration Generator</h1>
 <p class="subtitle" id="pageSubtitle">Generate Config.h, compile online, and flash over USB</p>
@@ -4190,6 +4237,41 @@ calcPEC();
   }
 
   setInterval(draw, 33); // ~30fps for that retro feel
+})();
+
+// ---------------------------------------------------------------------------
+// Twinkling starfield generator
+// ---------------------------------------------------------------------------
+// Populates #starfield with a viewport-density-scaled count of <span> stars.
+// Each star gets a random position (vw/vh so it survives resize), a random
+// animation-delay so they twinkle out of phase, and a random size class
+// (tiny / normal / bright). ~7% of stars are warm-tinted for variety.
+// Pure-CSS animation drives the twinkle — no rAF, no per-frame work.
+(function makeStarfield() {
+  const sf = document.getElementById('starfield');
+  if (!sf) return;
+  // Density scales with viewport area but caps to keep DOM small.
+  // ~1 star per 11k px². At 1920x1080 = ~188 stars; on phones ~50.
+  const area = window.innerWidth * window.innerHeight;
+  const N = Math.max(35, Math.min(200, Math.floor(area / 11000)));
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < N; i++) {
+    const s = document.createElement('span');
+    let cls = 'star';
+    const r = Math.random();
+    if (r < 0.18) cls += ' s-bright';
+    else if (r < 0.55) cls += ' s-tiny';
+    if (Math.random() < 0.07) cls += ' s-warm';
+    s.className = cls;
+    s.style.left = (Math.random() * 100).toFixed(2) + 'vw';
+    s.style.top = (Math.random() * 100).toFixed(2) + 'vh';
+    s.style.animationDelay = (Math.random() * 5).toFixed(2) + 's';
+    // Each star gets a slightly randomised peak opacity so the field
+    // does not look uniformly bright.
+    s.style.setProperty('--maxop', (0.35 + Math.random() * 0.5).toFixed(2));
+    frag.appendChild(s);
+  }
+  sf.appendChild(frag);
 })();
 </script>
 
