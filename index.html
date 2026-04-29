@@ -148,6 +148,19 @@
     color: #777;
     font-size: 0.75em;
   }
+  /* Upstream Config.h-style inline comment, shown next to the existing field-hint.
+     Mirrors the "// OFF, ON Reverses..." text from hjd1964's Config.h files
+     so users see the same explanation they'd find in the generated file. */
+  .config-comment {
+    display: block;
+    color: #5a8c5a;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 0.72em;
+    font-style: italic;
+    margin-top: 2px;
+    line-height: 1.3;
+    word-break: normal;
+  }
   .hint-tag {
     display: inline-block;
     padding: 1px 6px;
@@ -806,7 +819,7 @@
     <div class="field-row">
       <label class="field-label">HOST_NAME <span class="hint-tag hint-adjust">Adjust</span></label>
       <input type="text" id="HOST_NAME" value="ONSTEP" maxlength="16">
-      <span class="field-hint">Hostname up to 16 chars</span>
+      <span class="field-hint">Hostname up to 16 chars</span><span class="config-comment">// Hostname for this device up to 16 chars.</span>
     </div>
     <div class="field-row">
       <label class="field-label">PINMAP <span class="hint-tag hint-reqd">Req'd</span></label>
@@ -832,7 +845,7 @@
         below for the FRAM variant. Teensy 3.2 / 4.1 boards flash one-click via WebHID; ESP32 boards
         (MaxESP3/4, FYSETC_E4, CNC3) flash via WebSerial; BTT_SKR_PRO flashes via WebUSB DFU
         (BOOT0 jumper + reset). CNC3 is deprecated — see the OnStep wiki for alternatives.
-      </span>
+      </span><span class="config-comment">// Choose from: MiniPCB, MiniPCB2, MaxPCB4, MaxESP4, MaxSTM3, FYSETC_E4,</span>
     </div>
     <div class="field-row">
       <label class="field-label"></label>
@@ -856,7 +869,7 @@
         <option value="230400">230400</option>
         <option value="460800">460800</option>
       </select>
-      <span class="field-hint">Serial A baud rate</span>
+      <span class="field-hint">Serial A baud rate</span><span class="config-comment">// n. Where n=9600,19200,57600,115200,230400,460800 (common baud rates.)</span>
     </div>
     <div class="field-row">
       <label class="field-label">SERIAL_B_BAUD_DEFAULT <span class="hint-tag hint-infreq">Infreq</span></label>
@@ -869,7 +882,7 @@
         <option value="230400">230400</option>
         <option value="460800">460800</option>
       </select>
-      <span class="field-hint">Serial B baud rate</span>
+      <span class="field-hint">Serial B baud rate</span><span class="config-comment">// n. Baud rate as above. See (src/pinmaps/) for Serial port assignments.</span>
     </div>
     <div class="field-row">
       <label class="field-label">SERIAL_B_ESP_FLASHING <span class="hint-tag hint-option">Option</span></label>
@@ -877,7 +890,7 @@
         <option value="OFF" selected>OFF</option>
         <option value="ON">ON</option>
       </select>
-      <span class="field-hint">Upload ESP8266 firmware via Serial B</span>
+      <span class="field-hint">Upload ESP8266 firmware via Serial B</span><span class="config-comment">// ON Upload ESP8266 WiFi firmware through SERIAL_B with :ESPFLASH# cmd.</span>
     </div>
     <div class="field-row">
       <label class="field-label">SERIAL_C_BAUD_DEFAULT <span class="hint-tag hint-infreq">Infreq</span></label>
@@ -887,7 +900,7 @@
         <option value="57600">57600</option><option value="115200">115200</option>
         <option value="230400">230400</option><option value="460800">460800</option>
       </select>
-      <span class="field-hint">Serial C baud rate</span>
+      <span class="field-hint">Serial C baud rate</span><span class="config-comment">// n. Baud rate as above. See (src/pinmaps/) for Serial port assignments.</span>
     </div>
     <div class="field-row">
       <label class="field-label">SERIAL_D_BAUD_DEFAULT <span class="hint-tag hint-infreq">Infreq</span></label>
@@ -897,7 +910,7 @@
         <option value="57600">57600</option><option value="115200">115200</option>
         <option value="230400">230400</option><option value="460800">460800</option>
       </select>
-      <span class="field-hint">Serial D baud rate</span>
+      <span class="field-hint">Serial D baud rate</span><span class="config-comment">// n. Baud rate as above. See (src/pinmaps/) for Serial port assignments.</span>
     </div>
     <div class="field-row">
       <label class="field-label">SERIAL_E_BAUD_DEFAULT <span class="hint-tag hint-infreq">Infreq</span></label>
@@ -907,7 +920,7 @@
         <option value="57600">57600</option><option value="115200">115200</option>
         <option value="230400">230400</option><option value="460800">460800</option>
       </select>
-      <span class="field-hint">Serial E baud rate</span>
+      <span class="field-hint">Serial E baud rate</span><span class="config-comment">// n. Baud rate as above. See (src/pinmaps/) for Serial port assignments.</span>
     </div>
     <div class="field-row">
       <label class="field-label">SERIAL_RADIO <span class="hint-tag hint-option">Option</span></label>
@@ -917,7 +930,7 @@
         <option value="WIFI_ACCESS_POINT">WIFI_ACCESS_POINT</option>
         <option value="WIFI_STATION">WIFI_STATION</option>
       </select>
-      <span class="field-hint">ESP32 wireless mode</span>
+      <span class="field-hint">ESP32 wireless mode</span><span class="config-comment">// Use BLUETOOTH or WIFI_ACCESS_POINT or WIFI_STATION (ESP32 only.)</span>
     </div>
   </div>
   <div class="section">
@@ -927,22 +940,22 @@
       <select id="STATUS_LED">
         <option value="OFF">OFF</option><option value="ON" selected>ON</option>
       </select>
-      <span class="field-hint">Status LED on controller</span>
+      <span class="field-hint">Status LED on controller</span><span class="config-comment">// Steady illumination if no error, blinks w/error code otherwise.</span>
     </div>
     <div class="field-row">
       <label class="field-label">RETICLE_LED_DEFAULT <span class="hint-tag hint-option">Option</span></label>
       <input type="text" id="RETICLE_LED_DEFAULT" value="OFF">
-      <span class="field-hint">OFF or 0..255 brightness</span>
+      <span class="field-hint">OFF or 0..255 brightness</span><span class="config-comment">// n. Where n=0..255 (0..100%) activates feature sets default brightness.</span>
     </div>
     <div class="field-row">
       <label class="field-label">RETICLE_LED_MEMORY <span class="hint-tag hint-option">Option</span></label>
       <select id="RETICLE_LED_MEMORY"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Remember brightness across power cycles</span>
+      <span class="field-hint">Remember brightness across power cycles</span><span class="config-comment">// ON Remember reticle brightness across power cycles.</span>
     </div>
     <div class="field-row">
       <label class="field-label">RETICLE_LED_INVERT <span class="hint-tag hint-option">Option</span></label>
       <select id="RETICLE_LED_INVERT"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Invert control (0V = max brightness)</span>
+      <span class="field-hint">Invert control (0V = max brightness)</span><span class="config-comment">// ON Inverts control for cases where 0V is max brightness.</span>
     </div>
     <div class="field-row">
       <label class="field-label">WEATHER <span class="hint-tag hint-option">Option</span></label>
@@ -955,7 +968,7 @@
         <option value="BMP280_0x76">BMP280_0x76</option>
         <option value="BMP280_SPI">BMP280_SPI</option>
       </select>
-      <span class="field-hint">Weather sensor type</span>
+      <span class="field-hint">Weather sensor type</span><span class="config-comment">// BME280 (I2C 0x77,) BME280_0x76, BME280_SPI (see pinmap for CS.)</span>
     </div>
     <div class="field-row">
       <label class="field-label">STEP_WAVE_FORM <span class="hint-tag hint-adjust">Adjust</span></label>
@@ -963,7 +976,7 @@
         <option value="SQUARE">SQUARE — best signal integrity (required for Teensy 4.x)</option>
         <option value="PULSE" selected>PULSE — ~1.6× higher step rate (short wiring runs only)</option>
       </select>
-      <span class="field-hint">Step pulse waveform. Use SQUARE on long wiring or Teensy 4.x; PULSE squeezes more rate out of slower MCUs.</span>
+      <span class="field-hint">Step pulse waveform. Use SQUARE on long wiring or Teensy 4.x; PULSE squeezes more rate out of slower MCUs.</span><span class="config-comment">// PULSE Step signal wave form faster rates. SQUARE best signal integrity.</span>
     </div>
     <div class="field-row">
       <label class="field-label">NV_DRIVER <span class="hint-tag hint-option">Option</span></label>
@@ -976,7 +989,7 @@
         <option value="NV_2432">NV_2432 — 4KB I2C EEPROM @ 0x50</option>
         <option value="NV_2416">NV_2416 — 2KB I2C EEPROM @ 0x50</option>
       </select>
-      <span class="field-hint">Where OnStepX stores runtime settings. Leave on NV_DEFAULT unless your board has a documented external EEPROM/FRAM (e.g. MaxESP4i ⇒ NV_MB85RC64).</span>
+      <span class="field-hint">Where OnStepX stores runtime settings. Leave on NV_DEFAULT unless your board has a documented external EEPROM/FRAM (e.g. MaxESP4i ⇒ NV_MB85RC64).</span><span class="config-comment">// Use platforms default non-volatile device to remember runtime settings.</span>
     </div>
   </div>
 </div>
@@ -1005,32 +1018,32 @@
         <option value="SERVO_TMC2209">SERVO_TMC2209 — closed-loop TMC2209 (VACTUAL)</option>
         <option value="SERVO_TMC5160">SERVO_TMC5160 — closed-loop TMC5160 (VMAX)</option>
       </select>
-      <span class="field-hint">Motor driver model</span>
+      <span class="field-hint">Motor driver model</span><span class="config-comment">// Enter motor driver model (above) in both axes to activate the mount.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_STEPS_PER_DEGREE <span class="hint-tag hint-reqd">Req'd</span></label>
       <input type="text" id="AXIS1_STEPS_PER_DEGREE" value="14222.2222">
-      <span class="field-hint">Use Calculator tab! steps/degree</span>
+      <span class="field-hint">Use Calculator tab! steps/degree</span><span class="config-comment">// n. Number of steps per degree:</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_REVERSE <span class="hint-tag hint-often">Often</span></label>
       <select id="AXIS1_REVERSE"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Reverse movement direction</span>
+      <span class="field-hint">Reverse movement direction</span><span class="config-comment">// ON Reverses movement direction, or reverse wiring instead to correct.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_LIMIT_MIN <span class="hint-tag hint-adjust">Adjust</span></label>
       <input type="number" id="AXIS1_LIMIT_MIN" value="-360" min="-360" max="-90">
-      <span class="field-hint">-90..-360 degrees</span>
+      <span class="field-hint">-90..-360 degrees</span><span class="config-comment">// n. Where n= -90..-360 (degrees.) Minimum "Hour Angle" or Azimuth.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_LIMIT_MAX <span class="hint-tag hint-adjust">Adjust</span></label>
       <input type="number" id="AXIS1_LIMIT_MAX" value="360" min="90" max="360">
-      <span class="field-hint">90..360 degrees</span>
+      <span class="field-hint">90..360 degrees</span><span class="config-comment">// n. Where n= 90.. 360 (degrees.) Maximum "Hour Angle" or Azimuth.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_LIMIT_SYNC <span class="hint-tag hint-option">Option</span></label>
       <input type="text" id="AXIS1_LIMIT_SYNC" value="OFF">
-      <span class="field-hint">OFF or 0..90 degrees</span>
+      <span class="field-hint">OFF or 0..90 degrees</span><span class="config-comment">// n. Where n= 0..90 (degrees.) Allow sync/reset only within this +/-range.</span>
     </div>
   </div>
   <div class="section">
@@ -1043,7 +1056,7 @@
         <option value="32" selected>32</option><option value="64">64</option>
         <option value="128">128</option><option value="256">256</option>
       </select>
-      <span class="field-hint">Microstep mode for tracking</span>
+      <span class="field-hint">Microstep mode for tracking</span><span class="config-comment">// n. Microstep mode when tracking.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_DRIVER_MICROSTEPS_GOTO <span class="hint-tag hint-option">Option</span></label>
@@ -1053,22 +1066,22 @@
         <option value="8" selected>8</option><option value="16">16</option><option value="32">32</option>
         <option value="64">64</option><option value="128">128</option><option value="256">256</option>
       </select>
-      <span class="field-hint">Microstep mode for slewing</span>
+      <span class="field-hint">Microstep mode for slewing</span><span class="config-comment">// n. Microstep mode used during slews. OFF uses _DRIVER_MICROSTEPS.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_DRIVER_IHOLD <span class="hint-tag hint-option">Option</span></label>
       <input type="text" id="AXIS1_DRIVER_IHOLD" value="OFF">
-      <span class="field-hint">OFF or mA for standstill current</span>
+      <span class="field-hint">OFF or mA for standstill current</span><span class="config-comment">// n, (mA.) Current during standstill. OFF uses IRUN/2.0</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_DRIVER_IRUN <span class="hint-tag hint-option">Option</span></label>
       <input type="text" id="AXIS1_DRIVER_IRUN" value="600">
-      <span class="field-hint">OFF or mA for tracking current</span>
+      <span class="field-hint">OFF or mA for tracking current</span><span class="config-comment">// n, (mA.) Current during tracking, appropriate for stepper/driver/etc.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_DRIVER_IGOTO <span class="hint-tag hint-option">Option</span></label>
       <input type="text" id="AXIS1_DRIVER_IGOTO" value="OFF">
-      <span class="field-hint">OFF or mA for slew current</span>
+      <span class="field-hint">OFF or mA for slew current</span><span class="config-comment">// n, (mA.) Current during slews. OFF uses IRUN.</span>
     </div>
   </div>
   <div class="section">
@@ -1079,37 +1092,37 @@
         <option value="OFF" selected>OFF</option><option value="ON">ON</option>
         <option value="HIGH">HIGH</option><option value="LOW">LOW</option>
       </select>
-      <span class="field-hint">Driver status/fault detection</span>
+      <span class="field-hint">Driver status/fault detection</span><span class="config-comment">// ON, HIGH, or LOW. For driver status info/fault detection.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_DRIVER_DECAY <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="text" id="AXIS1_DRIVER_DECAY" value="OFF">
-      <span class="field-hint">Tracking decay override (default: STEALTHCHOP)</span>
+      <span class="field-hint">Tracking decay override (default: STEALTHCHOP)</span><span class="config-comment">// Tracking decay mode default override. TMC default is STEALTHCHOP.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_DRIVER_DECAY_GOTO <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="text" id="AXIS1_DRIVER_DECAY_GOTO" value="OFF">
-      <span class="field-hint">Goto decay override (default: SPREADCYCLE)</span>
+      <span class="field-hint">Goto decay override (default: SPREADCYCLE)</span><span class="config-comment">// Decay mode goto default override. TMC default is SPREADCYCLE.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_POWER_DOWN <span class="hint-tag hint-infreq">Infreq</span></label>
       <select id="AXIS1_POWER_DOWN"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Power off after movement stops</span>
+      <span class="field-hint">Power off after movement stops</span><span class="config-comment">// ON Powers off 30sec after movement stops or 10min after last&lt;=1x guide.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_SENSE_HOME <span class="hint-tag hint-option">Option</span></label>
       <select id="AXIS1_SENSE_HOME"><option value="OFF" selected>OFF</option><option value="HIGH">HIGH</option><option value="LOW">LOW</option></select>
-      <span class="field-hint">Home position sense</span>
+      <span class="field-hint">Home position sense</span><span class="config-comment">// HIGH or LOW enables &amp; state clockwise home position, as seen from front.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_SENSE_LIMIT_MIN <span class="hint-tag hint-option">Option</span></label>
       <select id="AXIS1_SENSE_LIMIT_MIN"><option value="LIMIT_SENSE" selected>LIMIT_SENSE</option><option value="OFF">OFF</option><option value="HIGH">HIGH</option><option value="LOW">LOW</option></select>
-      <span class="field-hint">Min limit switch</span>
+      <span class="field-hint">Min limit switch</span><span class="config-comment">// HIGH or LOW state on limit sense switch stops movement.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_SENSE_LIMIT_MAX <span class="hint-tag hint-option">Option</span></label>
       <select id="AXIS1_SENSE_LIMIT_MAX"><option value="LIMIT_SENSE" selected>LIMIT_SENSE</option><option value="OFF">OFF</option><option value="HIGH">HIGH</option><option value="LOW">LOW</option></select>
-      <span class="field-hint">Max limit switch</span>
+      <span class="field-hint">Max limit switch</span><span class="config-comment">// HIGH or LOW state on limit sense switch stops movement.</span>
     </div>
   </div>
 </div>
@@ -1138,32 +1151,32 @@
         <option value="SERVO_TMC2209">SERVO_TMC2209 — closed-loop TMC2209 (VACTUAL)</option>
         <option value="SERVO_TMC5160">SERVO_TMC5160 — closed-loop TMC5160 (VMAX)</option>
       </select>
-      <span class="field-hint">Motor driver model</span>
+      <span class="field-hint">Motor driver model</span><span class="config-comment">// Enter motor driver model (above) in both axes to activate the mount.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_STEPS_PER_DEGREE <span class="hint-tag hint-reqd">Req'd</span></label>
       <input type="text" id="AXIS2_STEPS_PER_DEGREE" value="142222.2222">
-      <span class="field-hint">Use Calculator tab!</span>
+      <span class="field-hint">Use Calculator tab!</span><span class="config-comment">// n. Number of steps per degree:</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_REVERSE <span class="hint-tag hint-often">Often</span></label>
       <select id="AXIS2_REVERSE"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Reverse movement direction</span>
+      <span class="field-hint">Reverse movement direction</span><span class="config-comment">// ON Reverses movement direction, or reverse wiring instead to correct.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_LIMIT_MIN <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="number" id="AXIS2_LIMIT_MIN" value="0" min="-90" max="0">
-      <span class="field-hint">-90..0 degrees</span>
+      <span class="field-hint">-90..0 degrees</span><span class="config-comment">// n. Where n=-90..0 (degrees.) Minimum allowed Declination or Altitude.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_LIMIT_MAX <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="number" id="AXIS2_LIMIT_MAX" value="80" min="0" max="90">
-      <span class="field-hint">0..90 degrees</span>
+      <span class="field-hint">0..90 degrees</span><span class="config-comment">// n. Where n= 0..90 (degrees.) Maximum allowed Declination or Altitude.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_LIMIT_SYNC <span class="hint-tag hint-option">Option</span></label>
       <input type="text" id="AXIS2_LIMIT_SYNC" value="OFF">
-      <span class="field-hint">OFF or 0..90 degrees</span>
+      <span class="field-hint">OFF or 0..90 degrees</span><span class="config-comment">// n. Where n= 0..90 (degrees.) Allow sync/reset only within this +/-range.</span>
     </div>
   </div>
   <div class="section">
@@ -1176,7 +1189,7 @@
         <option value="32" selected>32</option><option value="64">64</option>
         <option value="128">128</option><option value="256">256</option>
       </select>
-      <span class="field-hint">Microstep mode for tracking</span>
+      <span class="field-hint">Microstep mode for tracking</span><span class="config-comment">// n. Microstep mode when tracking.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_DRIVER_MICROSTEPS_GOTO <span class="hint-tag hint-option">Option</span></label>
@@ -1186,22 +1199,22 @@
         <option value="32">32</option><option value="64">64</option>
         <option value="128">128</option><option value="256">256</option>
       </select>
-      <span class="field-hint">Microstep mode for slewing</span>
+      <span class="field-hint">Microstep mode for slewing</span><span class="config-comment">// n. Microstep mode used during slews. OFF uses _DRIVER_MICROSTEPS.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_DRIVER_IHOLD <span class="hint-tag hint-option">Option</span></label>
       <input type="text" id="AXIS2_DRIVER_IHOLD" value="OFF">
-      <span class="field-hint">OFF or mA</span>
+      <span class="field-hint">OFF or mA</span><span class="config-comment">// n, (mA.) Current during standstill. OFF uses IRUN/2.0</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_DRIVER_IRUN <span class="hint-tag hint-option">Option</span></label>
       <input type="text" id="AXIS2_DRIVER_IRUN" value="600">
-      <span class="field-hint">OFF or mA</span>
+      <span class="field-hint">OFF or mA</span><span class="config-comment">// n, (mA.) Current during tracking, appropriate for stepper/driver/etc.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_DRIVER_IGOTO <span class="hint-tag hint-option">Option</span></label>
       <input type="text" id="AXIS2_DRIVER_IGOTO" value="OFF">
-      <span class="field-hint">OFF or mA</span>
+      <span class="field-hint">OFF or mA</span><span class="config-comment">// n, (mA.) Current during slews. OFF uses IRUN.</span>
     </div>
   </div>
   <div class="section">
@@ -1209,37 +1222,37 @@
     <div class="field-row">
       <label class="field-label">AXIS2_DRIVER_STATUS <span class="hint-tag hint-option">Option</span></label>
       <select id="AXIS2_DRIVER_STATUS"><option value="OFF" selected>OFF</option><option value="ON">ON</option><option value="HIGH">HIGH</option><option value="LOW">LOW</option></select>
-      <span class="field-hint">Driver status/fault detection</span>
+      <span class="field-hint">Driver status/fault detection</span><span class="config-comment">// ON, HIGH, or LOW. Polling for driver status info/fault detection.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_DRIVER_DECAY <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="text" id="AXIS2_DRIVER_DECAY" value="OFF">
-      <span class="field-hint">Tracking decay override</span>
+      <span class="field-hint">Tracking decay override</span><span class="config-comment">// Tracking decay mode default override. TMC default is STEALTHCHOP.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_DRIVER_DECAY_GOTO <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="text" id="AXIS2_DRIVER_DECAY_GOTO" value="OFF">
-      <span class="field-hint">Goto decay override</span>
+      <span class="field-hint">Goto decay override</span><span class="config-comment">// Decay mode goto default override. TMC default is SPREADCYCLE.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_POWER_DOWN <span class="hint-tag hint-infreq">Infreq</span></label>
       <select id="AXIS2_POWER_DOWN"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Power off after movement stops</span>
+      <span class="field-hint">Power off after movement stops</span><span class="config-comment">// ON Powers off 30sec after movement stops or 10min after last&lt;=1x guide.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_SENSE_HOME <span class="hint-tag hint-option">Option</span></label>
       <select id="AXIS2_SENSE_HOME"><option value="OFF" selected>OFF</option><option value="HIGH">HIGH</option><option value="LOW">LOW</option></select>
-      <span class="field-hint">Home position sense</span>
+      <span class="field-hint">Home position sense</span><span class="config-comment">// HIGH or LOW enables &amp; state clockwise home position, as seen from above.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_SENSE_LIMIT_MIN <span class="hint-tag hint-option">Option</span></label>
       <select id="AXIS2_SENSE_LIMIT_MIN"><option value="LIMIT_SENSE" selected>LIMIT_SENSE</option><option value="OFF">OFF</option><option value="HIGH">HIGH</option><option value="LOW">LOW</option></select>
-      <span class="field-hint">Min limit switch</span>
+      <span class="field-hint">Min limit switch</span><span class="config-comment">// HIGH or LOW state on limit sense switch stops movement.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_SENSE_LIMIT_MAX <span class="hint-tag hint-option">Option</span></label>
       <select id="AXIS2_SENSE_LIMIT_MAX"><option value="LIMIT_SENSE" selected>LIMIT_SENSE</option><option value="OFF">OFF</option><option value="HIGH">HIGH</option><option value="LOW">LOW</option></select>
-      <span class="field-hint">Max limit switch</span>
+      <span class="field-hint">Max limit switch</span><span class="config-comment">// HIGH or LOW state on limit sense switch stops movement.</span>
     </div>
   </div>
 </div>
@@ -1260,12 +1273,12 @@
         <option value="ALTAZM" selected>ALTAZM - Alt/Az, Dobsonians</option>
         <option value="ALTAZM_UNL">ALTAZM_UNL - Unlimited Azimuth</option>
       </select>
-      <span class="field-hint">Mount type</span>
+      <span class="field-hint">Mount type</span><span class="config-comment">// GEM German Equatorial Mount, etc. that need meridian flips.</span>
     </div>
     <div class="field-row">
       <label class="field-label">MOUNT_ALTERNATE_ORIENTATION <span class="hint-tag hint-option">Option</span></label>
       <select id="MOUNT_ALTERNATE_ORIENTATION"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Meridian flips for FORK / Zenith pass for ALTAZM</span>
+      <span class="field-hint">Meridian flips for FORK / Zenith pass for ALTAZM</span><span class="config-comment">// ON Enables Meridian Flips for FORK mounts and passing through the</span>
     </div>
     <div class="field-row">
       <label class="field-label">MOUNT_STARTUP_MODE <span class="hint-tag hint-option">Option</span></label>
@@ -1274,7 +1287,7 @@
         <option value="SA_STRICT">SA_STRICT</option>
         <option value="SA_PERMISSIVE">SA_PERMISSIVE</option>
       </select>
-      <span class="field-hint">Startup trust mode</span>
+      <span class="field-hint">Startup trust mode</span><span class="config-comment">// SA_STRICT, or SA_PERMISSIVE. Controls when startup trust is granted.</span>
     </div>
     <div class="field-row">
       <label class="field-label">MOUNT_COORDS <span class="hint-tag hint-infreq">Infreq</span></label>
@@ -1283,17 +1296,17 @@
         <option value="TOPO_STRICT">TOPO_STRICT</option>
         <option value="OBSERVED_PLACE" selected>OBSERVED_PLACE</option>
       </select>
-      <span class="field-hint">Coordinate refraction mode</span>
+      <span class="field-hint">Coordinate refraction mode</span><span class="config-comment">// Applies refraction to coordinates to/from OnStep, except exactly</span>
     </div>
     <div class="field-row">
       <label class="field-label">MOUNT_COORDS_MEMORY <span class="hint-tag hint-option">Option</span></label>
       <select id="MOUNT_COORDS_MEMORY"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Remember coords across power cycles (needs FRAM)</span>
+      <span class="field-hint">Remember coords across power cycles (needs FRAM)</span><span class="config-comment">// ON Remembers approximate mount coordinates across power cycles.</span>
     </div>
     <div class="field-row">
       <label class="field-label">MOUNT_ENABLE_IN_STANDBY <span class="hint-tag hint-infreq">Infreq</span></label>
       <select id="MOUNT_ENABLE_IN_STANDBY"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Enable drivers in standby</span>
+      <span class="field-hint">Enable drivers in standby</span><span class="config-comment">// ON Enables mount motor drivers while in standby.</span>
     </div>
   </div>
   <div class="section">
@@ -1308,7 +1321,7 @@
         <option value="GPS">GPS</option>
         <option value="NTP">NTP</option>
       </select>
-      <span class="field-hint">Date/Time source</span>
+      <span class="field-hint">Date/Time source</span><span class="config-comment">// DS3231 (I2C,) SD3031 (I2C,) TEENSY (T3.2 etc,) GPS, or NTP source.</span>
     </div>
     <div class="field-row">
       <label class="field-label">TIME_LOCATION_PPS_SENSE <span class="hint-tag hint-option">Option</span></label>
@@ -1316,7 +1329,7 @@
         <option value="OFF" selected>OFF</option><option value="HIGH">HIGH</option>
         <option value="LOW">LOW</option><option value="BOTH">BOTH</option>
       </select>
-      <span class="field-hint">PPS signal edge detection</span>
+      <span class="field-hint">PPS signal edge detection</span><span class="config-comment">// HIGH senses PPS (pulse per second,) signal rising edge, or use LOW for</span>
     </div>
   </div>
   <div class="section">
@@ -1324,22 +1337,22 @@
     <div class="field-row">
       <label class="field-label">STATUS_MOUNT_LED <span class="hint-tag hint-option">Option</span></label>
       <select id="STATUS_MOUNT_LED"><option value="OFF">OFF</option><option value="ON" selected>ON</option></select>
-      <span class="field-hint">Movement rate LED</span>
+      <span class="field-hint">Movement rate LED</span><span class="config-comment">// ON Flashes proportional to rate of movement or solid on for slews.</span>
     </div>
     <div class="field-row">
       <label class="field-label">STATUS_BUZZER <span class="hint-tag hint-option">Option</span></label>
       <input type="text" id="STATUS_BUZZER" value="ON">
-      <span class="field-hint">OFF, ON, or 100..6000 Hz</span>
+      <span class="field-hint">OFF, ON, or 100..6000 Hz</span><span class="config-comment">// ON, n. Where n=100..6000 (Hz freq.) for speaker. ON for piezo buzzer.</span>
     </div>
     <div class="field-row">
       <label class="field-label">STATUS_BUZZER_DEFAULT <span class="hint-tag hint-option">Option</span></label>
       <select id="STATUS_BUZZER_DEFAULT"><option value="OFF">OFF</option><option value="ON" selected>ON</option></select>
-      <span class="field-hint">Start with buzzer enabled</span>
+      <span class="field-hint">Start with buzzer enabled</span><span class="config-comment">// ON starts w/buzzer sound enabled.</span>
     </div>
     <div class="field-row">
       <label class="field-label">STATUS_BUZZER_MEMORY <span class="hint-tag hint-option">Option</span></label>
       <select id="STATUS_BUZZER_MEMORY"><option value="OFF">OFF</option><option value="ON" selected>ON</option></select>
-      <span class="field-hint">Remember buzzer setting</span>
+      <span class="field-hint">Remember buzzer setting</span><span class="config-comment">// ON to remember buzzer sound setting across power cycles.</span>
     </div>
   </div>
   <div class="section">
@@ -1347,17 +1360,17 @@
     <div class="field-row">
       <label class="field-label">ST4_INTERFACE <span class="hint-tag hint-option">Option</span></label>
       <select id="ST4_INTERFACE"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">ST4 guide interface</span>
+      <span class="field-hint">ST4 guide interface</span><span class="config-comment">// ON enables interface. &lt;= 1X guides unless hand control mode.</span>
     </div>
     <div class="field-row">
       <label class="field-label">ST4_HAND_CONTROL <span class="hint-tag hint-option">Option</span></label>
       <select id="ST4_HAND_CONTROL"><option value="OFF">OFF</option><option value="ON" selected>ON</option></select>
-      <span class="field-hint">Hand controller features</span>
+      <span class="field-hint">Hand controller features</span><span class="config-comment">// ON for hand controller special features and SHC support.</span>
     </div>
     <div class="field-row">
       <label class="field-label">ST4_HAND_CONTROL_FOCUSER <span class="hint-tag hint-option">Option</span></label>
       <select id="ST4_HAND_CONTROL_FOCUSER"><option value="OFF">OFF</option><option value="ON" selected>ON</option></select>
-      <span class="field-hint">Focuser control via hand controller</span>
+      <span class="field-hint">Focuser control via hand controller</span><span class="config-comment">// ON alternate to above: Focuser move [E]f1 [W]f2 [N]- [S]+</span>
     </div>
   </div>
   <div class="section">
@@ -1365,37 +1378,37 @@
     <div class="field-row">
       <label class="field-label">GUIDE_TIME_LIMIT <span class="hint-tag hint-adjust">Adjust</span></label>
       <input type="number" id="GUIDE_TIME_LIMIT" value="0" min="0" max="120">
-      <span class="field-hint">0..120 seconds (0 = disabled)</span>
+      <span class="field-hint">0..120 seconds (0 = disabled)</span><span class="config-comment">// n. Time limit n=0..120 seconds. Use 0 to disable.</span>
     </div>
     <div class="field-row">
       <label class="field-label">GUIDE_DISABLE_BACKLASH <span class="hint-tag hint-option">Option</span></label>
       <select id="GUIDE_DISABLE_BACKLASH"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Disable backlash during guiding</span>
+      <span class="field-hint">Disable backlash during guiding</span><span class="config-comment">// Disable backlash takeup during guiding at &lt;= 1X.</span>
     </div>
     <div class="field-row">
       <label class="field-label">LIMIT_SENSE <span class="hint-tag hint-option">Option</span></label>
       <select id="LIMIT_SENSE"><option value="OFF">OFF</option><option value="HIGH">HIGH</option><option value="LOW" selected>LOW</option></select>
-      <span class="field-hint">Limit switch state</span>
+      <span class="field-hint">Limit switch state</span><span class="config-comment">// HIGH or LOW state on limit sense switch stops movement.</span>
     </div>
     <div class="field-row">
       <label class="field-label">LIMIT_STRICT <span class="hint-tag hint-option">Option</span></label>
       <select id="LIMIT_STRICT"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Enable limits at startup</span>
+      <span class="field-hint">Enable limits at startup</span><span class="config-comment">// disables limits until unpark goto or sync. ON enables limits at startup.</span>
     </div>
     <div class="field-row">
       <label class="field-label">PARK_SENSE <span class="hint-tag hint-option">Option</span></label>
       <select id="PARK_SENSE"><option value="OFF" selected>OFF</option><option value="HIGH">HIGH</option><option value="LOW">LOW</option></select>
-      <span class="field-hint">Park orientation sensor</span>
+      <span class="field-hint">Park orientation sensor</span><span class="config-comment">// HIGH or LOW state indicates mount is in the park orientation.</span>
     </div>
     <div class="field-row">
       <label class="field-label">PARK_SIGNAL <span class="hint-tag hint-option">Option</span></label>
       <select id="PARK_SIGNAL"><option value="OFF" selected>OFF</option><option value="HIGH">HIGH</option><option value="LOW">LOW</option></select>
-      <span class="field-hint">Park input signal trigger</span>
+      <span class="field-hint">Park input signal trigger</span><span class="config-comment">// HIGH or LOW state park input signal triggers parking.</span>
     </div>
     <div class="field-row">
       <label class="field-label">PARK_STATUS <span class="hint-tag hint-option">Option</span></label>
       <select id="PARK_STATUS"><option value="OFF" selected>OFF</option><option value="HIGH">HIGH</option><option value="LOW">LOW</option></select>
-      <span class="field-hint">Park status output</span>
+      <span class="field-hint">Park status output</span><span class="config-comment">// signals with a HIGH or LOW state when successfully parked.</span>
     </div>
   </div>
   <div class="section">
@@ -1403,17 +1416,17 @@
     <div class="field-row">
       <label class="field-label">PEC_STEPS_PER_WORM_ROTATION <span class="hint-tag hint-reqd">Req'd</span></label>
       <input type="text" id="PEC_STEPS_PER_WORM_ROTATION" value="0">
-      <span class="field-hint">0 disables, use Calculator tab</span>
+      <span class="field-hint">0 disables, use Calculator tab</span><span class="config-comment">// n. Steps per worm rotation (0 disables else 720 sec buffer allocated.)</span>
     </div>
     <div class="field-row">
       <label class="field-label">PEC_SENSE <span class="hint-tag hint-option">Option</span></label>
       <select id="PEC_SENSE"><option value="OFF" selected>OFF</option><option value="HIGH">HIGH</option><option value="LOW">LOW</option></select>
-      <span class="field-hint">PEC sensor edge</span>
+      <span class="field-hint">PEC sensor edge</span><span class="config-comment">// HIGH. Senses the PEC signal rising edge or use LOW for falling edge.</span>
     </div>
     <div class="field-row">
       <label class="field-label">PEC_BUFFER_SIZE_LIMIT <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="number" id="PEC_BUFFER_SIZE_LIMIT" value="720">
-      <span class="field-hint">Seconds of PEC buffer</span>
+      <span class="field-hint">Seconds of PEC buffer</span><span class="config-comment">// Seconds of PEC buffer allowed.</span>
     </div>
   </div>
   <div class="section">
@@ -1421,12 +1434,12 @@
     <div class="field-row">
       <label class="field-label">TRACK_BACKLASH_RATE <span class="hint-tag hint-option">Option</span></label>
       <input type="number" id="TRACK_BACKLASH_RATE" value="20" min="2" max="50">
-      <span class="field-hint">2..50 (x sidereal rate)</span>
+      <span class="field-hint">2..50 (x sidereal rate)</span><span class="config-comment">// n. Where n=2..50 (x sidereal rate) during backlash takeup.</span>
     </div>
     <div class="field-row">
       <label class="field-label">TRACK_AUTOSTART <span class="hint-tag hint-option">Option</span></label>
       <select id="TRACK_AUTOSTART"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Start with tracking enabled</span>
+      <span class="field-hint">Start with tracking enabled</span><span class="config-comment">// ON Start with tracking enabled.</span>
     </div>
     <div class="field-row">
       <label class="field-label">TRACK_COMPENSATION_DEFAULT <span class="hint-tag hint-option">Option</span></label>
@@ -1437,47 +1450,47 @@
         <option value="MODEL">MODEL</option>
         <option value="MODEL_DUAL">MODEL_DUAL</option>
       </select>
-      <span class="field-hint">Tracking compensation</span>
+      <span class="field-hint">Tracking compensation</span><span class="config-comment">// No compensation or REFRACTION, REFRACTION_DUAL, MODEL, MODEL_DUAL.</span>
     </div>
     <div class="field-row">
       <label class="field-label">TRACK_COMPENSATION_MEMORY <span class="hint-tag hint-option">Option</span></label>
       <select id="TRACK_COMPENSATION_MEMORY"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Remember compensation setting</span>
+      <span class="field-hint">Remember compensation setting</span><span class="config-comment">// ON Remembers refraction/pointing model compensated tracking settings.</span>
     </div>
     <div class="field-row">
       <label class="field-label">SLEW_RATE_BASE_DESIRED <span class="hint-tag hint-reqd">Req'd</span></label>
       <input type="number" id="SLEW_RATE_BASE_DESIRED" value="4.0" step="0.5">
-      <span class="field-hint">&deg;/sec base slew rate</span>
+      <span class="field-hint">&deg;/sec base slew rate</span><span class="config-comment">// n. Desired slew rate in deg/sec. Adjustable at run-time from</span>
     </div>
     <div class="field-row">
       <label class="field-label">SLEW_RATE_MEMORY <span class="hint-tag hint-option">Option</span></label>
       <select id="SLEW_RATE_MEMORY"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Remember slew rate</span>
+      <span class="field-hint">Remember slew rate</span><span class="config-comment">// ON Remembers rates set across power cycles.</span>
     </div>
     <div class="field-row">
       <label class="field-label">SLEW_ACCELERATION_DIST <span class="hint-tag hint-adjust">Adjust</span></label>
       <input type="number" id="SLEW_ACCELERATION_DIST" value="5.0" step="0.5">
-      <span class="field-hint">Degrees for acceleration</span>
+      <span class="field-hint">Degrees for acceleration</span><span class="config-comment">// n, (degrees.) Approx. distance for acceleration (and deceleration.)</span>
     </div>
     <div class="field-row">
       <label class="field-label">SLEW_RAPID_STOP_DIST <span class="hint-tag hint-adjust">Adjust</span></label>
       <input type="number" id="SLEW_RAPID_STOP_DIST" value="2.0" step="0.5">
-      <span class="field-hint">Degrees to stop on abort</span>
+      <span class="field-hint">Degrees to stop on abort</span><span class="config-comment">// n, (degrees.) Approx. distance required to stop when a slew</span>
     </div>
     <div class="field-row">
       <label class="field-label">GOTO_FEATURE <span class="hint-tag hint-infreq">Infreq</span></label>
       <select id="GOTO_FEATURE"><option value="ON" selected>ON</option><option value="OFF">OFF</option></select>
-      <span class="field-hint">Enable Goto features</span>
+      <span class="field-hint">Enable Goto features</span><span class="config-comment">// Use OFF to disable mount Goto features.</span>
     </div>
     <div class="field-row">
       <label class="field-label">GOTO_OFFSET <span class="hint-tag hint-adjust">Adjust</span></label>
       <input type="number" id="GOTO_OFFSET" value="0.25" step="0.05">
-      <span class="field-hint">Degrees offset for unidirectional approach</span>
+      <span class="field-hint">Degrees offset for unidirectional approach</span><span class="config-comment">// Offset in deg's for goto target unidirectional approach, 0.0 disables</span>
     </div>
     <div class="field-row">
       <label class="field-label">GOTO_OFFSET_ALIGN <span class="hint-tag hint-option">Option</span></label>
       <select id="GOTO_OFFSET_ALIGN"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Skip final goto phase for alignment stars</span>
+      <span class="field-hint">Skip final goto phase for alignment stars</span><span class="config-comment">// ON skips final phase of goto for align stars so user tends to approach</span>
     </div>
   </div>
   <div class="section">
@@ -1485,32 +1498,32 @@
     <div class="field-row">
       <label class="field-label">MFLIP_SKIP_HOME <span class="hint-tag hint-option">Option</span></label>
       <select id="MFLIP_SKIP_HOME"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Skip home during meridian flip</span>
+      <span class="field-hint">Skip home during meridian flip</span><span class="config-comment">// ON Goto directly to the destination without visiting home position.</span>
     </div>
     <div class="field-row">
       <label class="field-label">MFLIP_AUTOMATIC_DEFAULT <span class="hint-tag hint-option">Option</span></label>
       <select id="MFLIP_AUTOMATIC_DEFAULT"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Auto meridian flips at startup</span>
+      <span class="field-hint">Auto meridian flips at startup</span><span class="config-comment">// ON Start with automatic meridian flips enabled.</span>
     </div>
     <div class="field-row">
       <label class="field-label">MFLIP_AUTOMATIC_MEMORY <span class="hint-tag hint-option">Option</span></label>
       <select id="MFLIP_AUTOMATIC_MEMORY"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Remember auto flip setting</span>
+      <span class="field-hint">Remember auto flip setting</span><span class="config-comment">// ON Remember automatic meridian flip setting across power cycles.</span>
     </div>
     <div class="field-row">
       <label class="field-label">MFLIP_PAUSE_HOME_DEFAULT <span class="hint-tag hint-infreq">Infreq</span></label>
       <select id="MFLIP_PAUSE_HOME_DEFAULT"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Pause at home during flip</span>
+      <span class="field-hint">Pause at home during flip</span><span class="config-comment">// ON Start with meridian flip pause at home enabed.</span>
     </div>
     <div class="field-row">
       <label class="field-label">MFLIP_PAUSE_HOME_MEMORY <span class="hint-tag hint-infreq">Infreq</span></label>
       <select id="MFLIP_PAUSE_HOME_MEMORY"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Remember pause setting</span>
+      <span class="field-hint">Remember pause setting</span><span class="config-comment">// ON Remember meridian flip pause at home setting across power cycles.</span>
     </div>
     <div class="field-row">
       <label class="field-label">PIER_SIDE_SYNC_CHANGE_SIDES <span class="hint-tag hint-option">Option</span></label>
       <select id="PIER_SIDE_SYNC_CHANGE_SIDES"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Sync can change pier side (GEM)</span>
+      <span class="field-hint">Sync can change pier side (GEM)</span><span class="config-comment">// ON Allows sync to change pier side, for GEM mounts.</span>
     </div>
     <div class="field-row">
       <label class="field-label">PIER_SIDE_PREFERRED_DEFAULT <span class="hint-tag hint-option">Option</span></label>
@@ -1518,27 +1531,27 @@
         <option value="BEST" selected>BEST</option><option value="EAST">EAST</option>
         <option value="WEST">WEST</option><option value="AUTOMATIC">AUTOMATIC</option>
       </select>
-      <span class="field-hint">Preferred pier side</span>
+      <span class="field-hint">Preferred pier side</span><span class="config-comment">// BEST Stays on current side if possible. EAST or WEST switch if possible.</span>
     </div>
     <div class="field-row">
       <label class="field-label">PIER_SIDE_PREFERRED_MEMORY <span class="hint-tag hint-option">Option</span></label>
       <select id="PIER_SIDE_PREFERRED_MEMORY"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Remember pier side setting</span>
+      <span class="field-hint">Remember pier side setting</span><span class="config-comment">// ON Remember preferred pier side setting across power cycles.</span>
     </div>
     <div class="field-row">
       <label class="field-label">ALIGN_AUTO_HOME <span class="hint-tag hint-option">Option</span></label>
       <select id="ALIGN_AUTO_HOME"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Use home switches for alignment</span>
+      <span class="field-hint">Use home switches for alignment</span><span class="config-comment">// ON uses home switches to find home first when starting an align.</span>
     </div>
     <div class="field-row">
       <label class="field-label">ALIGN_MODEL_MEMORY <span class="hint-tag hint-option">Option</span></label>
       <select id="ALIGN_MODEL_MEMORY"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Restore pointing model from NV</span>
+      <span class="field-hint">Restore pointing model from NV</span><span class="config-comment">// ON Restores any pointing model saved in NV at startup.</span>
     </div>
     <div class="field-row">
       <label class="field-label">ALIGN_MAX_STARS <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="text" id="ALIGN_MAX_STARS" value="AUTO">
-      <span class="field-hint">AUTO or 1, 3..9</span>
+      <span class="field-hint">AUTO or 1, 3..9</span><span class="config-comment">// Uses HAL specified default (either 6 or 9 stars.)</span>
     </div>
   </div>
 </div>
@@ -1565,32 +1578,32 @@
         <option value="SERVO_PE">SERVO_PE — DC servo, phase + enable PWM</option>
         <option value="SERVO_EE">SERVO_EE — DC servo, dual PWM (enable/enable)</option>
       </select>
-      <span class="field-hint">Motor driver model</span>
+      <span class="field-hint">Motor driver model</span><span class="config-comment">// Enter motor driver model (above) to activate the rotator.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS3_SLEW_RATE_BASE_DESIRED <span class="hint-tag hint-reqd">Req'd</span></label>
       <input type="number" id="AXIS3_SLEW_RATE_BASE_DESIRED" value="1.5" step="0.1">
-      <span class="field-hint">&deg;/sec slew rate</span>
+      <span class="field-hint">&deg;/sec slew rate</span><span class="config-comment">// n. Desired slew rate in deg/sec. Adjustable at run-time from</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS3_STEPS_PER_DEGREE <span class="hint-tag hint-adjust">Adjust</span></label>
       <input type="text" id="AXIS3_STEPS_PER_DEGREE" value="65.1852">
-      <span class="field-hint">Steps per degree (use Calculator)</span>
+      <span class="field-hint">Steps per degree (use Calculator)</span><span class="config-comment">// n. Number of steps per degree for rotator/de-rotator.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS3_REVERSE <span class="hint-tag hint-option">Option</span></label>
       <select id="AXIS3_REVERSE"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Reverse direction</span>
+      <span class="field-hint">Reverse direction</span><span class="config-comment">// ON Reverses movement direction, or reverse wiring instead to correct.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS3_LIMIT_MIN <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="number" id="AXIS3_LIMIT_MIN" value="0" min="-360" max="0">
-      <span class="field-hint">-360..0 degrees</span>
+      <span class="field-hint">-360..0 degrees</span><span class="config-comment">// n. Where n=-360..0 (degrees.) Minimum allowed rotator angle.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS3_LIMIT_MAX <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="number" id="AXIS3_LIMIT_MAX" value="360" min="0" max="360">
-      <span class="field-hint">0..360 degrees</span>
+      <span class="field-hint">0..360 degrees</span><span class="config-comment">// n. Where n=0..360 (degrees.) Maximum allowed rotator angle.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS3_DRIVER_MICROSTEPS <span class="hint-tag hint-option">Option</span></label>
@@ -1600,7 +1613,7 @@
         <option value="32" selected>32</option><option value="64">64</option>
         <option value="128">128</option><option value="256">256</option>
       </select>
-      <span class="field-hint">Microstep mode tracking</span>
+      <span class="field-hint">Microstep mode tracking</span><span class="config-comment">// n. Microstep mode when tracking.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS3_DRIVER_MICROSTEPS_GOTO <span class="hint-tag hint-option">Option</span></label>
@@ -1609,57 +1622,57 @@
         <option value="4">4</option><option value="8">8</option><option value="16">16</option>
         <option value="32">32</option><option value="64">64</option>
       </select>
-      <span class="field-hint">Microstep mode slewing</span>
+      <span class="field-hint">Microstep mode slewing</span><span class="config-comment">// n. Microstep mode used during slews. OFF uses _DRIVER_MICROSTEPS.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS3_DRIVER_IHOLD <span class="hint-tag hint-option">Option</span></label>
       <input type="text" id="AXIS3_DRIVER_IHOLD" value="OFF">
-      <span class="field-hint">OFF or mA</span>
+      <span class="field-hint">OFF or mA</span><span class="config-comment">// n, (mA.) Current during standstill. OFF uses IRUN/2.0</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS3_DRIVER_IRUN <span class="hint-tag hint-option">Option</span></label>
       <input type="text" id="AXIS3_DRIVER_IRUN" value="600">
-      <span class="field-hint">OFF or mA</span>
+      <span class="field-hint">OFF or mA</span><span class="config-comment">// n, (mA.) Current during tracking, appropriate for stepper/driver/etc.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS3_DRIVER_IGOTO <span class="hint-tag hint-option">Option</span></label>
       <input type="text" id="AXIS3_DRIVER_IGOTO" value="OFF">
-      <span class="field-hint">OFF or mA</span>
+      <span class="field-hint">OFF or mA</span><span class="config-comment">// n, (mA.) Current during slews. OFF uses IRUN.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS3_DRIVER_STATUS <span class="hint-tag hint-option">Option</span></label>
       <select id="AXIS3_DRIVER_STATUS"><option value="OFF" selected>OFF</option><option value="ON">ON</option><option value="HIGH">HIGH</option><option value="LOW">LOW</option></select>
-      <span class="field-hint">Status/fault detection</span>
+      <span class="field-hint">Status/fault detection</span><span class="config-comment">// ON, HIGH, or LOW. For driver status info/fault detection.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS3_DRIVER_DECAY <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="text" id="AXIS3_DRIVER_DECAY" value="OFF">
-      <span class="field-hint">Tracking decay override</span>
+      <span class="field-hint">Tracking decay override</span><span class="config-comment">// Tracking decay mode default override. TMC default is STEALTHCHOP.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS3_DRIVER_DECAY_GOTO <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="text" id="AXIS3_DRIVER_DECAY_GOTO" value="OFF">
-      <span class="field-hint">Goto decay override</span>
+      <span class="field-hint">Goto decay override</span><span class="config-comment">// Decay mode goto default override. TMC default is SPREADCYCLE.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS3_POWER_DOWN <span class="hint-tag hint-option">Option</span></label>
       <select id="AXIS3_POWER_DOWN"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Power off after stop</span>
+      <span class="field-hint">Power off after stop</span><span class="config-comment">// ON Powers off 30 seconds after movement stops.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS3_SENSE_HOME <span class="hint-tag hint-option">Option</span></label>
       <select id="AXIS3_SENSE_HOME"><option value="OFF" selected>OFF</option><option value="HIGH">HIGH</option><option value="LOW">LOW</option></select>
-      <span class="field-hint">Home position sense</span>
+      <span class="field-hint">Home position sense</span><span class="config-comment">// HIGH or LOW enables &amp; state clockwise home position, as seen from above.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS3_SENSE_LIMIT_MIN <span class="hint-tag hint-option">Option</span></label>
       <select id="AXIS3_SENSE_LIMIT_MIN"><option value="OFF" selected>OFF</option><option value="HIGH">HIGH</option><option value="LOW">LOW</option></select>
-      <span class="field-hint">Min limit switch</span>
+      <span class="field-hint">Min limit switch</span><span class="config-comment">// HIGH or LOW state on limit sense switch stops movement.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS3_SENSE_LIMIT_MAX <span class="hint-tag hint-option">Option</span></label>
       <select id="AXIS3_SENSE_LIMIT_MAX"><option value="OFF" selected>OFF</option><option value="HIGH">HIGH</option><option value="LOW">LOW</option></select>
-      <span class="field-hint">Max limit switch</span>
+      <span class="field-hint">Max limit switch</span><span class="config-comment">// HIGH or LOW state on limit sense switch stops movement.</span>
     </div>
   </div>
 </div>
@@ -1686,37 +1699,37 @@
         <option value="SERVO_PE">SERVO_PE — DC servo, phase + enable PWM</option>
         <option value="SERVO_EE">SERVO_EE — DC servo, dual PWM (enable/enable)</option>
       </select>
-      <span class="field-hint">Motor driver model</span>
+      <span class="field-hint">Motor driver model</span><span class="config-comment">// Enter motor driver model (above) to activate the focuser.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_SLEW_RATE_BASE_DESIRED <span class="hint-tag hint-reqd">Req'd</span></label>
       <input type="number" id="AXIS4_SLEW_RATE_BASE_DESIRED" value="500" min="200" max="5000">
-      <span class="field-hint">200..5000 &mu;m/s slew rate</span>
+      <span class="field-hint">200..5000 &mu;m/s slew rate</span><span class="config-comment">// n, Where n=200..5000 (um/s.) Adjustable at run-time from</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_SLEW_RATE_MINIMUM <span class="hint-tag hint-adjust">Adjust</span></label>
       <input type="number" id="AXIS4_SLEW_RATE_MINIMUM" value="20" min="5" max="200">
-      <span class="field-hint">5..200 &mu;m/s minimum</span>
+      <span class="field-hint">5..200 &mu;m/s minimum</span><span class="config-comment">// n. Where n=5..200 (um/s.) Minimum microns/second.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_STEPS_PER_MICRON <span class="hint-tag hint-adjust">Adjust</span></label>
       <input type="number" id="AXIS4_STEPS_PER_MICRON" value="0.5" step="0.1">
-      <span class="field-hint">Steps per micrometer</span>
+      <span class="field-hint">Steps per micrometer</span><span class="config-comment">// n. Steps per micrometer. Figure this out by testing or other means.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_REVERSE <span class="hint-tag hint-option">Option</span></label>
       <select id="AXIS4_REVERSE"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Reverse direction</span>
+      <span class="field-hint">Reverse direction</span><span class="config-comment">// ON Reverses movement direction, or reverse wiring instead to correct.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_LIMIT_MIN <span class="hint-tag hint-adjust">Adjust</span></label>
       <input type="number" id="AXIS4_LIMIT_MIN" value="0" min="0" max="500">
-      <span class="field-hint">0..500 mm minimum</span>
+      <span class="field-hint">0..500 mm minimum</span><span class="config-comment">// n. Where n=0..500 (millimeters.) Minimum allowed position.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_LIMIT_MAX <span class="hint-tag hint-adjust">Adjust</span></label>
       <input type="number" id="AXIS4_LIMIT_MAX" value="70" min="0" max="500">
-      <span class="field-hint">0..500 mm maximum</span>
+      <span class="field-hint">0..500 mm maximum</span><span class="config-comment">// n. Where n=0..500 (millimeters.) Maximum allowed position.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_DRIVER_MICROSTEPS <span class="hint-tag hint-option">Option</span></label>
@@ -1726,7 +1739,7 @@
         <option value="32" selected>32</option><option value="64">64</option>
         <option value="128">128</option><option value="256">256</option>
       </select>
-      <span class="field-hint">Microstep mode</span>
+      <span class="field-hint">Microstep mode</span><span class="config-comment">// n. Microstep mode when tracking.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_DRIVER_MICROSTEPS_GOTO <span class="hint-tag hint-option">Option</span></label>
@@ -1735,62 +1748,62 @@
         <option value="4">4</option><option value="8">8</option><option value="16">16</option>
         <option value="32">32</option>
       </select>
-      <span class="field-hint">Microstep mode slewing</span>
+      <span class="field-hint">Microstep mode slewing</span><span class="config-comment">// n. Microstep mode used during slews. OFF uses _DRIVER_MICROSTEPS.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_DRIVER_IHOLD <span class="hint-tag hint-option">Option</span></label>
       <input type="text" id="AXIS4_DRIVER_IHOLD" value="OFF">
-      <span class="field-hint">OFF or mA</span>
+      <span class="field-hint">OFF or mA</span><span class="config-comment">// n, (mA.) Current during standstill. OFF uses IRUN/2.0</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_DRIVER_IRUN <span class="hint-tag hint-option">Option</span></label>
       <input type="text" id="AXIS4_DRIVER_IRUN" value="300">
-      <span class="field-hint">OFF or mA</span>
+      <span class="field-hint">OFF or mA</span><span class="config-comment">// n, (mA.) Current during tracking, appropriate for stepper/driver/etc.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_DRIVER_IGOTO <span class="hint-tag hint-option">Option</span></label>
       <input type="text" id="AXIS4_DRIVER_IGOTO" value="OFF">
-      <span class="field-hint">OFF or mA</span>
+      <span class="field-hint">OFF or mA</span><span class="config-comment">// n, (mA.) Current during slews. OFF uses IRUN.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_DRIVER_STATUS <span class="hint-tag hint-option">Option</span></label>
       <select id="AXIS4_DRIVER_STATUS"><option value="OFF" selected>OFF</option><option value="ON">ON</option><option value="HIGH">HIGH</option><option value="LOW">LOW</option></select>
-      <span class="field-hint">Status/fault detection</span>
+      <span class="field-hint">Status/fault detection</span><span class="config-comment">// ON, HIGH, or LOW. For driver status info/fault detection.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_DRIVER_DECAY <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="text" id="AXIS4_DRIVER_DECAY" value="OFF">
-      <span class="field-hint">Tracking decay override</span>
+      <span class="field-hint">Tracking decay override</span><span class="config-comment">// Tracking decay mode default override. TMC default is STEALTHCHOP.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_DRIVER_DECAY_GOTO <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="text" id="AXIS4_DRIVER_DECAY_GOTO" value="OFF">
-      <span class="field-hint">Goto decay override</span>
+      <span class="field-hint">Goto decay override</span><span class="config-comment">// Decay mode goto default override. TMC default is SPREADCYCLE.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_POWER_DOWN <span class="hint-tag hint-option">Option</span></label>
       <select id="AXIS4_POWER_DOWN"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Power off after stop</span>
+      <span class="field-hint">Power off after stop</span><span class="config-comment">// ON Powers off 30 seconds after movement stops.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_SENSE_HOME <span class="hint-tag hint-option">Option</span></label>
       <select id="AXIS4_SENSE_HOME"><option value="OFF" selected>OFF</option><option value="HIGH">HIGH</option><option value="LOW">LOW</option></select>
-      <span class="field-hint">Home sense</span>
+      <span class="field-hint">Home sense</span><span class="config-comment">// HIGH or LOW enables &amp; state clockwise home position, as seen from above.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_SENSE_LIMIT_MIN <span class="hint-tag hint-option">Option</span></label>
       <select id="AXIS4_SENSE_LIMIT_MIN"><option value="OFF" selected>OFF</option><option value="HIGH">HIGH</option><option value="LOW">LOW</option></select>
-      <span class="field-hint">Min limit</span>
+      <span class="field-hint">Min limit</span><span class="config-comment">// HIGH or LOW state on limit sense switch stops movement.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_SENSE_LIMIT_MAX <span class="hint-tag hint-option">Option</span></label>
       <select id="AXIS4_SENSE_LIMIT_MAX"><option value="OFF" selected>OFF</option><option value="HIGH">HIGH</option><option value="LOW">LOW</option></select>
-      <span class="field-hint">Max limit</span>
+      <span class="field-hint">Max limit</span><span class="config-comment">// HIGH or LOW state on limit sense switch stops movement.</span>
     </div>
     <div class="field-row">
       <label class="field-label">FOCUSER_TEMPERATURE <span class="hint-tag hint-adjust">Adjust</span></label>
       <input type="text" id="FOCUSER_TEMPERATURE" value="OFF">
-      <span class="field-hint">OFF, THERMISTOR, or DS18B20 s/n</span>
+      <span class="field-hint">OFF, THERMISTOR, or DS18B20 s/n</span><span class="config-comment">// THERMISTOR or n. Where n is the ds18b20 s/n for focuser temp.</span>
     </div>
   </div>
 </div>
@@ -1814,7 +1827,7 @@
         <option value="L_it">L_it (Italian)</option>
         <option value="L_pt">L_pt (Portuguese)</option>
       </select>
-      <span class="field-hint">UI language (must be one supported by the SHC source)</span>
+      <span class="field-hint">UI language (must be one supported by the SHC source)</span><span class="config-comment">// English. Specify language with two letter country code, if supported.</span>
     </div>
     <div class="field-row">
       <label class="field-label">DISPLAY_OLED <span class="hint-tag hint-reqd">Req'd</span></label>
@@ -1823,7 +1836,7 @@
         <option value="SSD1306">SSD1306 (0.96" I2C)</option>
         <option value="SSD1309">SSD1309 (1.54" / 2.3" I2C)</option>
       </select>
-      <span class="field-hint">OLED model in your hand controller</span>
+      <span class="field-hint">OLED model in your hand controller</span><span class="config-comment">// OLED 1.3" I2C display commonly used. SSD1306 is a 0.96" OLED display.</span>
     </div>
     <div class="field-row">
       <label class="field-label">DISPLAY_AMBIENT_CONDITIONS <span class="hint-tag hint-infreq">Infreq</span></label>
@@ -1831,7 +1844,7 @@
         <option value="OFF" selected>OFF</option>
         <option value="ON">ON</option>
       </select>
-      <span class="field-hint">Show weather (temp/pressure/humidity) in display rotation</span>
+      <span class="field-hint">Show weather (temp/pressure/humidity) in display rotation</span><span class="config-comment">// ON to show ambient conditions in the display rotation</span>
     </div>
     <div class="field-row">
       <label class="field-label">DISPLAY_WRAP_MENUS <span class="hint-tag hint-infreq">Infreq</span></label>
@@ -1839,7 +1852,7 @@
         <option value="OFF" selected>OFF</option>
         <option value="ON">ON</option>
       </select>
-      <span class="field-hint">Allow menus to wrap around (bottom &rarr; top)</span>
+      <span class="field-hint">Allow menus to wrap around (bottom &rarr; top)</span><span class="config-comment">// ON allows menus to wrap so moving past bottom returns to top, etc.</span>
     </div>
     <div class="field-row">
       <label class="field-label">DISPLAY_24HR_TIME <span class="hint-tag hint-adjust">Adjust</span></label>
@@ -1847,7 +1860,7 @@
         <option value="ON" selected>ON (24-hour)</option>
         <option value="OFF">OFF (12-hour)</option>
       </select>
-      <span class="field-hint">Time entry / display format</span>
+      <span class="field-hint">Time entry / display format</span><span class="config-comment">// OFF to use 12 hour format for entering time.</span>
     </div>
     <div class="field-row">
       <label class="field-label">DISPLAY_CONTRAST_DEFAULT <span class="hint-tag hint-infreq">Infreq</span></label>
@@ -1857,7 +1870,7 @@
         <option value="2">2 (High)</option>
         <option value="3">3 (Max)</option>
       </select>
-      <span class="field-hint">Initial OLED contrast (user can change in-menu later)</span>
+      <span class="field-hint">Initial OLED contrast (user can change in-menu later)</span><span class="config-comment">// Use 0 to 3 for Min, Low, High, Max respectively.</span>
     </div>
   </div>
 
@@ -1869,12 +1882,12 @@
         <option value="OFF" selected>OFF</option>
         <option value="JS1">JS1 (Jerry's analog joystick)</option>
       </select>
-      <span class="field-hint">Optional analog joystick add-on</span>
+      <span class="field-hint">Optional analog joystick add-on</span><span class="config-comment">// JS1 for Jerry's analog joystick</span>
     </div>
     <div class="field-row">
       <label class="field-label">KEYPAD_JOYSTICK_HYSTERESIS <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="number" id="SHC_KEYPAD_JOYSTICK_HYSTERESIS" value="200" min="0" max="2048" step="10">
-      <span class="field-hint">Joystick deadband in ADC counts (larger = less sensitive)</span>
+      <span class="field-hint">Joystick deadband in ADC counts (larger = less sensitive)</span><span class="config-comment">// Sensitivity of joystick in ADC counts (larger is less sensitive)</span>
     </div>
   </div>
 </div>
@@ -1898,7 +1911,7 @@
         <option value="Serial2">Serial2 (UART2)</option>
         <option value="OFF">OFF (radio only)</option>
       </select>
-      <span class="field-hint">Wired link to the mount controller</span>
+      <span class="field-hint">Wired link to the mount controller</span><span class="config-comment">// Allow SERIAL_ST4 OnStep connections using its ST4 port synchronous</span>
     </div>
     <div class="field-row">
       <label class="field-label">SERIAL_ONSTEP_BAUD_DEFAULT <span class="hint-tag hint-infreq">Infreq</span></label>
@@ -1908,7 +1921,7 @@
         <option value="57600">57600</option>
         <option value="115200">115200</option>
       </select>
-      <span class="field-hint">Baud rate for async serial mode (ignored for SERIAL_ST4)</span>
+      <span class="field-hint">Baud rate for async serial mode (ignored for SERIAL_ST4)</span><span class="config-comment">// Common baud rates for these parameters are 9600,19200,57600,115200.</span>
     </div>
     <div class="field-row">
       <label class="field-label">SERIAL_RADIO <span class="hint-tag hint-adjust">Adjust</span></label>
@@ -1918,7 +1931,7 @@
         <option value="WIFI_STATION">WIFI_STATION (ESP32 only)</option>
         <option value="BOTH">BOTH (ESP32 only)</option>
       </select>
-      <span class="field-hint">Wireless link to OnStep (ESP32 builds only)</span>
+      <span class="field-hint">Wireless link to OnStep (ESP32 builds only)</span><span class="config-comment">// Allow BLUETOOTH, WIFI_STATION, or BOTH OnStep connections (ESP32 only.)</span>
     </div>
   </div>
 </div>
@@ -1936,7 +1949,7 @@
         <option value="BMP280">BMP280 (I2C 0x77, T+P)</option>
         <option value="BMP280_0x76">BMP280_0x76 (I2C 0x76, T+P)</option>
       </select>
-      <span class="field-hint">Optional ambient sensor on the I2C bus</span>
+      <span class="field-hint">Optional ambient sensor on the I2C bus</span><span class="config-comment">// BME280 (I2C 0x77,) BME280_0x76, BMP280 (I2C 0x77,) BMP280_0x76</span>
     </div>
   </div>
 
@@ -1945,7 +1958,7 @@
     <div class="field-row">
       <label class="field-label">UTILITY_LIGHT <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="text" id="SHC_UTILITY_LIGHT" value="OFF" maxlength="5" pattern="OFF|[0-9]+">
-      <span class="field-hint">OFF, or 0&ndash;255 brightness (0&ndash;100%) for the utility LED</span>
+      <span class="field-hint">OFF, or 0&ndash;255 brightness (0&ndash;100%) for the utility LED</span><span class="config-comment">// n. Where n=0..255 (0..100%) activates feature sets default brightness.</span>
     </div>
     <div class="field-row">
       <label class="field-label">ST4_AUX_INTERFACE <span class="hint-tag hint-infreq">Infreq</span></label>
@@ -1953,7 +1966,7 @@
         <option value="OFF" selected>OFF</option>
         <option value="ON">ON</option>
       </select>
-      <span class="field-hint">Pass-through ST4 jack for autoguider</span>
+      <span class="field-hint">Pass-through ST4 jack for autoguider</span><span class="config-comment">// ON enables auxillary "pass-through" ST4 interface.</span>
     </div>
   </div>
 </div>
@@ -1965,7 +1978,7 @@
     <div class="field-row">
       <label class="field-label">HOST_NAME <span class="hint-tag hint-adjust">Adjust</span></label>
       <input type="text" id="SWS_HOST_NAME" value="OnStep-SWS" maxlength="16">
-      <span class="field-hint">Device name (≤16 chars). Becomes mDNS "onstepsws.local"</span>
+      <span class="field-hint">Device name (≤16 chars). Becomes mDNS "onstepsws.local"</span><span class="config-comment">// This devices name up to 16 chars (collapses to mDNS name "onstepsws".)</span>
     </div>
     <div class="field-row">
       <label class="field-label">OPERATIONAL_MODE <span class="hint-tag hint-reqd">Req'd</span></label>
@@ -1974,7 +1987,7 @@
         <option value="ETHERNET_W5100">ETHERNET_W5100 (SPI shield)</option>
         <option value="ETHERNET_W5500">ETHERNET_W5500 (SPI shield)</option>
       </select>
-      <span class="field-hint">Network stack. WIFI is the most common choice on ESP32/ESP8266.</span>
+      <span class="field-hint">Network stack. WIFI is the most common choice on ESP32/ESP8266.</span><span class="config-comment">// Or use ETHERNET_W5100 or ETHERNET_W5500</span>
     </div>
   </div>
 
@@ -1988,7 +2001,7 @@
         <option value="57600">57600</option>
         <option value="115200">115200</option>
       </select>
-      <span class="field-hint">Startup baud used to talk to OnStep</span>
+      <span class="field-hint">Startup baud used to talk to OnStep</span><span class="config-comment">// Common baud rates for this parameter are 9600,19200,57600,115200,etc.</span>
     </div>
     <div class="field-row">
       <label class="field-label">SERIAL_BAUD <span class="hint-tag hint-infreq">Infreq</span></label>
@@ -1999,7 +2012,7 @@
         <option value="230400">230400</option>
         <option value="460800">460800</option>
       </select>
-      <span class="field-hint">Negotiated baud after connection (not all devices support &gt; 115200)</span>
+      <span class="field-hint">Negotiated baud after connection (not all devices support &gt; 115200)</span><span class="config-comment">// Or use 19200,57600,115200,230400,460800 (not all devices support &gt; 115200)</span>
     </div>
     <div class="field-row">
       <label class="field-label">SERIAL_SWAP <span class="hint-tag hint-infreq">Infreq</span></label>
@@ -2008,7 +2021,7 @@
         <option value="ON">ON (swapped port)</option>
         <option value="OFF">OFF (default port)</option>
       </select>
-      <span class="field-hint">ESP8266-style TX/RX swap selection</span>
+      <span class="field-hint">ESP8266-style TX/RX swap selection</span><span class="config-comment">// Automatic check both, ON for swapped port or OFF for default port only.</span>
     </div>
   </div>
 
@@ -2020,7 +2033,7 @@
         <option value="ON" selected>ON</option>
         <option value="OFF">OFF</option>
       </select>
-      <span class="field-hint">Onboard LED blinks while connecting, steady once connected</span>
+      <span class="field-hint">Onboard LED blinks while connecting, steady once connected</span><span class="config-comment">// Enable LED flashes while connecting then steady once connected.</span>
     </div>
   </div>
 
@@ -2035,7 +2048,7 @@
         <option value="PROFILER">PROFILER</option>
         <option value="REMOTE">REMOTE</option>
       </select>
-      <span class="field-hint">Leave OFF for production. ON / VERBOSE prints to SERIAL_DEBUG; REMOTE streams over the network.</span>
+      <span class="field-hint">Leave OFF for production. ON / VERBOSE prints to SERIAL_DEBUG; REMOTE streams over the network.</span><span class="config-comment">// Use ON for background error messages only, use VERBOSE for all</span>
     </div>
     <div class="field-row">
       <label class="field-label">SERIAL_DEBUG <span class="hint-tag hint-infreq">Infreq</span></label>
@@ -2044,7 +2057,7 @@
         <option value="Serial1">Serial1</option>
         <option value="Serial2">Serial2</option>
       </select>
-      <span class="field-hint">Which UART to use for debug prints (only meaningful when DEBUG ≠ OFF)</span>
+      <span class="field-hint">Which UART to use for debug prints (only meaningful when DEBUG ≠ OFF)</span><span class="config-comment">// Or use any h/w serial port. Serial1 or Serial2, etc. as supported.</span>
     </div>
     <div class="field-row">
       <label class="field-label">SERIAL_DEBUG_BAUD <span class="hint-tag hint-infreq">Infreq</span></label>
@@ -2054,7 +2067,7 @@
         <option value="57600">57600</option>
         <option value="115200">115200</option>
       </select>
-      <span class="field-hint">Baud rate for debug UART</span>
+      <span class="field-hint">Baud rate for debug UART</span><span class="config-comment">// n. Where n=9600,19200,57600,115200 (common baud rates.)</span>
     </div>
   </div>
 
@@ -2072,7 +2085,7 @@
         first flash and ignores any later changes here unless NV is wiped.
         Workflow: set <b>ON</b> → flash → wait 1–2 min for the wipe to finish → set back to <b>OFF</b> → flash again.
         Leaving it <b>ON</b> permanently will erase your settings on every boot.
-      </span>
+      </span><span class="config-comment">// Causes the defaults to be written back into NV (FLASH,EEPROM,etc.)</span>
     </div>
   </div>
 
@@ -2081,7 +2094,7 @@
     <div class="field-row">
       <label class="field-label">PASSWORD_DEFAULT <span class="hint-tag hint-reqd">Req'd</span></label>
       <input type="text" id="SWS_PASSWORD_DEFAULT" value="password" maxlength="40">
-      <span class="field-hint">Admin password for the SWS web UI. Change from "password" before deploying.</span>
+      <span class="field-hint">Admin password for the SWS web UI. Change from "password" before deploying.</span><span class="config-comment">// For access to these settings, this can be changed at runtime also.</span>
     </div>
   </div>
 
@@ -2093,32 +2106,32 @@
         <option value="true" selected>true</option>
         <option value="false">false</option>
       </select>
-      <span class="field-hint">true = SWS broadcasts its own WiFi network ("ONSTEP" by default)</span>
+      <span class="field-hint">true = SWS broadcasts its own WiFi network ("ONSTEP" by default)</span><span class="config-comment">// Wifi Access Point Enabled.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AP_PASSWORD <span class="hint-tag hint-adjust">Adjust</span></label>
       <input type="text" id="SWS_AP_PASSWORD" value="password" maxlength="63">
-      <span class="field-hint">Min 8 chars (WPA2). Empty string = open network.</span>
+      <span class="field-hint">Min 8 chars (WPA2). Empty string = open network.</span><span class="config-comment">// Wifi Access Point password.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AP_CHANNEL <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="number" id="SWS_AP_CHANNEL" value="7" min="1" max="13">
-      <span class="field-hint">2.4 GHz channel 1–13</span>
+      <span class="field-hint">2.4 GHz channel 1–13</span><span class="config-comment">// Wifi Access Point channel.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AP_IP_ADDR <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="text" id="SWS_AP_IP_ADDR" value="192.168.0.1" pattern="\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" maxlength="15">
-      <span class="field-hint">SWS IP when in AP mode. Emitted as <code>{n,n,n,n}</code>.</span>
+      <span class="field-hint">SWS IP when in AP mode. Emitted as <code>{n,n,n,n}</code>.</span><span class="config-comment">// Wifi Access Point IP Address.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AP_GW_ADDR <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="text" id="SWS_AP_GW_ADDR" value="192.168.0.1" pattern="\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" maxlength="15">
-      <span class="field-hint">Gateway (usually identical to AP_IP_ADDR)</span>
+      <span class="field-hint">Gateway (usually identical to AP_IP_ADDR)</span><span class="config-comment">// Wifi Access Point GATEWAY Address.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AP_SN_MASK <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="text" id="SWS_AP_SN_MASK" value="255.255.255.0" pattern="\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" maxlength="15">
-      <span class="field-hint">Subnet mask</span>
+      <span class="field-hint">Subnet mask</span><span class="config-comment">// Wifi Access Point SUBNET Mask.</span>
     </div>
   </div>
 
@@ -2130,12 +2143,12 @@
         <option value="false" selected>false</option>
         <option value="true">true</option>
       </select>
-      <span class="field-hint">true = SWS connects to your home/observatory router</span>
+      <span class="field-hint">true = SWS connects to your home/observatory router</span><span class="config-comment">// Wifi Station Enabled.</span>
     </div>
     <div class="field-row">
       <label class="field-label">STA_PASSWORD <span class="hint-tag hint-adjust">Adjust</span></label>
       <input type="text" id="SWS_STA_PASSWORD" value="password" maxlength="63">
-      <span class="field-hint">Password for your existing WiFi network</span>
+      <span class="field-hint">Password for your existing WiFi network</span><span class="config-comment">// Wifi Station mode password.</span>
     </div>
     <div class="field-row">
       <label class="field-label">STA_DHCP_ENABLED <span class="hint-tag hint-adjust">Adjust</span></label>
@@ -2143,22 +2156,22 @@
         <option value="true" selected>true</option>
         <option value="false">false</option>
       </select>
-      <span class="field-hint">true = let the router assign an IP; false = use the static IP below</span>
+      <span class="field-hint">true = let the router assign an IP; false = use the static IP below</span><span class="config-comment">// Wifi Station/Ethernet DHCP Enabled.</span>
     </div>
     <div class="field-row">
       <label class="field-label">STA_IP_ADDR <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="text" id="SWS_STA_IP_ADDR" value="192.168.0.1" pattern="\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" maxlength="15">
-      <span class="field-hint">Static IP — only used when STA_DHCP_ENABLED = false</span>
+      <span class="field-hint">Static IP — only used when STA_DHCP_ENABLED = false</span><span class="config-comment">// Wifi Station/Ethernet IP Address.</span>
     </div>
     <div class="field-row">
       <label class="field-label">STA_GW_ADDR <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="text" id="SWS_STA_GW_ADDR" value="192.168.0.1" pattern="\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" maxlength="15">
-      <span class="field-hint">Static gateway — only used when STA_DHCP_ENABLED = false</span>
+      <span class="field-hint">Static gateway — only used when STA_DHCP_ENABLED = false</span><span class="config-comment">// Wifi Station/Ethernet GATEWAY Address.</span>
     </div>
     <div class="field-row">
       <label class="field-label">STA_SN_MASK <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="text" id="SWS_STA_SN_MASK" value="255.255.255.0" pattern="\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" maxlength="15">
-      <span class="field-hint">Static subnet mask — only used when STA_DHCP_ENABLED = false</span>
+      <span class="field-hint">Static subnet mask — only used when STA_DHCP_ENABLED = false</span><span class="config-comment">// Wifi Station/Ethernet SUBNET Mask.</span>
     </div>
   </div>
 
@@ -2167,7 +2180,7 @@
     <div class="field-row">
       <label class="field-label">MAC <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="text" id="SWS_MAC" value="DE:AD:BE:EF:FE:EE" pattern="[0-9A-Fa-f]{2}([:\-][0-9A-Fa-f]{2}){5}" maxlength="17" style="font-family:Consolas,monospace;">
-      <span class="field-hint">Six hex bytes for the W5100/W5500 Ethernet shield. Ignored in WIFI mode.</span>
+      <span class="field-hint">Six hex bytes for the W5100/W5500 Ethernet shield. Ignored in WIFI mode.</span><span class="config-comment">// Ethernet unique MAC address.</span>
     </div>
   </div>
 </div>
@@ -2189,7 +2202,7 @@
         <option value="L_jp">L_jp (Japanese)</option>
         <option value="L_us">L_us (US English)</option>
       </select>
-      <span class="field-hint">UI language &amp; default locale units</span>
+      <span class="field-hint">UI language &amp; default locale units</span><span class="config-comment">// English. Or L_ca, L_cn, L_de, L_en, L_es, L_fr, L_it, L_jp, L_us.</span>
     </div>
     <div class="field-row">
       <label class="field-label">DISPLAY_WEATHER <span class="hint-tag hint-adjust">Adjust</span></label>
@@ -2197,7 +2210,7 @@
         <option value="ON" selected>ON</option>
         <option value="OFF">OFF</option>
       </select>
-      <span class="field-hint">Show ambient conditions (temp / pressure / humidity)</span>
+      <span class="field-hint">Show ambient conditions (temp / pressure / humidity)</span><span class="config-comment">// ON ambient conditions in locale default units.</span>
     </div>
     <div class="field-row">
       <label class="field-label">DISPLAY_INTERNAL_TEMPERATURE <span class="hint-tag hint-infreq">Infreq</span></label>
@@ -2205,7 +2218,7 @@
         <option value="OFF" selected>OFF</option>
         <option value="ON">ON</option>
       </select>
-      <span class="field-hint">Show MCU internal temperature</span>
+      <span class="field-hint">Show MCU internal temperature</span><span class="config-comment">// ON internal MCU temp. in locale default units.</span>
     </div>
     <div class="field-row">
       <label class="field-label">DISPLAY_RESET_CONTROLS <span class="hint-tag hint-adjust">Adjust</span></label>
@@ -2214,7 +2227,7 @@
         <option value="OFF">OFF</option>
         <option value="FWU">FWU (STM32 firmware-upload)</option>
       </select>
-      <span class="field-hint">Reset button on UI (FWU option exposes the STM32 bootloader pin)</span>
+      <span class="field-hint">Reset button on UI (FWU option exposes the STM32 bootloader pin)</span><span class="config-comment">// ON allows reset if supported, FWU for STM32 firmware upload pin HIGH.</span>
     </div>
     <div class="field-row">
       <label class="field-label">DISPLAY_COORDINATE_ORIGIN <span class="hint-tag hint-infreq">Infreq</span></label>
@@ -2222,7 +2235,7 @@
         <option value="OFF" selected>OFF</option>
         <option value="ON">ON</option>
       </select>
-      <span class="field-hint">Show coordinate-origin tile on Mount page</span>
+      <span class="field-hint">Show coordinate-origin tile on Mount page</span><span class="config-comment">// ON to display the coordinate origin control tile on the mount page.</span>
     </div>
     <div class="field-row">
       <label class="field-label">DISPLAY_SERVO_MONITOR <span class="hint-tag hint-infreq">Infreq</span></label>
@@ -2230,7 +2243,7 @@
         <option value="OFF" selected>OFF</option>
         <option value="ON">ON</option>
       </select>
-      <span class="field-hint">OnStepX servo monitor panel (any axis)</span>
+      <span class="field-hint">OnStepX servo monitor panel (any axis)</span><span class="config-comment">// ON to display the servo monitor for OnStepX (any axis.)</span>
     </div>
   </div>
 </div>
@@ -2245,7 +2258,7 @@
         <option value="ON" selected>ON</option>
         <option value="OFF">OFF</option>
       </select>
-      <span class="field-hint">Automatically sync encoders &rarr; OnStep</span>
+      <span class="field-hint">Automatically sync encoders &rarr; OnStep</span><span class="config-comment">// Automatically sync Encoders to OnStep.</span>
     </div>
     <div class="field-row">
       <label class="field-label">ENC_AUTO_SYNC_MEMORY <span class="hint-tag hint-infreq">Infreq</span></label>
@@ -2253,7 +2266,7 @@
         <option value="OFF" selected>OFF</option>
         <option value="ON">ON</option>
       </select>
-      <span class="field-hint">Persist auto-sync setting across power cycles</span>
+      <span class="field-hint">Persist auto-sync setting across power cycles</span><span class="config-comment">// ON Remember automatic sync setting across power cycles.</span>
     </div>
     <div class="field-row">
       <label class="field-label">ENC_SYNC_DURING_GOTO <span class="hint-tag hint-infreq">Infreq</span></label>
@@ -2261,7 +2274,7 @@
         <option value="OFF" selected>OFF</option>
         <option value="ON">ON</option>
       </select>
-      <span class="field-hint">High-res encoders correct pointing mid-goto</span>
+      <span class="field-hint">High-res encoders correct pointing mid-goto</span><span class="config-comment">// ON high resolution encoders correct pointing even for gotos.</span>
     </div>
   </div>
 
@@ -2277,12 +2290,12 @@
         <option value="PULSE_DIR">PULSE_DIR</option>
         <option value="AS37_H39B_B">AS37_H39B_B</option>
       </select>
-      <span class="field-hint">Axis 1 encoder type</span>
+      <span class="field-hint">Axis 1 encoder type</span><span class="config-comment">// AB, AB_ESP32, CW_CCW, PULSE_DIR, AS37_H39B_B. RA/Azm (A/MA) &amp; (B/SLO.)</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_ENCODER_TICKS_DEG <span class="hint-tag hint-adjust">Adjust</span></label>
       <input type="number" step="0.00001" id="SWS_AXIS1_ENCODER_TICKS_DEG" value="22.22222">
-      <span class="field-hint">Ticks per degree</span>
+      <span class="field-hint">Ticks per degree</span><span class="config-comment">// n, (ticks/degree.) Encoder ticks per degree.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_ENCODER_REVERSE <span class="hint-tag hint-infreq">Infreq</span></label>
@@ -2290,17 +2303,17 @@
         <option value="OFF" selected>OFF</option>
         <option value="ON">ON</option>
       </select>
-      <span class="field-hint">Flip count direction</span>
+      <span class="field-hint">Flip count direction</span><span class="config-comment">// ON to reverse the count direction.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_ENCODER_DIFF_LIMIT_TO <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="text" id="SWS_AXIS1_ENCODER_DIFF_LIMIT_TO" value="300" maxlength="10">
-      <span class="field-hint">arcsec: min diff to sync encoder &rarr; OnStep</span>
+      <span class="field-hint">arcsec: min diff to sync encoder &rarr; OnStep</span><span class="config-comment">// n, (arcsec.) Minimum diff. between encoder/OnStep for sync. to OnStep.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_ENCODER_DIFF_LIMIT_FROM <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="text" id="SWS_AXIS1_ENCODER_DIFF_LIMIT_FROM" value="OFF" maxlength="10">
-      <span class="field-hint">arcsec or OFF: max diff to sync OnStep &rarr; encoder</span>
+      <span class="field-hint">arcsec or OFF: max diff to sync OnStep &rarr; encoder</span><span class="config-comment">// n, (arcsec.) Maximum diff. between encoder/OnStep for sync. from OnStep.</span>
     </div>
   </div>
 
@@ -2316,12 +2329,12 @@
         <option value="PULSE_DIR">PULSE_DIR</option>
         <option value="AS37_H39B_B">AS37_H39B_B</option>
       </select>
-      <span class="field-hint">Axis 2 encoder type</span>
+      <span class="field-hint">Axis 2 encoder type</span><span class="config-comment">// AB, AB_ESP32, CW_CCW, PULSE_DIR, AS37_H39B_B. Dec/Alt (A/MA) &amp; (B/SLO.)</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_ENCODER_TICKS_DEG <span class="hint-tag hint-adjust">Adjust</span></label>
       <input type="number" step="0.00001" id="SWS_AXIS2_ENCODER_TICKS_DEG" value="22.22222">
-      <span class="field-hint">Ticks per degree</span>
+      <span class="field-hint">Ticks per degree</span><span class="config-comment">// n, (ticks/degree.) Encoder ticks per degree.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_ENCODER_REVERSE <span class="hint-tag hint-infreq">Infreq</span></label>
@@ -2329,17 +2342,17 @@
         <option value="OFF" selected>OFF</option>
         <option value="ON">ON</option>
       </select>
-      <span class="field-hint">Flip count direction</span>
+      <span class="field-hint">Flip count direction</span><span class="config-comment">// ON to reverse the count direction.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_ENCODER_DIFF_LIMIT_TO <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="text" id="SWS_AXIS2_ENCODER_DIFF_LIMIT_TO" value="300" maxlength="10">
-      <span class="field-hint">arcsec: min diff to sync encoder &rarr; OnStep</span>
+      <span class="field-hint">arcsec: min diff to sync encoder &rarr; OnStep</span><span class="config-comment">// n, (arcsec.) Minimum diff. between encoder/OnStep for sync. to OnStep.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_ENCODER_DIFF_LIMIT_FROM <span class="hint-tag hint-infreq">Infreq</span></label>
       <input type="text" id="SWS_AXIS2_ENCODER_DIFF_LIMIT_FROM" value="OFF" maxlength="10">
-      <span class="field-hint">arcsec or OFF: max diff to sync OnStep &rarr; encoder</span>
+      <span class="field-hint">arcsec or OFF: max diff to sync OnStep &rarr; encoder</span><span class="config-comment">// n, (arcsec.) Maximum diff. between encoder/OnStep for sync. from OnStep.</span>
     </div>
   </div>
 
@@ -2351,17 +2364,17 @@
         <option value="OFF" selected>OFF</option>
         <option value="ON">ON</option>
       </select>
-      <span class="field-hint">Enable BLE gamepad (ACGAM R1 etc.)</span>
+      <span class="field-hint">Enable BLE gamepad (ACGAM R1 etc.)</span><span class="config-comment">// ON to allow BLE gamepad connection for ESP32 only.</span>
     </div>
     <div class="field-row">
       <label class="field-label">BLE_GP_ADDR <span class="hint-tag hint-adjust">Adjust</span></label>
       <input type="text" id="SWS_BLE_GP_ADDR" value="ff:ff:de:09:f5:cf" maxlength="17" style="font-family:Consolas,monospace;">
-      <span class="field-hint">Gamepad #1 MAC address (colon-separated)</span>
+      <span class="field-hint">Gamepad #1 MAC address (colon-separated)</span><span class="config-comment">// GamePad MAC address #1</span>
     </div>
     <div class="field-row">
       <label class="field-label">BLE_GP_ADDR1 <span class="hint-tag hint-adjust">Adjust</span></label>
       <input type="text" id="SWS_BLE_GP_ADDR1" value="ff:ff:ff:ff:ff:ff" maxlength="17" style="font-family:Consolas,monospace;">
-      <span class="field-hint">Gamepad #2 MAC address (leave as ff:…:ff if unused)</span>
+      <span class="field-hint">Gamepad #2 MAC address (leave as ff:…:ff if unused)</span><span class="config-comment">// GamePad MAC address #2</span>
     </div>
   </div>
 </div>
