@@ -1,9 +1,9 @@
 The online configurator can be used from https://christm45.github.io/OnStepX-Configurator/ .
 
-User Guide
-What this site does: you answer a handful of questions about your telescope mount (motors, gearing, drivers, board), click a button, and get firmware ready to flash onto your OnStepX controller — without installing Arduino IDE, PlatformIO, or any C++ toolchain on your computer.
+Get firmware ready to flash onto your OnStepX controller — without installing Arduino IDE, PlatformIO, or any C++ toolchain on your computer.
 
-Everything happens either inside your browser tab or on free cloud services (GitHub Pages, GitHub Actions, Cloudflare Workers). The project source is always the latest hjd1964/OnStepX — we never bundle a stale copy.
+Everything happens inside your browser tab and uses free cloud services (GitHub Pages, GitHub Actions, Cloudflare Workers). 
+The project source is always the latest - hjd1964/OnStepX — we never bundle a stale copy.
 
 Before you flash anything: make sure your wiring and PINMAP selection match the board you're flashing. A mismatched pinmap can drive step/enable pins that are tied to other things and damage stepper drivers, limit switches, or the MCU. When in doubt, flash once with no motors connected, watch the serial output, and only then plug in the steppers.
 Contents
