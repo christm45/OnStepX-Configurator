@@ -2615,7 +2615,7 @@
 <div class="tab-content" id="tab-compile">
   <div class="section">
     <div class="section-title">Compile Online</div>
-    <p style="color:var(--label);font-size:0.9em;margin-bottom:10px;">
+    <p id="compileOnlineIntro" style="color:var(--label);font-size:0.9em;margin-bottom:10px;">
       The Config.h you've generated will be sent to a GitHub Actions runner that clones the latest
       <a href="https://github.com/hjd1964/OnStepX" target="_blank" style="color:var(--green);">hjd1964/OnStepX</a>
       source, replaces Config.h with your version, compiles with PlatformIO, and returns the firmware.
@@ -4739,6 +4739,18 @@ function setMode(mode) {
   updateCompileBoardOptions();
   // Plugins section is OnStepX-only
   try { refreshPluginsSectionVisibility(); } catch {}
+  // Compile-tab intro paragraph reflects which upstream repo gets cloned
+  const intro = document.getElementById('compileOnlineIntro');
+  if (intro) {
+    const repo = mode === 'shc' ? { url: 'https://github.com/hjd1964/SmartHandController', label: 'hjd1964/SmartHandController' }
+              : mode === 'sws' ? { url: 'https://github.com/hjd1964/SmartWebServer',       label: 'hjd1964/SmartWebServer' }
+              :                   { url: 'https://github.com/hjd1964/OnStepX',              label: 'hjd1964/OnStepX' };
+    intro.innerHTML =
+      `The Config.h you've generated will be sent to a GitHub Actions runner that clones the latest ` +
+      `<a href="${repo.url}" target="_blank" style="color:var(--green);">${repo.label}</a> ` +
+      `source, replaces Config.h with your version, compiles with PlatformIO, and returns the firmware. ` +
+      `Builds typically take 1-3 minutes.`;
+  }
   // Recompute preflight + ref resolution for the new mode
   try { runPreflight(); } catch {}
   try { refreshRef(); } catch {}
