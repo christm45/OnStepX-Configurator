@@ -2590,7 +2590,7 @@
   </div>
   <div class="btn-row" style="margin-top:8px; gap:8px;">
     <input type="text" id="importConfigUrl"
-           placeholder="https://raw.githubusercontent.com/hjd1964/OnStepX/E4/Config.h"
+           placeholder="raw GitHub URL of a Config.h (e.g. https://raw.githubusercontent.com/hjd1964/OnStepX/E4/Config.h)"
            style="flex:1; min-width:280px; padding:6px 10px; background:var(--input-bg); color:var(--text); border:1px solid var(--border); border-radius:4px; font-family:Consolas,monospace; font-size:0.85em;">
     <button class="btn btn-load" onclick="importConfigFromUrlUi()" title="Fetch a Config.h from a raw URL and back-fill matching form fields">Import from URL</button>
   </div>
@@ -2738,16 +2738,21 @@
     <div class="section-title">User Guide</div>
 
     <p><b>What this site does:</b> you answer a handful of questions about your telescope mount (motors,
-      gearing, drivers, board), click a button, and get firmware ready to flash onto your OnStepX controller
-      &mdash; without installing Arduino IDE, PlatformIO, or any C++ toolchain on your computer.</p>
+      gearing, drivers, board) &mdash; or your hand pendant, or your web-server bridge &mdash; click a button,
+      and get firmware ready to flash, without installing Arduino IDE, PlatformIO, or any C++ toolchain on
+      your computer. The mode switch at the top of the page picks which firmware you're building:
+      <b>OnStepX</b> (mount controller), <b>SmartHandController</b> (hand pendant), or
+      <b>SmartWebServer</b> (Web UI / WiFi&middot;Ethernet bridge).</p>
 
     <p>Everything happens either inside your browser tab or on free cloud services
       (<a href="https://pages.github.com/" target="_blank">GitHub Pages</a>,
       <a href="https://github.com/features/actions" target="_blank">GitHub Actions</a>,
       <a href="https://workers.cloudflare.com/" target="_blank">Cloudflare Workers</a>).
-      The project source is always the latest
-      <a href="https://github.com/hjd1964/OnStepX" target="_blank">hjd1964/OnStepX</a> &mdash; we never bundle
-      a stale copy.</p>
+      The project source is always the latest upstream &mdash;
+      <a href="https://github.com/hjd1964/OnStepX" target="_blank">hjd1964/OnStepX</a>,
+      <a href="https://github.com/hjd1964/SmartHandController" target="_blank">hjd1964/SmartHandController</a>, or
+      <a href="https://github.com/hjd1964/SmartWebServer" target="_blank">hjd1964/SmartWebServer</a>
+      depending on the mode you pick &mdash; we never bundle a stale copy.</p>
 
     <div class="help-warn">
       <b>Before you flash anything:</b> make sure your wiring and PINMAP selection match the board you're
@@ -2759,11 +2764,11 @@
     <h3>Contents</h3>
     <ol class="help-toc">
       <li><a href="#help-how">How it works (behind the curtain)</a></li>
-      <li><a href="#help-shc">OnStepX vs SmartHandController &mdash; the mode switch</a></li>
+      <li><a href="#help-shc">OnStepX vs SmartHandController vs SmartWebServer &mdash; the mode switch</a></li>
       <li><a href="#help-quickstart">Quick start &mdash; board to firmware in 8 steps</a></li>
       <li><a href="#help-tabs">What each tab does</a></li>
       <li><a href="#help-essentials">The settings you actually have to change</a></li>
-      <li><a href="#help-ref">Picking an OnStepX version</a></li>
+      <li><a href="#help-ref">Picking an upstream version (Source ref)</a></li>
       <li><a href="#help-preflight">The preflight checklist</a></li>
       <li><a href="#help-plugins">OnStepX plugins &mdash; how the bundling works</a></li>
       <li><a href="#help-boards">Board-by-board USB preparation</a></li>
@@ -2969,7 +2974,7 @@
   </div>
 
   <div class="section help-body" id="help-shc">
-    <div class="section-title">1b &middot; OnStepX vs SmartHandController &mdash; the mode switch</div>
+    <div class="section-title">1b &middot; OnStepX vs SmartHandController vs SmartWebServer &mdash; the mode switch</div>
 
     <p>The big toggle at the top of the page picks which firmware you're building:</p>
     <ul>
@@ -3126,11 +3131,14 @@
   </div>
 
   <div class="section help-body" id="help-ref">
-    <div class="section-title">5 &middot; Picking an OnStepX version</div>
+    <div class="section-title">5 &middot; Picking an upstream version (Source ref)</div>
 
-    <p>On the Compile &amp; Flash tab, the <b>OnStepX source</b> field controls which version of the firmware
-      gets compiled. The default is <code>main</code> &mdash; the latest commit on
-      <a href="https://github.com/hjd1964/OnStepX" target="_blank">hjd1964/OnStepX</a>'s main branch.</p>
+    <p>On the Compile &amp; Flash tab, the <b>Source ref</b> field controls which version of the firmware
+      gets compiled. The default is <code>main</code> &mdash; the latest commit on the upstream repo's main
+      branch. Which upstream that is depends on the mode you picked at the top of the page:
+      <a href="https://github.com/hjd1964/OnStepX" target="_blank">hjd1964/OnStepX</a> in OnStepX mode,
+      <a href="https://github.com/hjd1964/SmartHandController" target="_blank">hjd1964/SmartHandController</a> in SHC mode, or
+      <a href="https://github.com/hjd1964/SmartWebServer" target="_blank">hjd1964/SmartWebServer</a> in SWS mode.</p>
 
     <p>You can type any of:</p>
     <ul>
@@ -3591,10 +3599,11 @@ teensy_loader_cli --mcu=TEENSY40 -w -v firmware.hex   # 4.0</pre>
   <div class="section help-body" id="help-faq">
     <div class="section-title">12 &middot; FAQ</div>
 
-    <h4>Which OnStepX version does this build?</h4>
-    <p>Whatever you type in the <b>OnStepX source</b> field on the Compile &amp; Flash tab &mdash; defaults
-      to <code>main</code> (latest). The live preview under the field shows the exact commit. See
-      <a href="#help-ref">Picking an OnStepX version</a>.</p>
+    <h4>Which upstream version does this build?</h4>
+    <p>Whatever you type in the <b>Source ref</b> field on the Compile &amp; Flash tab &mdash; defaults
+      to <code>main</code> (latest). The upstream repo it resolves against depends on the mode (OnStepX,
+      SHC, or SWS). The live preview under the field shows the exact commit. See
+      <a href="#help-ref">Picking an upstream version</a>.</p>
 
     <h4>Is my Config.h sent anywhere permanent?</h4>
     <p>Yes &mdash; each compile request base64-encodes your Config.h and sends it as a GitHub Actions workflow
