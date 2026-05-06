@@ -3837,7 +3837,18 @@ function calcAxis3() {
 }
 function calcSlew() {
   const a1spd = parseFloat(document.getElementById('calc_a1_result').value) || parseFloat(document.getElementById('AXIS1_STEPS_PER_DEGREE').value) || 0;
-  const rate = parseFloat(document.getElementById('calc_slew_rate').value) || parseFloat(document.getElementById('SLEW_RATE_BASE_DESIRED').value) || 3;
+  const calcRateRaw = document.getElementById('calc_slew_rate').value;
+  const calcRate = parseFloat(calcRateRaw);
+  const rate = (calcRate > 0) ? calcRate : (parseFloat(document.getElementById('SLEW_RATE_BASE_DESIRED').value) || 3);
+  // Transport the calculator's slew-rate input to the Mount-tab config field
+  // so SLEW_RATE_BASE_DESIRED reflects what the user set on the Calculator tab.
+  if (calcRate > 0) {
+    const slewField = document.getElementById('SLEW_RATE_BASE_DESIRED');
+    if (slewField && parseFloat(slewField.value) !== calcRate) {
+      slewField.value = calcRate.toFixed(1);
+      slewField.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  }
 
   // Account for microstep switching during GOTO/slew
   const trackingUs = parseFloat(document.getElementById('calc_a1_microsteps').value) || 32;
@@ -4818,7 +4829,6 @@ const BOARD_DEFAULTS = {
     fields: {
       AXIS1_DRIVER_MODEL: 'TMC2209', AXIS2_DRIVER_MODEL: 'TMC2209',
       AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
-      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
       AXIS1_DRIVER_IRUN: '600', AXIS2_DRIVER_IRUN: '600',
       AXIS3_DRIVER_MODEL: 'OFF',
       AXIS4_DRIVER_MODEL: 'TMC2209',
@@ -4839,7 +4849,6 @@ const BOARD_DEFAULTS = {
       // Mount — Axis1 & Axis2
       AXIS1_DRIVER_MODEL: 'TMC2209', AXIS2_DRIVER_MODEL: 'TMC2209',
       AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
-      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
       AXIS1_DRIVER_IRUN: '600', AXIS2_DRIVER_IRUN: '600',
       // Rotator — Axis3 (OFF by default; enable if you have one wired)
       AXIS3_DRIVER_MODEL: 'OFF',
@@ -4860,7 +4869,6 @@ const BOARD_DEFAULTS = {
     fields: {
       AXIS1_DRIVER_MODEL: 'TMC2209', AXIS2_DRIVER_MODEL: 'TMC2209',
       AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
-      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
       AXIS1_DRIVER_IRUN: '600', AXIS2_DRIVER_IRUN: '600',
       AXIS3_DRIVER_MODEL: 'OFF',
       AXIS4_DRIVER_MODEL: 'TMC2209',
@@ -4875,7 +4883,6 @@ const BOARD_DEFAULTS = {
     fields: {
       AXIS1_DRIVER_MODEL: 'TMC2130', AXIS2_DRIVER_MODEL: 'TMC2130',
       AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
-      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
       AXIS1_DRIVER_IRUN: '600', AXIS2_DRIVER_IRUN: '600',
       AXIS3_DRIVER_MODEL: 'OFF',
       AXIS4_DRIVER_MODEL: 'TMC2130',
@@ -4890,7 +4897,6 @@ const BOARD_DEFAULTS = {
     fields: {
       AXIS1_DRIVER_MODEL: 'TMC2130', AXIS2_DRIVER_MODEL: 'TMC2130',
       AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
-      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
       AXIS1_DRIVER_IRUN: '600', AXIS2_DRIVER_IRUN: '600',
       AXIS3_DRIVER_MODEL: 'OFF',
       AXIS4_DRIVER_MODEL: 'TMC2130',
@@ -4905,7 +4911,6 @@ const BOARD_DEFAULTS = {
     fields: {
       AXIS1_DRIVER_MODEL: 'TMC2130', AXIS2_DRIVER_MODEL: 'TMC2130',
       AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
-      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
       AXIS1_DRIVER_IRUN: '600', AXIS2_DRIVER_IRUN: '600',
       AXIS3_DRIVER_MODEL: 'OFF',
       AXIS4_DRIVER_MODEL: 'TMC2130',
@@ -4920,7 +4925,6 @@ const BOARD_DEFAULTS = {
     fields: {
       AXIS1_DRIVER_MODEL: 'TMC2130', AXIS2_DRIVER_MODEL: 'TMC2130',
       AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
-      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
       AXIS1_DRIVER_IRUN: '600', AXIS2_DRIVER_IRUN: '600',
       AXIS3_DRIVER_MODEL: 'OFF',
       AXIS4_DRIVER_MODEL: 'TMC2130',
@@ -4935,7 +4939,6 @@ const BOARD_DEFAULTS = {
     fields: {
       AXIS1_DRIVER_MODEL: 'TMC2209', AXIS2_DRIVER_MODEL: 'TMC2209',
       AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
-      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
       AXIS1_DRIVER_IRUN: '600', AXIS2_DRIVER_IRUN: '600',
       AXIS3_DRIVER_MODEL: 'OFF',
       AXIS4_DRIVER_MODEL: 'TMC2209',
@@ -4955,7 +4958,6 @@ const BOARD_DEFAULTS = {
     fields: {
       AXIS1_DRIVER_MODEL: 'DRV8825', AXIS2_DRIVER_MODEL: 'DRV8825',
       AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
-      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
       MOUNT_TYPE: 'GEM',
     },
   },
@@ -4969,7 +4971,6 @@ const BOARD_DEFAULTS = {
     fields: {
       AXIS1_DRIVER_MODEL: 'DRV8825', AXIS2_DRIVER_MODEL: 'DRV8825',
       AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
-      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
       MOUNT_TYPE: 'GEM',
     },
   },
@@ -4979,7 +4980,6 @@ const BOARD_DEFAULTS = {
     fields: {
       AXIS1_DRIVER_MODEL: 'LV8729', AXIS2_DRIVER_MODEL: 'LV8729',
       AXIS1_DRIVER_MICROSTEPS: '32', AXIS2_DRIVER_MICROSTEPS: '32',
-      AXIS1_STEPS_PER_DEGREE: '12800', AXIS2_STEPS_PER_DEGREE: '12800',
       MOUNT_TYPE: 'GEM',
     },
   },
@@ -5149,7 +5149,8 @@ window.applyBoardDefaults = async function () {
   const preview = existing.map((e) => `  ${e.id}: "${e.current || '(empty)'}" → "${e.next}"`).join('\n');
   const ok = confirm(
     `Apply ${entry.label} starter config? The following fields will be overwritten:\n\n${preview}\n\n` +
-    `Other fields you've set (calculator, guide rates, etc.) are kept.`
+    `Calculator-driven fields (AXIS1/2/3_STEPS_PER_DEGREE, SLEW_RATE_BASE_DESIRED) are not touched — ` +
+    `they're kept in sync with the Calculator-tab inputs.`
   );
   if (!ok) return;
 
@@ -5159,6 +5160,11 @@ window.applyBoardDefaults = async function () {
     el.value = next;
     el.dispatchEvent(new Event('change', { bubbles: true }));
   }
+  // Re-run the steps/deg + slew-rate calculators so the Calculator-tab inputs
+  // remain authoritative for AXIS{1,2,3}_STEPS_PER_DEGREE and SLEW_RATE_BASE_DESIRED.
+  // Board defaults set driver/microsteps/current; mount-geometry-derived values
+  // come from the Calculator only.
+  try { calcAxis1(); calcAxis2(); calcAxis3(); calcSlew(); } catch {}
   showStatus?.(`${entry.label} defaults applied.`);
 };
 
