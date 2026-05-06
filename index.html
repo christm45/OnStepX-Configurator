@@ -2815,8 +2815,12 @@
   |  3. GITHUB ACTIONS (the build farm)  |
   |     In christm45/onstepx-build-      |
   |     service, a fresh Ubuntu VM:
-  |       a) clones hjd1964/OnStepX at   |
-  |          your chosen branch/tag/SHA  |
+  |       a) clones the upstream repo    |
+  |          for the firmware you picked |
+  |          — hjd1964/OnStepX,          |
+  |            hjd1964/SmartHandController,
+  |            or hjd1964/SmartWebServer —
+  |          at your chosen branch/tag/SHA
   |       b) overwrites its Config.h     |
   |          with the one you sent       |
   |       c) runs PlatformIO to compile  |
@@ -2885,13 +2889,19 @@
     <ol>
       <li>Check out this repo's build recipe</li>
       <li>Install PlatformIO (Python package)</li>
-      <li><code>git clone https://github.com/hjd1964/OnStepX.git</code>, then <code>git checkout</code> at the
-        branch/tag/commit you typed in the <b>OnStepX source</b> field (default: latest <code>main</code>)</li>
-      <li>Write your generated <code>Config.h</code> over OnStepX's default</li>
-      <li>Run <code>pio run -e esp32</code> (or one of <code>teensy32</code> / <code>teensy40</code> /
-        <code>teensy41</code> / <code>blackpill_f411</code> / <code>f446_fysetc_s6</code> /
-        <code>skr_pro_f407</code>, plus the SHC and SWS variants). PlatformIO downloads the MCU
-        toolchain and any external libraries OnStepX needs, then compiles.</li>
+      <li><code>git clone</code> the upstream repo that matches the mode you picked &mdash;
+        <a href="https://github.com/hjd1964/OnStepX" target="_blank">hjd1964/OnStepX</a> (mount controller),
+        <a href="https://github.com/hjd1964/SmartHandController" target="_blank">hjd1964/SmartHandController</a> (hand pendant),
+        or <a href="https://github.com/hjd1964/SmartWebServer" target="_blank">hjd1964/SmartWebServer</a> (web/WiFi bridge)
+        &mdash; then <code>git checkout</code> at the branch/tag/commit you typed in the
+        <b>Source ref</b> field (default: latest <code>main</code>)</li>
+      <li>Write your generated <code>Config.h</code> over the upstream's default</li>
+      <li>Run <code>pio run -e &lt;env&gt;</code> &mdash; the env is selected from the <i>Target MCU</i>
+        dropdown on the Compile tab. OnStepX builds use <code>esp32</code> / <code>teensy32</code> /
+        <code>teensy40</code> / <code>teensy41</code> / <code>blackpill_f411</code> /
+        <code>f446_fysetc_s6</code> / <code>skr_pro_f407</code>; SHC builds use the <code>shc_*</code>
+        variants; SWS builds use <code>sws_esp32</code> or <code>sws_esp8266</code>. PlatformIO
+        downloads the MCU toolchain and any external libraries the project needs, then compiles.</li>
       <li>Bundle the outputs (firmware binary, bootloader, partitions, and &mdash; for ESP32 &mdash; a pre-merged
         single-file image) into <code>firmware-&lt;uuid&gt;.zip</code>, published as a 1-day-retention workflow
         artifact</li>
@@ -3151,7 +3161,9 @@
 
     <p>Just below the field you'll see a live preview that resolves your input against GitHub and shows the
       commit hash, author, date, and the first line of the commit message, so you know exactly what's about
-      to be compiled:</p>
+      to be compiled. The repo prefix (<code>hjd1964/OnStepX</code>, <code>hjd1964/SmartHandController</code>,
+      or <code>hjd1964/SmartWebServer</code>) reflects the current mode &mdash; the example below is from
+      OnStepX mode:</p>
     <pre style="color:var(--label);">
   Will build: hjd1964/OnStepX @ main &middot; 1a2b3c4 &middot; Howard Dutton &middot; 3 days ago
               Add X-axis soft-limit check to mount park routine
@@ -3200,6 +3212,12 @@
 
   <div class="section help-body" id="help-plugins">
     <div class="section-title">7 &middot; OnStepX plugins &mdash; how the bundling works</div>
+
+    <div class="help-tip">
+      <b>This section applies to OnStepX mode only.</b> SmartHandController and SmartWebServer don't use a
+      plugin system &mdash; the OnStepX plugins box is hidden in those modes, and you can skip ahead to
+      the next section.
+    </div>
 
     <p>Plugins live in their own repo &mdash;
       <a href="https://github.com/hjd1964/OnStepX-Plugins" target="_blank">hjd1964/OnStepX-Plugins</a>
@@ -3591,9 +3609,12 @@ teensy_loader_cli --mcu=TEENSY40 -w -v firmware.hex   # 4.0</pre>
 
     <h4>Rate limit hit</h4>
     <p>If the service enforces rate limits (default: 10 builds/hour/IP), wait an hour. If you're iterating
-      heavily, set up a local PlatformIO checkout: clone
-      <a href="https://github.com/hjd1964/OnStepX" target="_blank">hjd1964/OnStepX</a>, drop your
-      Config.h in, <code>pio run -e &lt;env&gt;</code>.</p>
+      heavily, set up a local PlatformIO checkout: clone the upstream that matches the firmware you're
+      building &mdash;
+      <a href="https://github.com/hjd1964/OnStepX" target="_blank">hjd1964/OnStepX</a>,
+      <a href="https://github.com/hjd1964/SmartHandController" target="_blank">hjd1964/SmartHandController</a>, or
+      <a href="https://github.com/hjd1964/SmartWebServer" target="_blank">hjd1964/SmartWebServer</a>
+      &mdash; drop your Config.h in, <code>pio run -e &lt;env&gt;</code>.</p>
   </div>
 
   <div class="section help-body" id="help-faq">
@@ -3644,8 +3665,11 @@ teensy_loader_cli --mcu=TEENSY40 -w -v firmware.hex   # 4.0</pre>
     <h4>Can I run this offline?</h4>
     <p>You can generate Config.h offline &mdash; this page works fully offline once loaded. Compiling needs
       the online service. For a fully offline toolchain, install
-      <a href="https://platformio.org/install/cli" target="_blank">PlatformIO</a>, clone
-      <code>hjd1964/OnStepX</code>, and run <code>pio run -e esp32</code> (or whatever env).</p>
+      <a href="https://platformio.org/install/cli" target="_blank">PlatformIO</a>, clone the upstream that
+      matches the firmware you're building (<code>hjd1964/OnStepX</code> for the mount controller,
+      <code>hjd1964/SmartHandController</code> for the hand pendant, or
+      <code>hjd1964/SmartWebServer</code> for the web/WiFi bridge), and run
+      <code>pio run -e &lt;env&gt;</code>.</p>
 
     <h4>Why did the form change after I flashed?</h4>
     <p>In OnStepX mode, after a successful flash the form auto-resets to the selected board's starter
@@ -3671,9 +3695,13 @@ location.reload();</pre>
     <h4>The configurator is broken / giving weird output</h4>
     <p>File an issue at
       <a href="https://github.com/christm45/OnStepX-Configurator/issues" target="_blank">the configurator
-      repo</a>. If the issue is with OnStepX itself (firmware behavior, missing features), use
-      <a href="https://onstep.groups.io/g/main" target="_blank">the OnStep group</a> or the
-      <a href="https://github.com/hjd1964/OnStepX/issues" target="_blank">upstream repo</a>.</p>
+      repo</a>. If the issue is with the firmware itself (mount behavior on OnStepX, hand-pendant behavior
+      on SHC, or web-UI / network behavior on SWS), use
+      <a href="https://onstep.groups.io/g/main" target="_blank">the OnStep group</a> or the relevant
+      upstream issue tracker:
+      <a href="https://github.com/hjd1964/OnStepX/issues" target="_blank">OnStepX</a>,
+      <a href="https://github.com/hjd1964/SmartHandController/issues" target="_blank">SmartHandController</a>, or
+      <a href="https://github.com/hjd1964/SmartWebServer/issues" target="_blank">SmartWebServer</a>.</p>
   </div>
 
 </div>
