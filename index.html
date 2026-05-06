@@ -3876,6 +3876,19 @@ function calcSlew() {
 
   // Platform rate limit checking
   const waveform = document.getElementById('calc_wave_form').value;
+  // Transport the calculator's wave-form choice to the Controller-tab config
+  // field. Exception: teensy40/teensy41 require STEP_WAVE_FORM=SQUARE per
+  // OnStepX Validate.h, so don't let a calculator PULSE selection clobber that.
+  const swfField = document.getElementById('STEP_WAVE_FORM');
+  if (swfField) {
+    const env = document.getElementById('COMPILE_ENV')?.value;
+    const teensy4x = (env === 'teensy40' || env === 'teensy41');
+    const target = teensy4x ? 'SQUARE' : waveform;
+    if (swfField.value !== target) {
+      swfField.value = target;
+      swfField.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  }
   const platforms = [
     { id: 'plat_mega',  name: 'Mega2560',               sq: 48,   pl: 30    },
     { id: 'plat_esp32', name: 'ESP32',                   sq: 40,   pl: 25    },
