@@ -3956,8 +3956,18 @@ function calcPEC() {
   const a1spd = parseFloat(document.getElementById('calc_a1_result').value) || parseFloat(document.getElementById('AXIS1_STEPS_PER_DEGREE').value) || 0;
   document.getElementById('calc_pec_worm').value = worm;
   if (worm > 0 && a1spd > 0) {
-    const pec = (a1spd * 360) / worm;
-    document.getElementById('calc_pec_result').value = pec.toFixed(2);
+    // PEC_STEPS_PER_WORM_ROTATION must be an integer for the OnStepX compiler;
+    // round up so the buffer always covers a full worm rotation rather than
+    // truncating below it.
+    const pec = Math.ceil((a1spd * 360) / worm);
+    document.getElementById('calc_pec_result').value = pec;
+    // Transport the calculated value into the actual Mount-tab config field
+    // (still hand-editable for override).
+    const pecField = document.getElementById('PEC_STEPS_PER_WORM_ROTATION');
+    if (pecField && parseInt(pecField.value, 10) !== pec) {
+      pecField.value = String(pec);
+      pecField.dispatchEvent(new Event('change', { bubbles: true }));
+    }
   }
 }
 
@@ -5149,8 +5159,9 @@ window.applyBoardDefaults = async function () {
   const preview = existing.map((e) => `  ${e.id}: "${e.current || '(empty)'}" → "${e.next}"`).join('\n');
   const ok = confirm(
     `Apply ${entry.label} starter config? The following fields will be overwritten:\n\n${preview}\n\n` +
-    `Calculator-driven fields (AXIS1/2/3_STEPS_PER_DEGREE, SLEW_RATE_BASE_DESIRED) are not touched — ` +
-    `they're kept in sync with the Calculator-tab inputs.`
+    `Calculator-driven fields (AXIS1/2/3_STEPS_PER_DEGREE, SLEW_RATE_BASE_DESIRED, ` +
+    `PEC_STEPS_PER_WORM_ROTATION) are not touched — they're kept in sync with the ` +
+    `Calculator-tab inputs.`
   );
   if (!ok) return;
 
@@ -5160,11 +5171,12 @@ window.applyBoardDefaults = async function () {
     el.value = next;
     el.dispatchEvent(new Event('change', { bubbles: true }));
   }
-  // Re-run the steps/deg + slew-rate calculators so the Calculator-tab inputs
-  // remain authoritative for AXIS{1,2,3}_STEPS_PER_DEGREE and SLEW_RATE_BASE_DESIRED.
-  // Board defaults set driver/microsteps/current; mount-geometry-derived values
-  // come from the Calculator only.
-  try { calcAxis1(); calcAxis2(); calcAxis3(); calcSlew(); } catch {}
+  // Re-run the steps/deg + slew-rate + PEC calculators so the Calculator-tab
+  // inputs remain authoritative for AXIS{1,2,3}_STEPS_PER_DEGREE,
+  // SLEW_RATE_BASE_DESIRED, and PEC_STEPS_PER_WORM_ROTATION. Board defaults
+  // set driver/microsteps/current; mount-geometry-derived values come from
+  // the Calculator only.
+  try { calcAxis1(); calcAxis2(); calcAxis3(); calcSlew(); calcPEC(); } catch {}
   showStatus?.(`${entry.label} defaults applied.`);
 };
 
