@@ -6253,6 +6253,14 @@ window.startCompileFlow = async function () {
   downloadBtn.disabled = true;
   flashBtn.disabled = true;
   lastBuild = null;
+  // Hide the previous build's Flash/RAM panel so a stale size from an
+  // earlier successful compile doesn't make a failed re-compile look
+  // successful. renderSizeIndicator() repopulates it on success.
+  const sizeEl = document.getElementById('sizeIndicator');
+  if (sizeEl) {
+    sizeEl.innerHTML = '';
+    sizeEl.style.display = 'none';
+  }
 
   try {
     // Compile sends whatever is in the textarea as-is. Only auto-generate
