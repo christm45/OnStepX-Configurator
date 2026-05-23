@@ -2022,8 +2022,12 @@
       <select id="SHC_DISPLAY_LANGUAGE">
         <option value="L_en" selected>L_en (English)</option>
         <option value="L_us">L_us (US English, imperial units)</option>
+        <option value="L_cn">L_cn (Chinese)</option>
+        <option value="L_de">L_de (German)</option>
+        <option value="L_es">L_es (Spanish)</option>
+        <option value="L_fr">L_fr (French)</option>
       </select>
-      <span class="field-hint">UI language (only L_en and L_us are actually shipped in the SHC firmware today)</span><span class="config-comment">// English. Specify language with two letter country code, if supported.</span>
+      <span class="field-hint">UI language as declared in upstream SHC src/locales (L_en and L_us are the only ones with a Strings_xx.h shipped; others need a translation file)</span><span class="config-comment">// English. Specify language with two letter country code, if supported.</span>
     </div>
     <div class="field-row">
       <label class="field-label">DISPLAY_OLED <span class="hint-tag hint-reqd">Req'd</span></label>
