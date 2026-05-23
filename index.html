@@ -745,6 +745,30 @@
 <h1 id="pageTitle"><span style="float:right;font-size:0.8em;color:var(--label);font-weight:normal;">OnStepX&nbsp;Configurator</span><b>OnStep</b> Configuration Generator</h1>
 <p class="subtitle" id="pageSubtitle">Generate Config.h, compile online, and flash over USB</p>
 
+<div id="designsStrip" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center;max-width:820px;margin:-4px auto 16px;font-size:0.78em;">
+  <span style="color:var(--label);">Companion 3D designs:</span>
+  <a href="https://cults3d.com/fr/mod%C3%A8le-3d/outil/gt2-high-precision-gearbox-0-backlash" target="_blank" rel="noopener" class="design-chip" title="Thanks to Chad for the original gearbox design 🙏">🔧 GT2 Gearbox</a>
+  <a href="https://cults3d.com/fr/mod%C3%A8le-3d/divers/onstep-camera-rotator-filed-derotator-canon-ef-barlow-t2-eyepiece-m43" target="_blank" rel="noopener" class="design-chip">📷 Canon Rotator/Derotator</a>
+  <a href="https://cults3d.com/fr/mod%C3%A8le-3d/divers/onstep-fytsec-e4-case-cbvbogdan" target="_blank" rel="noopener" class="design-chip">🧰 Fysetc E4 Case</a>
+  <a href="https://cults3d.com/fr/mod%C3%A8le-3d/divers/box-enclosure-diy-electronic-project-case-120x97x40mm-onstep-maxstm3-6" target="_blank" rel="noopener" class="design-chip">📦 MaxSTM3.6 Case</a>
+  <a href="https://cults3d.com/fr/mod%C3%A8le-3d/outil/motorized-telescope-focuser" target="_blank" rel="noopener" class="design-chip">🔭 Motorized Focuser</a>
+</div>
+<div style="text-align:center;font-size:0.72em;color:var(--label);font-style:italic;max-width:820px;margin:-10px auto 16px;">
+  GT2 Gearbox — thanks to Chad for the original design 🙏
+</div>
+<style>
+  .design-chip {
+    padding: 2px 8px;
+    background: var(--link-bg);
+    color: var(--green);
+    border: 1px solid var(--link-border);
+    border-radius: 4px;
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+  .design-chip:hover { background: var(--link-border); color: #fff; }
+</style>
+
 <div style="display:flex;align-items:stretch;gap:8px;max-width:820px;margin:0 auto 16px;">
   <div class="mode-switch" role="tablist" aria-label="Project selector" style="flex:1;margin:0;">
     <button type="button" class="mode-btn active" id="modeBtn-onstepx" onclick="setMode('onstepx')" role="tab">
