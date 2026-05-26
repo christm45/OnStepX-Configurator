@@ -2050,6 +2050,7 @@
         <option value="L_de">L_de (German)</option>
         <option value="L_es">L_es (Spanish)</option>
         <option value="L_fr">L_fr (French)</option>
+        <option value="L_ro" disabled>L_ro (Romanian — pending upstream merge of Strings_ro.h)</option>
       </select>
       <span class="field-hint">UI language as declared in upstream SHC src/locales (L_en and L_us are the only ones with a Strings_xx.h shipped; others need a translation file)</span><span class="config-comment">// English. Specify language with two letter country code, if supported.</span>
     </div>
@@ -2427,6 +2428,7 @@
         <option value="L_it">L_it (Italian)</option>
         <option value="L_jp">L_jp (Japanese)</option>
         <option value="L_us">L_us (US English)</option>
+        <option value="L_ro" disabled>L_ro (Romanian — pending upstream merge of Strings_ro.h)</option>
       </select>
       <span class="field-hint">UI language &amp; default locale units</span><span class="config-comment">// English. Or L_ca, L_cn, L_de, L_en, L_es, L_fr, L_it, L_jp, L_us.</span>
     </div>
@@ -5149,6 +5151,47 @@ window.importConfigFromUrlUi = async function () {
   }
 };
 
+// Re-impose the Calculator-tab outputs onto the RAW Config.h currently sitting
+// in the Output textarea. Needed for the FYSETC_E4 apply path: there
+// importConfigFromUrl() pins the upstream E4 Config.h verbatim (Compile sends
+// that textarea byte-for-byte) and its hardcoded values overwrite the axis
+// form fields. Without this, the E4 reference numbers for steps/deg, slew rate
+// and PEC would silently win over the user's mount geometry. Only ACTIVE
+// "#define" lines that have a sensible (>0) calculated value are patched;
+// commented-out or absent defines are left untouched.
+function applyCalculatorToRawConfig() {
+  const output = document.getElementById('configOutput');
+  if (!output || !output.value) return 0;
+  let text = output.value;
+
+  // Config.h #define name <- form field that currently holds the calc result.
+  const driven = [
+    'AXIS1_STEPS_PER_DEGREE',
+    'AXIS2_STEPS_PER_DEGREE',
+    'AXIS3_STEPS_PER_DEGREE',
+    'SLEW_RATE_BASE_DESIRED',
+    'PEC_STEPS_PER_WORM_ROTATION',
+  ];
+
+  let patched = 0;
+  for (const name of driven) {
+    const el = document.getElementById(name);
+    if (!el) continue;
+    const raw = (el.value || '').trim();
+    const num = parseFloat(raw);
+    if (!isFinite(num) || num <= 0) continue; // skip empty / zero / non-numeric
+    // Swap the value token of an active "#define NAME value [// comment]" line,
+    // preserving the leading indentation and any trailing comment/alignment.
+    const re = new RegExp('^([ \\t]*#define[ \\t]+' + name + '[ \\t]+)(\\S+)(.*)$', 'm');
+    if (re.test(text)) {
+      text = text.replace(re, '$1' + raw + '$3');
+      patched++;
+    }
+  }
+  if (patched > 0) output.value = text;
+  return patched;
+}
+
 window.applyBoardDefaults = async function () {
   const pinmap = document.getElementById('PINMAP')?.value;
 
@@ -5169,8 +5212,21 @@ window.applyBoardDefaults = async function () {
       if (websiteCb && !websiteCb.checked) {
         websiteCb.checked = true;
         websiteCb.dispatchEvent(new Event('change', { bubbles: true }));
-        showStatus?.('FYSETC E4 defaults applied. Website plugin auto-enabled.');
       }
+      // Keep the Calculator authoritative on the E4 path, exactly like every
+      // other board (which reaches the calc re-run further below). The E4
+      // fetch just (a) overwrote the AXIS*_STEPS_PER_DEGREE form fields with
+      // Howard's reference values and (b) pinned the raw Config.h into the
+      // Output textarea that Compile sends verbatim. Re-run the calculators so
+      // the form reflects the user's mount geometry again, then patch those
+      // same lines in the raw Output text so the compiled file uses the
+      // calculated values across all axes — not the E4 defaults.
+      try { calcAxis1(); calcAxis2(); calcAxis3(); calcSlew(); calcPEC(); } catch {}
+      const patched = applyCalculatorToRawConfig();
+      showStatus?.(
+        `FYSETC E4 defaults applied; Website plugin auto-enabled. ` +
+        `Calculator values re-applied to ${patched} field${patched === 1 ? '' : 's'} (steps/deg, slew, PEC).`
+      );
     } catch (err) {
       alert(`Could not fetch E4 branch Config.h: ${err.message}`);
     }
