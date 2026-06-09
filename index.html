@@ -1615,11 +1615,6 @@
       <span class="field-hint">Limit switch state</span><span class="config-comment">// HIGH or LOW state on limit sense switch stops movement.</span>
     </div>
     <div class="field-row">
-      <label class="field-label">LIMIT_STRICT <span class="hint-tag hint-option">Option</span></label>
-      <select id="LIMIT_STRICT"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Enable limits at startup</span><span class="config-comment">// disables limits until unpark goto or sync. ON enables limits at startup.</span>
-    </div>
-    <div class="field-row">
       <label class="field-label">PARK_SENSE <span class="hint-tag hint-option">Option</span></label>
       <select id="PARK_SENSE"><option value="OFF" selected>OFF</option><option value="HIGH">HIGH</option><option value="LOW">LOW</option></select>
       <span class="field-hint">Park orientation sensor</span><span class="config-comment">// HIGH or LOW state indicates mount is in the park orientation.</span>
@@ -4178,7 +4173,7 @@ function generateConfig() {
 
   L('// LIMITS ------------------------------------------------------ see https://onstep.groups.io/g/main/wiki/Configuration_Mount#LIMITS');
   L(pad('LIMIT_SENSE', v('LIMIT_SENSE'), 'OFF,', 'HIGH or LOW state on limit sense switch stops movement.                  Option'));
-  L(pad('LIMIT_STRICT', v('LIMIT_STRICT'), 'OFF,', 'disables limits until unpark goto or sync. ON enables at startup.       Option'));
+  // LIMIT_STRICT removed — obsolete in OnStepX (Validate.h #errors on it; startup authority now controls limits)
   L('');
 
   L('// PARKING ---------------------------------------------------- see https://onstep.groups.io/g/main/wiki/Configuration_Mount#PARKING');
