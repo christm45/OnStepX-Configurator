@@ -768,6 +768,7 @@
   }
   .design-chip:hover { background: var(--link-border); color: #fff; }
 </style>
+<link rel="stylesheet" href="e4-guide.css">
 
 <div style="display:flex;align-items:stretch;gap:8px;max-width:820px;margin:0 auto 16px;">
   <div class="mode-switch" role="tablist" aria-label="Project selector" style="flex:1;margin:0;">
@@ -812,6 +813,7 @@
   <button class="tab-btn" data-modes="onstepx,shc,sws" onclick="showTab('output')">Output</button>
   <button class="tab-btn" data-modes="onstepx,shc,sws" onclick="showTab('compile')">Compile &amp; Flash</button>
   <button class="tab-btn" data-modes="onstepx,shc,sws" onclick="showTab('help')" title="User Guide">? Help</button>
+  <button class="tab-btn" data-modes="onstepx,shc,sws" onclick="if(window.renderE4Guide)renderE4Guide();showTab('e4guide')" title="FYSETC E4 beginner guide">📡 E4 Guide</button>
 </div>
 
 <!-- ==================== CALCULATOR TAB ==================== -->
@@ -3729,6 +3731,9 @@ location.reload();</pre>
 
 </div>
 
+<!-- FYSETC E4 beginner guide (rendered by e4-guide.js) -->
+<div class="tab-content" id="tab-e4guide"></div>
+
 <!-- Persistent bottom bar -->
 <div class="btn-row" style="position:sticky;bottom:0;background:var(--bg);padding:10px 0;z-index:10;">
   <button class="btn btn-generate" onclick="generateConfig(); showTab('output');">Generate &amp; View Config.h</button>
@@ -6535,5 +6540,6 @@ window.flashBoard = async function () {
   }
 };
 </script>
+<script src="e4-guide.js"></script>
 </body>
 </html>

@@ -1,0 +1,171 @@
+/* ============================================================================
+   FYSETC E4 Beginner Guide — scoped styles
+   All selectors are scoped under #tab-e4guide so they never collide with the
+   configurator's own .section / .section-title / .card rules. Design tokens
+   below are local to the tab and tuned to sit inside the configurator's dark
+   SmartWebServer palette while keeping the per-feature accent colours that make
+   the guide easy to scan for newcomers.
+   ========================================================================== */
+#tab-e4guide {
+  --e4-accent: #d4796a;        /* warm rose — headings & links (fits SWS red theme) */
+  --e4-text: #c2c6cf;
+  --e4-dim: #8b9099;
+  --e4-card: #1b1c22;
+  --e4-card2: #15161b;
+  --e4-border: #33353f;
+  --e4-mono-bg: #14171f;
+  --e4-warn-bg: #2a1c10; --e4-warn-bd: #7a4a12; --e4-warn-fg: #e6b15a;
+  --e4-info-bg: #0f2029; --e4-info-bd: #1f4d5f; --e4-info-fg: #5fc6e0;
+  color: var(--e4-text);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+/* ---- intro + section descriptions ---- */
+#tab-e4guide .e4-intro {
+  font-size: 13px; color: var(--e4-dim); margin-bottom: 14px; max-width: 70ch;
+}
+#tab-e4guide .e4-desc { font-size: 13px; color: var(--e4-dim); margin-bottom: 14px; }
+#tab-e4guide h2.e4-h2 {
+  font-size: 18px; font-weight: 700; color: var(--e4-accent);
+  margin: 4px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--e4-border);
+}
+#tab-e4guide h3.e4-cat {
+  font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+  padding-left: 12px; margin: 22px 0 12px; border-left: 3px solid var(--e4-accent);
+}
+#tab-e4guide a { color: var(--e4-accent); }
+
+/* ---- search ---- */
+#tab-e4guide .e4-search {
+  width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--e4-border);
+  background: var(--e4-card2); color: var(--e4-text); font-size: 13px; margin-bottom: 14px;
+}
+#tab-e4guide .e4-search::placeholder { color: var(--e4-dim); }
+
+/* ---- nav cards (sub-navigation) ---- */
+#tab-e4guide .e4-navcards {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+  gap: 8px; margin-bottom: 20px;
+}
+#tab-e4guide .e4-navcard {
+  --card-accent: #888; cursor: pointer; user-select: none;
+  background: var(--e4-card2); border: 1px solid var(--e4-border);
+  border-left: 3px solid var(--card-accent); border-radius: 8px; padding: 9px 11px;
+  display: flex; flex-direction: column; gap: 2px; transition: background .12s, border-color .12s;
+}
+#tab-e4guide .e4-navcard:hover { background: var(--e4-card); }
+#tab-e4guide .e4-navcard.active { background: var(--e4-card); border-color: var(--card-accent); }
+#tab-e4guide .e4-navcard-icon { font-size: 18px; }
+#tab-e4guide .e4-navcard-label { font-weight: 600; font-size: 13px; color: var(--e4-text); }
+#tab-e4guide .e4-navcard-desc { font-size: 11px; color: var(--e4-dim); line-height: 1.35; }
+
+/* ---- section panels ---- */
+#tab-e4guide .e4-section { display: none; }
+#tab-e4guide .e4-section.active { display: block; }
+
+/* ---- cards ---- */
+#tab-e4guide .e4-card {
+  background: var(--e4-card); border: 1px solid var(--e4-border); border-radius: 10px;
+  padding: 16px; margin-bottom: 14px;
+}
+#tab-e4guide .e4-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+#tab-e4guide .e4-card h4 {
+  font-size: 13px; font-weight: 600; margin: 12px 0 6px; color: var(--e4-accent);
+}
+#tab-e4guide .e4-card-desc { font-size: 13px; color: var(--e4-dim); margin-bottom: 12px; }
+
+/* ---- callouts ---- */
+#tab-e4guide .e4-callout {
+  border-radius: 8px; padding: 10px 12px; margin: 8px 0; font-size: 13px; line-height: 1.6;
+  border: 1px solid var(--e4-border); background: var(--e4-card2);
+}
+#tab-e4guide .e4-callout.warn { background: var(--e4-warn-bg); border-color: var(--e4-warn-bd); color: var(--e4-warn-fg); }
+#tab-e4guide .e4-callout.info { background: var(--e4-info-bg); border-color: var(--e4-info-bd); color: var(--e4-info-fg); }
+#tab-e4guide .e4-callout.small { font-size: 12px; padding: 8px 10px; }
+#tab-e4guide .e4-callout code, #tab-e4guide .e4-callout strong { color: inherit; }
+
+/* ---- tables ---- */
+#tab-e4guide .e4-tablewrap { overflow-x: auto; margin-bottom: 12px; }
+#tab-e4guide table.e4-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+#tab-e4guide table.e4-table th, #tab-e4guide table.e4-table td {
+  text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--e4-border); vertical-align: top;
+}
+#tab-e4guide table.e4-table th {
+  color: var(--e4-accent); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .4px;
+  background: var(--e4-card2);
+}
+#tab-e4guide table.e4-table tr:hover td { background: rgba(255,255,255,.02); }
+
+/* ---- inline code / pins / gpio ---- */
+#tab-e4guide code.e4-code {
+  font-family: "JetBrains Mono", Consolas, monospace; font-size: 12px;
+  background: var(--e4-mono-bg); border: 1px solid var(--e4-border);
+  border-radius: 4px; padding: 1px 5px; color: #d8b888;
+}
+#tab-e4guide .e4-pin {
+  font-family: "JetBrains Mono", Consolas, monospace; font-size: 11px; font-weight: 600;
+  background: #232017; color: #e6b15a; border-radius: 4px; padding: 1px 6px;
+}
+#tab-e4guide .e4-gpio {
+  font-family: "JetBrains Mono", Consolas, monospace; font-size: 11px; font-weight: 600;
+  background: #122019; color: #5fd6a0; border-radius: 4px; padding: 1px 6px;
+}
+#tab-e4guide pre.e4-pre {
+  background: var(--e4-mono-bg); border: 1px solid var(--e4-border); border-radius: 6px;
+  padding: 11px; font-size: 11px; line-height: 1.5; overflow-x: auto;
+  font-family: "JetBrains Mono", Consolas, monospace; color: #b8c0cc; margin: 6px 0;
+}
+
+/* ---- board header pin grid ---- */
+#tab-e4guide .e4-pingrid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px; margin: 12px 0;
+}
+#tab-e4guide .e4-pingrid-item {
+  background: var(--e4-card2); border: 1px solid var(--e4-border); border-left: 3px solid #888;
+  border-radius: 7px; padding: 8px 10px;
+}
+#tab-e4guide .e4-pingrid-label { font-weight: 600; font-size: 12px; margin-bottom: 2px; }
+#tab-e4guide .e4-pingrid-type { font-size: 11px; color: var(--e4-dim); margin-top: 2px; }
+
+/* ---- interactive board diagram ---- */
+#tab-e4guide .e4-board-layout { display: flex; flex-direction: column; gap: 12px; }
+#tab-e4guide .e4-board-svg-wrap { position: relative; }
+#tab-e4guide svg.e4-board-svg { width: 100%; height: auto; display: block; }
+#tab-e4guide svg.e4-board-svg g[data-id] { cursor: pointer; }
+#tab-e4guide .e4-board-hint {
+  position: absolute; top: 8px; right: 8px; background: var(--e4-card2);
+  border: 1px solid var(--e4-border); border-radius: 6px; padding: 4px 9px;
+  font-size: 12px; font-weight: 600; pointer-events: none;
+}
+#tab-e4guide .e4-board-detail {
+  background: var(--e4-card2); border: 1px solid var(--e4-border); border-radius: 10px;
+  padding: 14px; border-top: 3px solid var(--e4-accent);
+}
+#tab-e4guide .e4-board-detail-head {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px;
+}
+#tab-e4guide .e4-board-detail-head h4 { margin: 0; font-size: 15px; }
+#tab-e4guide .e4-board-badge {
+  font-size: 11px; padding: 2px 8px; border-radius: 20px; border: 1px solid var(--e4-border);
+}
+#tab-e4guide .e4-board-detail p { font-size: 12.5px; margin: 4px 0; color: var(--e4-text); }
+#tab-e4guide .e4-board-link {
+  margin-top: 10px; background: transparent; border: 1px solid var(--e4-accent);
+  color: var(--e4-accent); border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 12px;
+}
+#tab-e4guide .e4-board-link:hover { background: rgba(212,121,106,.12); }
+
+/* ---- collapsible discussion cards ---- */
+#tab-e4guide details.e4-disc { margin-bottom: 12px; }
+#tab-e4guide details.e4-disc > summary {
+  cursor: pointer; list-style: none; padding: 4px 0; font-weight: 700; font-size: 14px;
+}
+#tab-e4guide details.e4-disc > summary::-webkit-details-marker { display: none; }
+#tab-e4guide details.e4-disc > summary::before { content: "▸ "; color: var(--e4-dim); }
+#tab-e4guide details.e4-disc[open] > summary::before { content: "▾ "; }
+#tab-e4guide .e4-disc-meta { font-size: 11px; color: var(--e4-dim); margin: 2px 0 8px; }
+
+#tab-e4guide ol, #tab-e4guide ul { padding-left: 20px; }
+#tab-e4guide ol li, #tab-e4guide ul li { margin: 2px 0; }
