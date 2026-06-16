@@ -55,5 +55,9 @@ window.I18N_FR = Object.assign(window.I18N_FR || {}, {
   "— OnStepX uses the GPS once it has a fix and falls back to the DS3231 clock when no satellites are visible.": "— OnStepX utilise le GPS une fois qu'il a un point et se rabat sur l'horloge DS3231 quand aucun satellite n'est visible.",
   "— add the plugin's": "— ajoutez la",
   "— the default limit is an e-stop, not a homing endstop. All of these pins are remappable: one working build uses": "— la limite par défaut est un arrêt d'urgence, pas une butée de référencement. Toutes ces broches sont remappables : une build qui fonctionne utilise",
-  "Axis4": "Axe4"
+  "Axis4": "Axe4",
+  "Easiest option: build & flash right here with this configurator's": "Option la plus simple : compilez & flashez directement ici avec l'onglet",
+  "tab — it compiles online and flashes over USB in your browser. The manual Arduino IDE method is below.": "de ce configurateur — il compile en ligne et flashe via USB dans votre navigateur. La méthode manuelle Arduino IDE figure ci-dessous.",
+  "Build & flash a clean firmware from this configurator's": "Compilez & flashez un firmware propre depuis l'onglet",
+  "tab (rules out Arduino/library issues).": "de ce configurateur (écarte les problèmes d'Arduino/bibliothèques)."
 });
