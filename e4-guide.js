@@ -46,7 +46,7 @@
     rtc: 'rtc ds3231 real-time clock i2c timekeeping battery cr2032 backup makuna 0x68',
     focuser: 'focuser motorized stepper tmc2209 axis4 axis5 temperature compensation steps per micron gpio16 gpio17 gpio14 gpio12',
     rotator: 'rotator field de-rotator alt-az axis3 camera rotation angle step dir gpio14 gpio12',
-    wifi: 'wifi bluetooth access point station ap ssid password web interface sws mdns 192.168.0.1 onstepx radio',
+    wifi: 'wifi bluetooth access point station ap ssid password web interface sws smartwebserver website plugin mdns onstepx.local onstepsws.local 192.168.0.1 onstep onstepx radio esp32 esp8266 serial_radio wifi_access_point wifi_station add no esp how to connect default password plugins.config.h',
     troubleshooting: 'troubleshooting problem fix solution error usb serial wifi overheating stepper tmc2209 uart jumper compile library ch340 ascom capacitor reset esp32 goto limit park pec hall buzzer smoke power',
     firmware: 'firmware upload flashing arduino ide esp32 libraries tmc2209 makuna rtc adafruit bme280 partition huge app 240mhz discussions community',
     compatible: 'compatible hardware guide sensor part number shopping list a3144 ky-003 us5881 hall pec magnet neo-m8n gps bme280 ds3231 ds18b20 ntc microswitch irlz44n mosfet tmc2209 nema17 focuser optocoupler ch340 capacitor',
@@ -727,20 +727,78 @@
     })}`;
 
   C.wifi = () => `
-    <h2 class="e4-h2">WiFi &amp; Bluetooth</h2>
-    <p class="e4-desc">The ESP32 has built-in WiFi and Bluetooth. OnStepX uses it for the web server, IP command channel and/or Bluetooth serial (SHC/App). No external module needed.</p>
+    <h2 class="e4-h2">WiFi, the web page &amp; how it all connects</h2>
+    <p class="e4-desc">This is the part beginners trip over most, because three different things all get called "the WiFi". The FYSETC E4 is built around an <strong>ESP32</strong>, so — unlike most OnStep main boards — it already <em>has</em> the radio on board: no add-on WiFi module is needed. What you still choose is <strong>which firmware serves the web page</strong>.</p>
     ${card({
-      title: 'WiFi & Bluetooth Setup',
-      desc: 'The E4 Config.h default enables WIFI_ACCESS_POINT mode — the board creates its own WiFi network for direct connection.',
+      title: 'ESP, the E4 and the web page — what is what',
+      desc: 'Three layers that are easy to confuse. Knowing which one you are dealing with tells you what to flash and where to connect.',
+      notes:
+        table(['Layer', 'What it is', 'On the FYSETC E4', 'On a board with no built-in WiFi'], [
+          ['<strong>The radio (ESP32)</strong>', 'The actual 2.4 GHz WiFi + Bluetooth hardware.', 'Built into the E4 — already there, nothing to add.', 'Absent. The MCU (Teensy 4.x, STM32 MaxPCB…) has no radio at all.'],
+          ['<strong>The web page</strong>', 'The HTML control panel you open in a browser.', 'Served by OnStepX itself via the lightweight <em>website plugin</em>, or by the full SmartWebServer running on the same ESP32.', 'Needs a <em>separate ESP</em> (ESP8266/ESP32) flashed with SmartWebServer, wired to a serial port.'],
+          ['<strong>The command channel</strong>', 'How apps (SkySafari, INDI, the SHC app) talk to the mount — over IP or Bluetooth.', 'OnStepX opens a TCP/IP port on its own WiFi, and/or Bluetooth serial.', 'SmartWebServer bridges TCP/IP ↔ the controller\'s serial port.'],
+        ]) +
+        callout('info', '<strong>Rule of thumb:</strong> on the E4 you do <u>not</u> add any hardware for WiFi. You only decide between the lightweight <strong>website plugin</strong> (simple page, served by OnStepX) and the full <strong>SmartWebServer</strong> (richer UI). On a non-ESP board, "adding WiFi" literally means bolting on an ESP module running SmartWebServer.'),
+    })}
+    ${card({
+      title: 'WiFi & Bluetooth setup (E4 / OnStepX)',
+      desc: 'The E4 Config.h default enables WIFI_ACCESS_POINT mode — the board creates its own WiFi network for direct connection in the field, no router required.',
       config: [
-        { dir: 'SERIAL_RADIO', val: 'WIFI_ACCESS_POINT', note: 'Default: create a WiFi AP' },
-        { dir: 'AP_SSID', val: '"OnStepX"', note: 'WiFi network name' },
-        { dir: 'AP_PASSWORD', val: '"password"', note: 'Change this!' },
-        { dir: 'AP_IP_ADDR', val: '{192,168,0,1}', note: 'AP IP address' },
-        { dir: 'SERIAL_RADIO', val: 'WIFI_STATION', note: 'Alternative: join existing WiFi' },
-        { dir: 'SERIAL_RADIO', val: 'BLUETOOTH', note: 'Alternative: use Bluetooth' },
+        { dir: 'SERIAL_RADIO', val: 'WIFI_ACCESS_POINT', note: 'Default: board creates its own WiFi network' },
+        { dir: 'SERIAL_RADIO', val: 'WIFI_STATION', note: 'Alternative: join an existing WiFi (router/hotspot)' },
+        { dir: 'SERIAL_RADIO', val: 'BLUETOOTH', note: 'Alternative: Bluetooth serial (SHC app)' },
+        { dir: 'AP_SSID', val: '"OnStepX"', note: 'WiFi network name in AP mode' },
+        { dir: 'AP_PASSWORD', val: '"password"', note: 'CHANGE THIS — 8+ chars for WPA2' },
+        { dir: 'AP_IP_ADDR', val: '{192,168,0,1}', note: 'Board address in AP mode' },
       ],
-      notes: callout('info', '<strong>Accessing the web interface:</strong> in AP mode connect to the "OnStepX" WiFi then browse to <strong>http://192.168.0.1</strong> (or http://onstepx.local with mDNS). In Station mode, find the IP via serial monitor. For Bluetooth, pair with "OnStepX" using any BT serial terminal app.'),
+      warnings: [
+        { label: 'Pick one radio mode', text: 'SERIAL_RADIO is a single choice. Do not run WIFI_ACCESS_POINT and WIFI_STATION at the same time on the E4 — it is a known cause of dropped connections.' },
+      ],
+    })}
+    ${card({
+      title: 'How to connect — IP addresses & default passwords',
+      desc: 'Two ways to reach the board. AP mode is the default and the simplest in the field; Station mode is best at home where you want internet on the same device.',
+      notes:
+        '<h4>Access Point mode (default — the board makes its own network)</h4>' +
+        table(['Setting', 'Default value', 'Notes'], [
+          ['WiFi network (SSID)', code('OnStepX') + ' <span style="color:var(--e4-dim)">(SmartWebServer: ' + code('ONSTEP') + ')</span>', 'The network you join from your phone/PC.'],
+          ['WiFi password', code('password'), '<strong>Change it.</strong> Must be ≥ 8 chars (WPA2), or leave empty for an open network.'],
+          ['Board address', code('http://192.168.0.1'), 'Open this in a browser once joined to the network.'],
+          ['mDNS name', code('http://onstepx.local') + ' / ' + code('http://onstepsws.local'), 'Works if your device supports mDNS (Bonjour).'],
+          ['Web UI login (SWS only)', code('password'), 'SmartWebServer admin password (PASSWORD_DEFAULT). The lightweight plugin has no login.'],
+        ]) +
+        callout('info', '<strong>Steps (AP mode):</strong> 1) power the board → 2) on your phone/PC join the <strong>OnStepX</strong> WiFi with the password above → 3) browse to <strong>http://192.168.0.1</strong>. On Android, turn off mobile data first so it does not route around the access point.') +
+        '<h4 style="margin-top:14px">Station mode (the board joins your existing WiFi)</h4>' +
+        table(['Setting', 'Default value', 'Notes'], [
+          ['Your WiFi name (SSID)', '<em>you set it</em>', 'STA_SSID — the router/hotspot to join.'],
+          ['Your WiFi password', code('password'), 'STA_PASSWORD — replace with your real WiFi password.'],
+          ['Board address', '<em>assigned by your router (DHCP)</em>', 'Find it in the serial monitor at boot, in your router\'s client list, or via mDNS.'],
+          ['Static IP (optional)', code('192.168.0.1'), 'Only used if you disable DHCP (STA_DHCP_ENABLED = false).'],
+          ['mDNS name', code('http://onstepx.local'), 'Easiest way to reach it without hunting for the IP.'],
+        ]) +
+        callout('warn', '<strong>Default passwords are public.</strong> "password" ships in every install — change AP_PASSWORD and (for SmartWebServer) PASSWORD_DEFAULT before putting the mount on a shared or outdoor network.'),
+    })}
+    ${card({
+      title: 'No built-in ESP? Adding WiFi and the web page',
+      desc: 'If your controller is NOT ESP-based (e.g. Teensy 4.0/4.1, STM32 MaxPCB) there is no radio on the board. There are two routes to a web page.',
+      notes:
+        '<p style="margin:6px 0"><strong>Route A — add a SmartWebServer ESP module (classic OnStep way):</strong></p>' +
+        '<ol style="font-size:12.5px;line-height:1.85">' +
+        '<li>Get a small <strong>ESP8266 or ESP32</strong> board.</li>' +
+        '<li>Flash it with <a href="https://github.com/hjd1964/SmartWebServer" target="_blank" rel="noopener">SmartWebServer</a> — configure it in this tool\'s <strong>SmartWebServer</strong> mode (the project selector at the top of the page).</li>' +
+        '<li>Wire the ESP\'s serial TX/RX (cross-over: TX→RX, RX→TX) to a free serial port on the controller, plus a common GND; make SERIAL_BAUD match on both sides.</li>' +
+        '<li>Power up: the ESP creates the <strong>ONSTEP</strong> access point (or joins your WiFi) and bridges commands to the mount.</li>' +
+        '</ol>' +
+        '<p style="margin:12px 0 6px"><strong>Route B — the OnStepX website plugin (for ESP-based boards like the E4):</strong></p>' +
+        '<ol style="font-size:12.5px;line-height:1.85">' +
+        '<li>Download the <strong>website</strong> plugin from <a href="https://github.com/hjd1964/OnStepX-Plugins" target="_blank" rel="noopener">hjd1964/OnStepX-Plugins</a>.</li>' +
+        '<li>Copy the plugin folder into your OnStepX sketch under ' + code('src/plugins/') + '.</li>' +
+        '<li>Register it in ' + code('src/plugins/Plugins.config.h') + ' — add the plugin\'s ' + code('#include') + ' / ' + code('PLUGIN(...)') + ' line as shown in its README.</li>' +
+        '<li>Enable WiFi in Config.h: ' + code('SERIAL_RADIO WIFI_ACCESS_POINT') + ' (the settings shown above).</li>' +
+        '<li>Recompile &amp; flash. The page is then served at <strong>http://192.168.0.1</strong>.</li>' +
+        '</ol>' +
+        callout('info', '<strong>Online build shortcut:</strong> the <strong>Compile &amp; Flash</strong> tab can request the ' + code('website') + ' plugin automatically — you do not have to copy any files by hand when building through this configurator.') +
+        callout('info', '<strong>Which to choose on the E4?</strong> The website plugin is the simplest and lightest (one ESP32 doing everything). Use the full SmartWebServer when you want its richer UI and can accept the extra load on the shared ESP32. <span style="color:var(--e4-dim)">Source: <a href="https://onstep.groups.io/g/main/message/69064" target="_blank" rel="noopener">#69064</a></span>'),
     })}
     ${card({
       title: 'Community notes — WiFi self-interference & range',

@@ -698,6 +698,46 @@
     color: var(--status-fg) !important;
     font-weight: bold;
   }
+  /* Compile / flash progress bars. .prog-wrap is hidden until JS shows it.
+     Determinate: JS sets #...ProgBar width to a %. Indeterminate (compile,
+     where GitHub Actions gives no fine-grained %): a stripe slides across. */
+  .prog-wrap {
+    display: none;
+    position: relative;
+    margin-top: 10px;
+    height: 20px;
+    background: var(--accent);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .prog-bar {
+    height: 100%;
+    width: 0;
+    background: var(--green);
+    transition: width 0.25s ease;
+  }
+  .prog-wrap.indeterminate .prog-bar {
+    width: 35%;
+    background: linear-gradient(90deg, transparent, var(--green), transparent);
+    animation: prog-slide 1.1s linear infinite;
+  }
+  @keyframes prog-slide {
+    0%   { margin-left: -35%; }
+    100% { margin-left: 100%; }
+  }
+  .prog-label {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: Consolas, monospace;
+    font-size: 0.72em;
+    color: #fff;
+    text-shadow: 0 0 3px #000, 0 0 3px #000;
+    pointer-events: none;
+  }
   /* Force every text node inside the preflight banner to white once the
      parent has a state colour. The per-item color: var(--*) styles set
      inline by runPreflight() and the inline override label
@@ -744,6 +784,34 @@
 
 <h1 id="pageTitle"><span style="float:right;font-size:0.8em;color:var(--label);font-weight:normal;">OnStepX&nbsp;Configurator</span><b>OnStep</b> Configuration Generator</h1>
 <p class="subtitle" id="pageSubtitle">Generate Config.h, compile online, and flash over USB</p>
+
+<!-- Language / Langue selector. Buttons carry data-no-i18n so their own labels
+     ("English"/"Français") are never themselves translated. The i18n engine
+     (i18n.js) wires the clicks and swaps the whole page via window.I18N_FR. -->
+<div class="lang-bar" role="group" aria-label="Language / Langue" data-no-i18n>
+  <span class="lang-bar-ico" aria-hidden="true">🌐</span>
+  <span class="lang-bar-label">Language / Langue</span>
+  <button type="button" class="lang-btn" data-lang-btn="en" aria-pressed="true">English</button>
+  <button type="button" class="lang-btn" data-lang-btn="fr" aria-pressed="false">Français</button>
+</div>
+<style>
+  .lang-bar {
+    display: flex; align-items: center; gap: 8px;
+    max-width: 820px; margin: 0 auto 14px; padding: 6px 10px;
+    background: var(--link-bg); border: 1px solid var(--link-border);
+    border-radius: 6px; font-size: 0.82em; color: var(--label);
+    justify-content: center;
+  }
+  .lang-bar-ico { font-size: 1.15em; }
+  .lang-bar-label { font-weight: 600; color: var(--green); margin-right: 4px; }
+  .lang-btn {
+    padding: 3px 14px; background: var(--accent); color: var(--text);
+    border: 1px solid var(--link-border); border-radius: 4px;
+    cursor: pointer; font-family: inherit; font-size: 1em; transition: all 0.15s;
+  }
+  .lang-btn:hover { background: var(--link-border); color: #fff; }
+  .lang-btn.active { background: var(--highlight); color: #fff; border-color: var(--highlight); font-weight: bold; }
+</style>
 
 <div id="designsStrip" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center;max-width:820px;margin:-4px auto 16px;font-size:0.78em;">
   <span style="color:var(--label);">Companion 3D designs:</span>
@@ -1075,12 +1143,12 @@
     </div>
     <div class="field-row">
       <label class="field-label"></label>
-      <button type="button" class="btn btn-copy" id="applyBoardDefaultsBtn"
+      <button type="button" class="btn btn-copy" id="applyBoardDefaultsBtn" data-no-i18n
               onclick="applyBoardDefaults()"
               style="grid-column: 2; justify-self: start; padding: 6px 12px; font-size: 0.85em;">
         Apply board defaults
       </button>
-      <span class="field-hint" id="applyBoardDefaultsHint">Fill in driver model, microsteps, current, etc. for the selected PINMAP</span>
+      <span class="field-hint" id="applyBoardDefaultsHint" data-no-i18n>Fill in driver model, microsteps, current, etc. for the selected PINMAP</span>
     </div>
   </div>
   <div class="section">
@@ -1156,7 +1224,7 @@
         <option value="WIFI_ACCESS_POINT">WIFI_ACCESS_POINT</option>
         <option value="WIFI_STATION">WIFI_STATION</option>
       </select>
-      <span class="field-hint">ESP32 wireless mode</span><span class="config-comment">// Use BLUETOOTH or WIFI_ACCESS_POINT or WIFI_STATION (ESP32 only.)</span>
+      <span class="field-hint">ESP32 wireless mode — this enables the SmartWebServer that is built into OnStepX on ESP32 boards (no separate ESP needed). WIFI_ACCESS_POINT = the board creates its OWN WiFi network "OnStepX" — no router needed, best in the field; connect your phone/PC to it, then open http://192.168.0.1. WIFI_STATION = the board JOINS your existing home WiFi/router — best indoors with internet on the same device; find its IP in the serial monitor or your router's client list. Default WiFi password: "password" — change it! BLUETOOTH = pair over Bluetooth instead of WiFi.</span><span class="config-comment">// Use BLUETOOTH or WIFI_ACCESS_POINT or WIFI_STATION (ESP32 only.)</span>
     </div>
   </div>
   <div class="section">
@@ -2684,7 +2752,7 @@
         <option value="f446_fysetc_s6">STM32F446VE / FYSETC S6 (V1.2 + V2.0)</option>
         <option value="skr_pro_f407">STM32F407 / BTT SKR PRO V1.2</option>
       </select>
-      <span class="field-hint" id="pinmap-hint">Auto-selected from your PINMAP choice</span>
+      <span class="field-hint" id="pinmap-hint" data-no-i18n>Auto-selected from your PINMAP choice</span>
     </div>
     <div class="field-row">
       <label class="field-label" id="onstepxRefLabel">Source ref <span class="hint-tag hint-adjust">Adjust</span></label>
@@ -2727,6 +2795,7 @@
       <button class="btn btn-generate" id="compileBtn" onclick="startCompileFlow()">Compile Firmware</button>
       <button class="btn btn-download" id="downloadFwBtn" onclick="downloadFirmware()" disabled>Download Firmware</button>
     </div>
+    <div id="compileProgress" class="prog-wrap"><div class="prog-bar" id="compileProgBar"></div><span class="prog-label" id="compileProgLabel"></span></div>
     <div id="compileStatus" style="margin-top:10px;padding:10px;background:var(--status-warn-bg);border:1px solid var(--border);border-radius:4px;min-height:30px;font-family:Consolas,monospace;font-size:0.85em;color:var(--status-fg);">
       Idle — click "Compile Firmware" to begin.
     </div>
@@ -2752,6 +2821,7 @@
     <div class="btn-row">
       <button class="btn btn-generate" id="flashBtn" onclick="flashBoard()" disabled>Flash to Board</button>
     </div>
+    <div id="flashProgress" class="prog-wrap"><div class="prog-bar" id="flashProgBar"></div><span class="prog-label" id="flashProgLabel"></span></div>
     <div id="flashSupport" style="margin-top:8px;color:var(--warn);font-size:0.8em;"></div>
     <pre id="flashLog" style="margin-top:10px;padding:10px;background:#000;color:var(--green);border:1px solid var(--border);border-radius:0;max-height:250px;overflow:auto;font-family:Consolas,monospace;font-size:0.8em;white-space:pre-wrap;display:none;"></pre>
   </div>
@@ -5043,19 +5113,26 @@ function refreshBoardDefaultsButton() {
   const pinmap = document.getElementById('PINMAP')?.value || 'OFF';
   const entry = BOARD_DEFAULTS[pinmap];
   if (entry) {
-    btn.textContent = `Apply ${entry.label} defaults`;
+    btn.textContent = tr(`Apply ${entry.label} defaults`);
     btn.disabled = false;
-    if (hint) hint.textContent = entry.note;
+    if (hint) hint.textContent = tr(entry.note);
   } else {
-    btn.textContent = 'Apply board defaults';
+    btn.textContent = tr('Apply board defaults');
     btn.disabled = true;
     if (hint) {
       hint.textContent = pinmap === 'OFF'
-        ? 'Pick a PINMAP first.'
-        : `No starter config shipped for ${pinmap} yet — configure the axes manually on the Axis tabs.`;
+        ? tr('Pick a PINMAP first.')
+        : pgT(`No starter config shipped for ${pinmap} yet — configure the axes manually on the Axis tabs.`,
+              `Aucune config de départ fournie pour ${pinmap} pour l'instant — configurez les axes manuellement dans les onglets Axe.`);
     }
   }
 }
+// Re-render the (data-no-i18n) board-defaults button/hint after a language
+// switch — i18n.js calls window.afterI18nApply() at the end of set()/init().
+window.afterI18nApply = function () {
+  try { refreshBoardDefaultsButton(); } catch (e) {}
+  try { syncEnvFromPinmap(); } catch (e) {}
+};
 // Parse #define lines from a raw Config.h into an object of {name: value}.
 // Skips string-valued #defines with quotes (those usually have embedded spaces
 // or special chars that our simple form fields can't represent well).
@@ -6081,9 +6158,9 @@ function syncEnvFromPinmap() {
   const sel = document.getElementById('COMPILE_ENV');
   if (env && sel) {
     sel.value = env;
-    document.getElementById('pinmap-hint').textContent = `Auto-selected from PINMAP=${pinmap}`;
+    document.getElementById('pinmap-hint').textContent = pgT(`Auto-selected from PINMAP=${pinmap}`, `Sélectionné automatiquement depuis PINMAP=${pinmap}`);
   } else if (sel) {
-    document.getElementById('pinmap-hint').textContent = `No default for PINMAP=${pinmap || 'OFF'} — pick manually`;
+    document.getElementById('pinmap-hint').textContent = pgT(`No default for PINMAP=${pinmap || 'OFF'} — pick manually`, `Aucune valeur par défaut pour PINMAP=${pinmap || 'OFF'} — choisissez manuellement`);
   }
   refreshFlashSupportHint();
 }
@@ -6252,6 +6329,50 @@ function appendLog(targetId, line) {
   el.scrollTop = el.scrollHeight;
 }
 
+// --- Compile / flash progress bars -------------------------------------------
+// Compile has no fine-grained percentage (GitHub Actions), so it runs an
+// indeterminate sliding bar with an elapsed-time label. Flash IS determinate:
+// the flashers log "NN%" lines which flashBoard() parses into progSet().
+function progShow(wrapId, barId, labelId, opts = {}) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  wrap.style.display = 'block';
+  wrap.classList.toggle('indeterminate', !!opts.indeterminate);
+  const bar = document.getElementById(barId);
+  if (bar && !opts.indeterminate) bar.style.width = (opts.pct || 0) + '%';
+  const label = document.getElementById(labelId);
+  if (label) label.textContent = opts.label || '';
+}
+function progSet(barId, labelId, pct, label) {
+  const bar = document.getElementById(barId);
+  if (bar) {
+    if (bar.parentElement) bar.parentElement.classList.remove('indeterminate');
+    bar.style.width = Math.max(0, Math.min(100, pct)).toFixed(1) + '%';
+  }
+  const l = document.getElementById(labelId);
+  if (l && label != null) l.textContent = label;
+}
+function progLabel(labelId, text) {
+  const l = document.getElementById(labelId);
+  if (l) l.textContent = text;
+}
+function progHide(wrapId) {
+  const w = document.getElementById(wrapId);
+  if (w) w.style.display = 'none';
+}
+// Progress labels are built in JS with live numbers, so the dictionary engine
+// can't match them — pick the language here instead.
+function pgT(en, fr) {
+  return (window.I18N && window.I18N.lang === 'fr') ? fr : en;
+}
+// Dictionary lookup for JS-set text on data-no-i18n elements (the i18n
+// MutationObserver can't see textContent changes, so we translate explicitly).
+// Returns the FR string from the dictionary when French is active, else English.
+function tr(s) {
+  return (window.I18N && window.I18N.lang === 'fr' && window.I18N_FR && window.I18N_FR[s] !== undefined)
+    ? window.I18N_FR[s] : s;
+}
+
 function renderSizeIndicator(files) {
   const el = document.getElementById('sizeIndicator');
   if (!el) return;
@@ -6335,6 +6456,14 @@ window.startCompileFlow = async function () {
   downloadBtn.disabled = true;
   flashBtn.disabled = true;
   lastBuild = null;
+  // Indeterminate progress bar + elapsed timer (no real % from GitHub Actions).
+  const _compT0 = Date.now();
+  let _compPhase = pgT('Starting…', 'Démarrage…');
+  progShow('compileProgress', 'compileProgBar', 'compileProgLabel', { indeterminate: true, label: _compPhase });
+  const _compTimer = setInterval(() => {
+    const s = Math.round((Date.now() - _compT0) / 1000);
+    progLabel('compileProgLabel', `${_compPhase} — ${s}s`);
+  }, 500);
   // Hide the previous build's Flash/RAM panel so a stale size from an
   // earlier successful compile doesn't make a failed re-compile look
   // successful. renderSizeIndicator() repopulates it on success.
@@ -6383,9 +6512,9 @@ window.startCompileFlow = async function () {
     setStatus('Build queued on GitHub Actions…');
 
     const final = await pollUntilDone(requestId, (s) => {
-      if (s.state === 'queued') setStatus('Waiting for runner…');
-      else if (s.state === 'in_progress') setStatus('Compiling on GitHub Actions…');
-      else if (s.state === 'completed') setStatus(`Build ${s.conclusion}`, s.conclusion === 'success' ? 'ok' : 'err');
+      if (s.state === 'queued') { setStatus('Waiting for runner…'); _compPhase = pgT('Waiting for runner', 'En attente du runner'); }
+      else if (s.state === 'in_progress') { setStatus('Compiling on GitHub Actions…'); _compPhase = pgT('Compiling', 'Compilation'); }
+      else if (s.state === 'completed') { setStatus(`Build ${s.conclusion}`, s.conclusion === 'success' ? 'ok' : 'err'); _compPhase = pgT(`Build ${s.conclusion}`, `Compilation ${s.conclusion === 'success' ? 'réussie' : s.conclusion}`); }
     });
 
     if (final.conclusion !== 'success') {
@@ -6396,6 +6525,7 @@ window.startCompileFlow = async function () {
     appendLog('compileLog', `  run URL: ${final.html_url}`);
 
     setStatus('Fetching firmware artifact…');
+    _compPhase = pgT('Fetching firmware', 'Récupération du firmware');
     const files = await fetchFirmware(final.run_id);
     const names = Object.keys(files);
     appendLog('compileLog', `  fetched ${names.length} file(s): ${names.join(', ')}`);
@@ -6436,6 +6566,7 @@ window.startCompileFlow = async function () {
     }
 
     setStatus('Build complete. Firmware ready to download or flash.', 'ok');
+    progSet('compileProgBar', 'compileProgLabel', 100, pgT('Build complete ✓', 'Compilation terminée ✓'));
     downloadBtn.disabled = false;
     flashBtn.disabled = false;
     // Clear any previous "stale" indicator — what's loaded is current
@@ -6447,7 +6578,9 @@ window.startCompileFlow = async function () {
   } catch (err) {
     setStatus(`Error: ${err.message}`, 'err');
     appendLog('compileLog', `! ${err.stack || err.message}`);
+    progHide('compileProgress');
   } finally {
+    clearInterval(_compTimer);
     compileBtn.disabled = false;
   }
 };
@@ -6466,7 +6599,13 @@ window.flashBoard = async function () {
   const logEl = document.getElementById('flashLog');
   logEl.textContent = '';
   logEl.style.display = 'block';
-  const log = (m) => appendLog('flashLog', m);
+  // Drive the determinate flash bar off the flashers' own "NN%" log lines
+  // (esp32 "[1/3] 45%", stm32 "wrote x/y (45.6%)", teensy "progress: 45%").
+  const log = (m) => {
+    appendLog('flashLog', m);
+    const mm = String(m).match(/(\d+(?:\.\d+)?)\s*%/);
+    if (mm) progSet('flashProgBar', 'flashProgLabel', parseFloat(mm[1]), `${pgT('Flashing…', 'Flash en cours…')} ${mm[1]}%`);
+  };
 
   // Stale-flash guard: has Config.h changed since this firmware was built?
   try {
@@ -6489,6 +6628,7 @@ window.flashBoard = async function () {
   }
 
   flashBtn.disabled = true;
+  progShow('flashProgress', 'flashProgBar', 'flashProgLabel', { pct: 0, label: `${pgT('Flashing…', 'Flash en cours…')} 0%` });
   try {
     const { env, files } = lastBuild;
     // All ESP32 builds (OnStepX / SHC / SWS) share the Web Serial flasher.
@@ -6503,6 +6643,7 @@ window.flashBoard = async function () {
     else if (isStm32Dfu) await stm32Flasher.flash(files, log);
     else if (isTeensy) await teensyFlasher.flash(files, env, log);
     else throw new Error(`no flasher for env ${env}`);
+    progSet('flashProgBar', 'flashProgLabel', 100, pgT('Flash complete ✓', 'Flash terminé ✓'));
 
     // Flash succeeded — auto-reset the OnStepX form to the current board's
     // starter defaults so the next build starts clean. We snapshot the
@@ -6535,11 +6676,23 @@ window.flashBoard = async function () {
     }
   } catch (err) {
     log(`! ${err.message}`);
+    progHide('flashProgress');
   } finally {
     flashBtn.disabled = false;
   }
 };
 </script>
 <script src="e4-guide.js"></script>
+<script src="i18n-fr.js?v=3"></script>
+<script src="i18n-fr-2.js?v=3"></script>
+<script src="i18n-fr-3.js?v=3"></script>
+<script src="i18n-fr-4.js?v=3"></script>
+<script src="i18n-fr-e4a.js?v=3"></script>
+<script src="i18n-fr-e4b.js?v=3"></script>
+<script src="i18n-fr-5.js?v=3"></script>
+<script src="i18n-fr-6.js?v=3"></script>
+<script src="i18n-fr-7.js?v=3"></script>
+<script src="i18n-fr-8.js?v=3"></script>
+<script src="i18n.js?v=3"></script>
 </body>
 </html>

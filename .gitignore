@@ -9,6 +9,7 @@ cloudflare-worker/.wrangler/
 *.pem
 *token*.txt
 *tooken*.txt
+*secret*
 *.env
 .env.*
 
