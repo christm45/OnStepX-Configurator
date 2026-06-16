@@ -738,6 +738,23 @@
     text-shadow: 0 0 3px #000, 0 0 3px #000;
     pointer-events: none;
   }
+  /* Flashing-yellow highlight for the default WiFi password / AP IP in the
+     SERIAL_RADIO hint, so beginners can't miss the values they must use/change. */
+  .flash-yellow {
+    color: #FFFF00;
+    font-weight: bold;
+    background: rgba(0,0,0,0.25);
+    padding: 0 3px;
+    border-radius: 3px;
+    animation: flashYellow 1s steps(1, end) infinite;
+  }
+  @keyframes flashYellow {
+    0%, 100% { color: #FFFF00; }
+    50%      { color: #B07000; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .flash-yellow { animation: none; }
+  }
   /* Force every text node inside the preflight banner to white once the
      parent has a state colour. The per-item color: var(--*) styles set
      inline by runPreflight() and the inline override label
@@ -1224,7 +1241,7 @@
         <option value="WIFI_ACCESS_POINT">WIFI_ACCESS_POINT</option>
         <option value="WIFI_STATION">WIFI_STATION</option>
       </select>
-      <span class="field-hint">ESP32 wireless mode — this enables the SmartWebServer that is built into OnStepX on ESP32 boards (no separate ESP needed). WIFI_ACCESS_POINT = the board creates its OWN WiFi network "OnStepX" — no router needed, best in the field; connect your phone/PC to it, then open http://192.168.0.1. WIFI_STATION = the board JOINS your existing home WiFi/router — best indoors with internet on the same device; find its IP in the serial monitor or your router's client list. Default WiFi password: "password" — change it! BLUETOOTH = pair over Bluetooth instead of WiFi.</span><span class="config-comment">// Use BLUETOOTH or WIFI_ACCESS_POINT or WIFI_STATION (ESP32 only.)</span>
+      <span class="field-hint">ESP32 wireless mode — this enables the SmartWebServer that is built into OnStepX on ESP32 boards (no separate ESP needed). WIFI_ACCESS_POINT = the board creates its OWN WiFi network "OnStepX" — no router needed, best in the field; connect your phone/PC to it, then open http://<span class="flash-yellow">192.168.0.1</span>. WIFI_STATION = the board JOINS your existing home WiFi/router — best indoors with internet on the same device; find its IP in the serial monitor or your router's client list. Default WiFi password: "<span class="flash-yellow">password</span>" — change it! BLUETOOTH = pair over Bluetooth instead of WiFi.</span><span class="config-comment">// Use BLUETOOTH or WIFI_ACCESS_POINT or WIFI_STATION (ESP32 only.)</span>
     </div>
   </div>
   <div class="section">
@@ -6683,16 +6700,16 @@ window.flashBoard = async function () {
 };
 </script>
 <script src="e4-guide.js"></script>
-<script src="i18n-fr.js?v=3"></script>
-<script src="i18n-fr-2.js?v=3"></script>
-<script src="i18n-fr-3.js?v=3"></script>
-<script src="i18n-fr-4.js?v=3"></script>
-<script src="i18n-fr-e4a.js?v=3"></script>
-<script src="i18n-fr-e4b.js?v=3"></script>
-<script src="i18n-fr-5.js?v=3"></script>
-<script src="i18n-fr-6.js?v=3"></script>
-<script src="i18n-fr-7.js?v=3"></script>
-<script src="i18n-fr-8.js?v=3"></script>
-<script src="i18n.js?v=3"></script>
+<script src="i18n-fr.js?v=4"></script>
+<script src="i18n-fr-2.js?v=4"></script>
+<script src="i18n-fr-3.js?v=4"></script>
+<script src="i18n-fr-4.js?v=4"></script>
+<script src="i18n-fr-e4a.js?v=4"></script>
+<script src="i18n-fr-e4b.js?v=4"></script>
+<script src="i18n-fr-5.js?v=4"></script>
+<script src="i18n-fr-6.js?v=4"></script>
+<script src="i18n-fr-7.js?v=4"></script>
+<script src="i18n-fr-8.js?v=4"></script>
+<script src="i18n.js?v=4"></script>
 </body>
 </html>
