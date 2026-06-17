@@ -96,33 +96,210 @@
     config:  { bg: '#0e1a1f', border: '#1a3d4d', active: '#06b6d4', badge: 'Config Header' },
     mcu:     { bg: '#14181f', border: '#2a3340', active: '#94a3b8', badge: 'MCU' },
     control: { bg: '#151515', border: '#333333', active: '#a3a3a3', badge: 'Control' },
+    /* peripheral module categories (drawn around the board) */
+    module:  { bg: '#1a0d1a', border: '#5c1a3a', active: '#ec4899', badge: 'I2C Module' },
+    thermo:  { bg: '#1e170d', border: '#5f3f0e', active: '#f59e0b', badge: 'Temp Sensor' },
+    heater:  { bg: '#241307', border: '#7a3b0e', active: '#f97316', badge: 'Dew Heater' },
+    motor:   { bg: '#1e1320', border: '#581c1c', active: '#ef4444', badge: 'Stepper Motor' },
+    supply:  { bg: '#1a1a0d', border: '#5c5c0e', active: '#facc15', badge: 'Power' },
+    gpsmod:  { bg: '#0c1f14', border: '#1a4d2e', active: '#10b981', badge: 'GPS Module' },
+    onewire: { bg: '#0e1a1f', border: '#1a3d4d', active: '#06b6d4', badge: 'OneWire' },
+    swsense: { bg: '#0f1a2e', border: '#1e3a5f', active: '#3b82f6', badge: 'Switch / Sensor' },
+    led:     { bg: '#0c1f14', border: '#1a4d2e', active: '#34d399', badge: 'LED / Buzzer' },
+    usbpc:   { bg: '#14181f', border: '#2a3340', active: '#94a3b8', badge: 'Host PC' },
   };
 
+  /* Board connector layout mirrors the real FYSETC E4 photo (annotated reference):
+     TOP    = green screw terminal 12V/0V/H1/H2, Z/Y/X-MIN endstops, FAN/AUX, DC jack
+     RIGHT  = ESP32 module, USB, MicroSD          CENTRE = 4 TMC2209 drivers + I2C/AUX header
+     BOTTOM = MOT X/Y/Z/E motor outputs (Ra·DEC·Foc1·Foc2), TB/TE thermistors, 24V/GND tap
+     Internal board canvas is 920 x 540, translated by (BX, BY). */
   const BOARD_ELEMENTS = [
-    { id: 'esp32', label: 'ESP32', type: 'mcu', x: 20, y: 80, w: 195, h: 92, gpio: '—', fn: 'Dual-core Xtensa LX6 @ 240MHz', desc: 'Main microcontroller with built-in WiFi, Bluetooth, I2C, SPI, UART, ADC and DAC.', conn: 'No external wiring needed. Built-in WiFi/BT antenna.', section: 'wifi' },
-    { id: 'usb', label: 'USB', type: 'comm', x: 20, y: 198, w: 50, h: 26, gpio: '—', fn: 'Firmware upload & serial monitor', desc: 'Micro USB for programming via Arduino IDE and serial comms with ASCOM/INDI.', conn: 'Connect to PC. Use a quality data cable (not charge-only).', section: 'firmware' },
-    { id: 'rst', label: 'RST', type: 'control', x: 20, y: 290, w: 40, h: 22, gpio: '—', fn: 'Hardware reset button', desc: 'Press to reset the ESP32. Also used for bootloader timing during upload.', conn: 'Add a 10µF cap across pins if uploads fail (slows reset timing).', section: 'troubleshooting' },
-    { id: 'led', label: 'LED', type: 'control', x: 20, y: 345, w: 40, h: 22, gpio: 'GPIO13', fn: 'Status indicator (shared with buzzer)', desc: 'Flashes error codes at boot. Once tracking starts, the buzzer takes over (shared FAN_E0 pin).', conn: 'Install shunt on FAN_E0 header to enable.', section: 'troubleshooting' },
-    { id: 'tmc1', label: 'TMC1|AXIS1', type: 'driver', x: 95, y: 198, w: 118, h: 68, gpio: '—', fn: 'Axis1 (RA/Azm) stepper driver — TMC2209 UART', desc: 'Right-angle driver socket. Use FYSETC TMC2209 v3.0/v3.1 or TMC2226 v1.1.', conn: 'Insert TMC2209, ensure PDN jumper connected, wire stepper to output terminal.', section: 'focuser' },
-    { id: 'tmc2', label: 'TMC2|AXIS2', type: 'driver', x: 222, y: 198, w: 118, h: 68, gpio: '—', fn: 'Axis2 (Dec/Alt) stepper driver — TMC2209 UART', desc: 'Same as TMC1. Must have PDN jumper for current control.', conn: 'Insert TMC2209, wire stepper to output terminal.', section: 'focuser' },
-    { id: 'tmc3', label: 'TMC3|AXIS4', type: 'driver', x: 349, y: 198, w: 118, h: 68, gpio: '—', fn: 'Axis4 (Focuser1) — TMC2209 UART', desc: 'Third driver socket — defaults to focuser. GPIO16 (STEP), GPIO17 (DIR).', conn: 'Insert TMC2209, wire focuser stepper to output terminal.', section: 'focuser' },
-    { id: 'tmc4', label: 'TMC4|AXIS5', type: 'driver', x: 476, y: 198, w: 118, h: 68, gpio: '—', fn: 'Axis5 (Focuser2/Rotator) — TMC2209 UART', desc: 'Shares STEP/DIR (GPIO14/GPIO12) with Axis3 rotator. Only one active at a time.', conn: 'Insert TMC2209. Conflicts with Axis3 — set one to OFF in Config.h.', section: 'focuser' },
-    { id: 'i2c', label: 'I2C', type: 'i2c', x: 95, y: 25, w: 60, h: 28, gpio: 'GPIO21/22', fn: 'I2C bus — BME280, DS3231', desc: 'SDA=GPIO21, SCL=GPIO22. Built-in pull-ups on the E4 board.', conn: 'BME280 (0x76/0x77) and/or DS3231 RTC (0x68). Both share the bus.', section: 'weather' },
-    { id: 'te', label: 'TE', type: 'input', x: 175, y: 25, w: 50, h: 28, gpio: 'GPIO36', fn: 'TEMP0 — Thermistor or PEC Index', desc: 'Input-only (no pull-up). 4.7k series resistor + 10µF filter cap on board.', conn: 'NTC 100k thermistor (to GND) OR Hall sensor for PEC index. Input only!', section: 'thermistor' },
-    { id: 'tb', label: 'TB', type: 'input', x: 240, y: 25, w: 50, h: 28, gpio: 'GPIO39', fn: 'TEMP1 — Thermistor or Limit', desc: 'Input-only. Same circuit as TE. Can be an alternative limit switch input.', conn: 'NTC 100k thermistor (to GND) OR limit switch.', section: 'thermistor' },
-    { id: 'xmin', label: 'X-MIN', type: 'input', x: 305, y: 25, w: 65, h: 28, gpio: 'GPIO34', fn: 'AUX3 — Home Axis1 / Limit / GPS', desc: 'Input-only. Default home switch for Axis1; also LIMIT_SENSE_PIN in E4 Config.h.', conn: 'NO switch to GND (home/limit). Or GPS TX (single-wire mode).', section: 'limits' },
-    { id: 'ymin', label: 'Y-MIN', type: 'input', x: 380, y: 25, w: 65, h: 28, gpio: 'GPIO35', fn: 'AUX4 — Home Axis2', desc: 'Input-only. Default home switch for Axis2.', conn: 'NO switch to GND (home/limit). Input only.', section: 'limits' },
-    { id: 'aux7', label: 'AUX7', type: 'config', x: 20, y: 25, w: 60, h: 28, gpio: '—', fn: 'SPARE_RX — OneWire bus', desc: 'General-purpose pin. Default OneWire (DS18B20) bus for temperature sensors.', conn: 'DS18B20 data line (with 4.7kΩ pull-up to 3.3V).', section: 'onewire' },
-    { id: 'sharen', label: 'EN', type: 'config', x: 625, y: 80, w: 50, h: 28, gpio: 'GPIO25', fn: 'SHARED_ENABLE — All drivers', desc: 'Shared enable pin for all TMC2209 drivers. Controlled by firmware.', conn: 'Leave as-is unless using an external enable circuit.', section: 'focuser' },
-    { id: 'power', label: '12/24V', type: 'power', x: 640, y: 200, w: 92, h: 35, gpio: '—', fn: 'Main power input (12–24V DC)', desc: 'Single DC input for the whole board: motors, ESP32, heaters, peripherals.', conn: '12V or 24V DC, 5A+. Observe polarity: + to inner pin, – to outer.', section: 'troubleshooting' },
-    { id: 'stepper1', label: 'MOT1', type: 'stepper', x: 640, y: 260, w: 92, h: 30, gpio: '—', fn: 'Axis1 stepper motor output', desc: 'Screw terminal for a 4-wire bipolar stepper. Coils: A+/A– and B+/B–.', conn: 'Wire stepper coils. Use twisted-pair, keep away from sensor wires.', section: 'focuser' },
-    { id: 'stepper2', label: 'MOT2', type: 'stepper', x: 640, y: 298, w: 92, h: 30, gpio: '—', fn: 'Axis2 stepper motor output', desc: 'Same as MOT1. For the Dec/Alt axis.', conn: 'Wire stepper coils. Match coil pairs from the motor datasheet.', section: 'focuser' },
-    { id: 'stepper3', label: 'MOT3', type: 'stepper', x: 640, y: 336, w: 92, h: 30, gpio: '—', fn: 'Axis4 (Focuser1) stepper output', desc: 'Stepper output for the focuser motor.', conn: 'Wire the focuser stepper.', section: 'focuser' },
-    { id: 'stepper4', label: 'MOT4', type: 'stepper', x: 640, y: 374, w: 92, h: 30, gpio: '—', fn: 'Axis5 (Focuser2/Rotator) output', desc: 'Stepper output for second focuser or rotator.', conn: 'Only use if Axis3 rotator is disabled (shared pins).', section: 'rotator' },
-    { id: 'heate0', label: 'HEAT|E0', type: 'output', x: 120, y: 472, w: 75, h: 28, gpio: 'GPIO2', fn: 'AUX5 — Dew Heater 1', desc: 'PWM output. Must be LOW at boot. Use an external MOSFET for 12V heater tape.', conn: 'MOSFET gate (via 1kΩ) → 12V heater tape. 10kΩ pull-down to GND.', section: 'dew' },
-    { id: 'heatbed', label: 'HEAT|BED', type: 'output', x: 215, y: 472, w: 75, h: 28, gpio: 'GPIO4', fn: 'AUX6 — Dew Heater 2', desc: 'PWM heater output. Same as HEAT_E0 but no boot constraint.', conn: 'MOSFET gate (via 1kΩ) → 12V heater tape. 10kΩ pull-down to GND.', section: 'dew' },
-    { id: 'fane0', label: 'FAN|E0', type: 'output', x: 310, y: 472, w: 70, h: 28, gpio: 'GPIO13', fn: 'AUX8 — Status LED / Buzzer', desc: 'Shared output for status LED and buzzer. Jumper required to enable 5V.', conn: 'Install shunt header to enable status LED/buzzer.', section: 'troubleshooting' },
+    /* TOP edge — green screw terminal (power + heaters), endstops, FAN/AUX, DC jack */
+    { id: 'power', label: 'PWR|12V·0V', type: 'power', x: 36, y: 12, w: 92, h: 40, gpio: '—', fn: 'Main power input — 12V / 0V screw terminal', desc: 'Left pair of the green screw block: 12V (+) and 0V (–). Feeds the whole board: motors, ESP32, heaters.', conn: '12–24V DC, 5A+. Observe polarity: 12V = +, 0V = GND.', section: 'troubleshooting' },
+    { id: 'heate0', label: 'H1', type: 'output', x: 132, y: 12, w: 52, h: 40, gpio: 'GPIO2', fn: 'H1 — Heater output 1 (AUX5)', desc: 'Screw terminal H1. PWM output, must be LOW at boot. Drives a 12V dew heater via an external MOSFET.', conn: 'MOSFET gate (via 1kΩ) → 12V heater tape. 10kΩ pull-down to GND.', section: 'dew' },
+    { id: 'heatbed', label: 'H2', type: 'output', x: 188, y: 12, w: 52, h: 40, gpio: 'GPIO4', fn: 'H2 — Heater output 2 (AUX6)', desc: 'Screw terminal H2. Second PWM heater output (no boot constraint).', conn: 'MOSFET gate (via 1kΩ) → 12V heater tape. 10kΩ pull-down to GND.', section: 'dew' },
+    { id: 'zmin', label: 'Z-MIN', type: 'input', x: 300, y: 12, w: 58, h: 40, gpio: 'GPIO15', fn: 'Z-MIN endstop / TMC UART', desc: 'Z endstop header. On the E4 this pin is jumpered to the TMC2209 PDN/UART line, but is also a spare endstop input.', conn: 'Endstop NO → GND, or the TMC2209 UART jumper.', section: 'limits' },
+    { id: 'ymin', label: 'Y-MIN', type: 'input', x: 362, y: 12, w: 58, h: 40, gpio: 'GPIO35', fn: 'Y-MIN — Home Axis2', desc: 'Input-only. Default home switch for Axis2 (DEC/Alt).', conn: 'NO switch to GND (home/limit). Input only.', section: 'limits' },
+    { id: 'xmin', label: 'X-MIN', type: 'input', x: 424, y: 12, w: 58, h: 40, gpio: 'GPIO34', fn: 'X-MIN — Home Axis1 / Limit / GPS', desc: 'Input-only. Default home switch for Axis1; also LIMIT_SENSE_PIN in E4 Config.h. Can take a single-wire GPS.', conn: 'NO switch to GND (home/limit). Or GPS TX (single-wire mode).', section: 'limits' },
+    { id: 'fane0', label: 'FAN|AUX', type: 'output', x: 496, y: 12, w: 56, h: 40, gpio: 'GPIO13', fn: 'FAN / AUX output (AUX8) — reticle / status', desc: 'FAN/AUX header. Drives a status LED, buzzer, or (as in the reference build) a reticle lamp via a series resistor.', conn: 'Reticle/LED (+) via resistor → output, (–) → GND. Enable 5V shunt if needed.', section: 'troubleshooting' },
+    { id: 'dcjack', label: 'DC IN', type: 'power', x: 566, y: 12, w: 64, h: 40, gpio: '—', fn: 'DC barrel jack (alternate power in)', desc: '5.5/2.1mm barrel jack — an alternative to the 12V/0V screw terminal. Do NOT power from both at once.', conn: 'Center-positive 12–24V DC.', section: 'troubleshooting' },
+    /* RIGHT — ESP32 module, reset, USB, MicroSD */
+    { id: 'esp32', label: 'ESP32', type: 'mcu', x: 648, y: 116, w: 182, h: 128, gpio: '—', fn: 'Dual-core Xtensa LX6 @ 240MHz', desc: 'Main microcontroller with built-in WiFi, Bluetooth, I2C, SPI, UART, ADC and DAC.', conn: 'No external wiring needed. Built-in WiFi/BT antenna.', section: 'wifi' },
+    { id: 'rst', label: 'RST', type: 'control', x: 648, y: 256, w: 46, h: 20, gpio: '—', fn: 'Hardware reset button', desc: 'Press to reset the ESP32. Also used for bootloader timing during upload.', conn: 'Add a 10µF cap across EN/GND if uploads fail.', section: 'troubleshooting' },
+    { id: 'usb', label: 'USB', type: 'comm', x: 872, y: 116, w: 46, h: 44, gpio: '—', fn: 'Firmware upload & serial monitor', desc: 'Micro USB for programming via Arduino IDE and serial comms with ASCOM/INDI.', conn: 'Connect to PC. Use a quality data cable (not charge-only).', section: 'firmware' },
+    { id: 'sd', label: 'SD', type: 'comm', x: 872, y: 172, w: 46, h: 50, gpio: '—', fn: 'MicroSD card slot', desc: 'On-board microSD slot (unused by stock OnStepX).', conn: 'Insert a microSD only if a feature requires it.', section: 'firmware' },
+    /* CENTRE — I2C/AUX header + 4 TMC2209 drivers */
+    { id: 'i2c', label: 'I2C|AUX', type: 'i2c', x: 500, y: 250, w: 96, h: 44, gpio: 'GPIO21/22', fn: 'I2C / AUX breakout — SCL·SDA·3V3·5V·GND', desc: 'Central pin header exposing SDA=GPIO21, SCL=GPIO22, 3.3V, 5V and GND. RTC, BME280 and the 3.3V regulator tap here.', conn: 'DS3231 RTC (0x68), BME280 (0x76/0x77) and LM1117 all share this header.', section: 'weather' },
+    { id: 'tmc1', label: 'TMC1|Ra/Azm', type: 'driver', x: 118, y: 300, w: 84, h: 66, gpio: '—', fn: 'Axis1 (Ra/Azm) stepper driver — TMC2209 UART', desc: 'Driver socket for MOT X. Use FYSETC TMC2209 v3.0/v3.1 or TMC2226 v1.1.', conn: 'Insert TMC2209, ensure PDN jumper connected.', section: 'focuser' },
+    { id: 'tmc2', label: 'TMC2|DEC', type: 'driver', x: 210, y: 300, w: 84, h: 66, gpio: '—', fn: 'Axis2 (DEC/Alt) stepper driver — TMC2209 UART', desc: 'Driver socket for MOT Y. Must have PDN jumper for current control.', conn: 'Insert TMC2209.', section: 'focuser' },
+    { id: 'tmc3', label: 'TMC3|Foc1', type: 'driver', x: 302, y: 300, w: 84, h: 66, gpio: '—', fn: 'Axis4 (Focuser1) — TMC2209 UART', desc: 'Driver socket for MOT Z — defaults to Focuser1. GPIO16 (STEP), GPIO17 (DIR).', conn: 'Insert TMC2209.', section: 'focuser' },
+    { id: 'tmc4', label: 'TMC4|Foc2', type: 'driver', x: 394, y: 300, w: 84, h: 66, gpio: '—', fn: 'Axis5 (Focuser2) — TMC2209 UART', desc: 'Driver socket for MOT E — Focuser2. Shares STEP/DIR (GPIO14/GPIO12) with Axis3.', conn: 'Insert TMC2209.', section: 'focuser' },
+    /* BOTTOM edge — 24V/GND tap, motor outputs, thermistors */
+    { id: 'pled', label: '24V|GND', type: 'power', x: 36, y: 486, w: 78, h: 40, gpio: '—', fn: '24V / GND tap (Power-LED feed)', desc: 'Bottom-left 2-pin header providing 24V and GND. In the reference build it drives the Power LED through a 10kΩ resistor.', conn: 'Power LED (+) → 24V via 10kΩ, (–) → GND.', section: 'troubleshooting' },
+    { id: 'stepper1', label: 'MOTX|Ra/Azm', type: 'stepper', x: 140, y: 486, w: 88, h: 40, gpio: '—', fn: 'MOT X — Ra/Azm motor output', desc: '4-pin connector for a 4-wire bipolar stepper. Coils: A+/A– and B+/B–.', conn: 'Wire the Ra/Azm stepper coils. Twisted pairs per coil.', section: 'focuser' },
+    { id: 'stepper2', label: 'MOTY|DEC', type: 'stepper', x: 234, y: 486, w: 88, h: 40, gpio: '—', fn: 'MOT Y — DEC/Alt motor output', desc: 'Motor output for the DEC/Alt axis.', conn: 'Wire the DEC/Alt stepper coils. Match coil pairs from the datasheet.', section: 'focuser' },
+    { id: 'stepper3', label: 'MOTZ|Foc1', type: 'stepper', x: 328, y: 486, w: 88, h: 40, gpio: '—', fn: 'MOT Z — Focuser1 motor output', desc: 'Motor output for Focuser1.', conn: 'Wire the Focuser1 stepper coils.', section: 'focuser' },
+    { id: 'stepper4', label: 'MOTE|Foc2', type: 'stepper', x: 422, y: 486, w: 88, h: 40, gpio: '—', fn: 'MOT E — Focuser2 motor output', desc: 'Motor output for Focuser2.', conn: 'Wire the Focuser2 stepper coils.', section: 'focuser' },
+    { id: 'tb', label: 'TB', type: 'input', x: 540, y: 486, w: 52, h: 40, gpio: 'GPIO39', fn: 'TB — Thermistor input 2', desc: 'Input-only. 4.7k series resistor + 10µF filter cap on board.', conn: 'NTC 100k thermistor (to GND). Input only!', section: 'thermistor' },
+    { id: 'te', label: 'TE', type: 'input', x: 596, y: 486, w: 52, h: 40, gpio: 'GPIO36', fn: 'TE — Thermistor input 1 / PEC', desc: 'Input-only. Same circuit as TB. Also usable for a PEC index (Hall) sensor.', conn: 'NTC 100k thermistor (to GND), or Hall sensor for PEC.', section: 'thermistor' },
   ];
+
+  /* -------------------------------------------- mounted peripherals (around board)
+     Each peripheral is drawn as a module OUTSIDE the board with a colored cable
+     routed to its board connector (`target` = a BOARD_ELEMENTS id). The module
+     side facing the board (and the matching connector edge) is derived from its
+     position, so only x/y/w/h + target need to be supplied.
+     Layout canvas: board is translated by (BX, BY); peripherals sit in the margin. */
+  const BX = 230, BY = 180, BOARD_W = 920, BOARD_H = 540;
+
+  /* Every add-on OnStepX supports on the E4. Positions are computed by
+     layoutPeripherals() (edge + target only); wires fan to the real connector. */
+  const BOARD_PERIPHERALS = [
+    /* ===== TOP row 1 — power, heaters, endstops, GPS, reticle, DC jack ===== */
+    { id: 'p-psu', label: '12–24V PSU', sub: 'power supply', type: 'supply', target: 'power', edge: 'top', wire: '#facc15', wire2: '#ef4444', section: 'troubleshooting',
+      gpio: '12V / 0V', fn: 'Main DC power supply (12–24V)', desc: 'Bench or sealed 12–24V DC supply feeding the 12V/0V screw terminal — runs motors, ESP32, heaters and peripherals.', conn: '+ → 12V, – → 0V. 5A+ recommended; observe polarity.' },
+    { id: 'p-heat1', label: 'Dew Heater 1', sub: 'H1 strap', type: 'heater', target: 'heate0', edge: 'top', wire: '#f97316', section: 'dew',
+      gpio: 'H1 (GPIO2)', fn: 'Dew heater strap 1 (via MOSFET)', desc: 'PWM dew-heater strap on H1. Needs an external logic-level MOSFET (IRLZ44N) to switch 12V tape.', conn: 'GPIO2 → 1kΩ → MOSFET gate, 10kΩ pull-down, drain → heater (–), 12V → heater (+).' },
+    { id: 'p-heat2', label: 'Dew Heater 2', sub: 'H2 strap', type: 'heater', target: 'heatbed', edge: 'top', wire: '#f97316', section: 'dew',
+      gpio: 'H2 (GPIO4)', fn: 'Dew heater strap 2 (via MOSFET)', desc: 'Second PWM dew-heater channel on H2. Same external MOSFET circuit as Dew 1.', conn: 'GPIO4 → 1kΩ → MOSFET gate, 10kΩ pull-down, drain → heater (–), 12V → heater (+).' },
+    { id: 'p-endz', label: 'Endstop Z', sub: 'switch', type: 'swsense', target: 'zmin', edge: 'top', wire: '#3b82f6', section: 'limits',
+      gpio: 'Z-MIN', fn: 'Z endstop / extra limit switch', desc: 'Optional Z-MIN endstop or limit microswitch (note: this pin is also the TMC UART jumper on the E4).', conn: 'COM → Z-MIN, NO → GND (active LOW).' },
+    { id: 'p-homey', label: 'Home Y', sub: 'switch / Hall', type: 'swsense', target: 'ymin', edge: 'top', wire: '#3b82f6', section: 'limits',
+      gpio: 'Y-MIN (GPIO35)', fn: 'Axis2 home / limit sensor', desc: 'Mechanical microswitch or Hall sensor homing the DEC/Alt axis.', conn: 'COM → Y-MIN, NO → GND (active LOW). Onboard 2kΩ pull-up.' },
+    { id: 'p-gps', label: 'GPS', sub: 'NEO-M8N', type: 'gpsmod', target: 'xmin', edge: 'top', wire: '#10b981', section: 'gps',
+      gpio: 'X-MIN (GPIO34)', fn: 'GPS module — auto time & location', desc: 'GY-GPSV3 (NEO-M8N / NEO-6M). Feeds UTC time, latitude and longitude via NMEA at 9600 baud.', conn: 'GPS TX → X-MIN (single-wire, remove filter cap) or GPIO16, VCC → 3.3V, GND → GND. 3.3V only!' },
+    { id: 'p-reticle', label: 'Reticle', sub: 'LED + 68kΩ', type: 'led', target: 'fane0', edge: 'top', wire: '#ef4444', section: 'troubleshooting',
+      gpio: 'FAN/AUX (GPIO13)', fn: 'Illuminated reticle lamp', desc: 'Red reticle illumination LED driven from the FAN/AUX output, dimmed through a 68kΩ series resistor.', conn: 'LED (+) → FAN/AUX via 68kΩ, LED (–) → GND.' },
+    { id: 'p-dcjack', label: 'DC Jack', sub: '5.5/2.1mm', type: 'supply', target: 'dcjack', edge: 'top', wire: '#eab308', section: 'troubleshooting',
+      gpio: 'DC IN', fn: 'Barrel-jack power adapter (alt input)', desc: 'Center-positive 12–24V barrel-jack adapter — an alternative to the screw terminal. Never power from both at once.', conn: 'Center → +, sleeve → GND.' },
+
+    /* ===== TOP row 2 — alternative uses of shared output / input pins ===== */
+    { id: 'p-dslr', label: 'DSLR shutter', sub: 'intervalometer', type: 'output', target: 'heatbed', edge: 'top2', wire: '#ec4899', section: 'intervalometer',
+      gpio: 'H2 / AUX', fn: 'DSLR shutter release (via optocoupler)', desc: 'Camera shutter trigger for astrophotography, driven from a spare feature output through an optocoupler (4N35 / PC817).', conn: 'AUX → 1kΩ → optocoupler LED; transistor side → camera shutter (2.5mm TRS).' },
+    { id: 'p-buzzer', label: 'Buzzer', sub: 'status', type: 'led', target: 'fane0', edge: 'top2', wire: '#f472b6', section: 'troubleshooting',
+      gpio: 'FAN/AUX (GPIO13)', fn: 'Status buzzer (shared with FAN/AUX)', desc: 'Active buzzer for goto/limit alerts, on the same FAN/AUX output as the reticle/LED (pick one).', conn: 'Buzzer (+) → FAN/AUX, (–) → GND. Enable 5V shunt if needed.' },
+    { id: 'p-homex', label: 'Home/Limit X', sub: 'switch', type: 'swsense', target: 'xmin', edge: 'top2', wire: '#60a5fa', section: 'limits',
+      gpio: 'X-MIN (GPIO34)', fn: 'Axis1 home & emergency-stop limit', desc: 'Microswitch/Hall on X-MIN — default Axis1 home and the board-wide emergency-stop limit (alternative to using X-MIN for GPS).', conn: 'COM → X-MIN, NO → GND (active LOW).' },
+
+    /* ===== RIGHT — USB host + I2C bus devices ===== */
+    { id: 'p-usb', label: 'USB / PC', sub: 'ASCOM·INDI', type: 'usbpc', target: 'usb', edge: 'right', wire: '#94a3b8', section: 'firmware',
+      gpio: 'USB serial', fn: 'Host computer / firmware upload', desc: 'Micro-USB link for flashing OnStepX and serial control from ASCOM / INDI / planetarium software.', conn: 'Quality micro-USB data cable to the PC (not charge-only).' },
+    { id: 'p-ds3231', label: 'DS3231', sub: '+AT24C32 RTC', type: 'module', target: 'i2c', edge: 'right', wire: '#ec4899', section: 'rtc',
+      gpio: 'I2C (0x68)', fn: 'Battery-backed real-time clock (ZS-042)', desc: 'DS3231 RTC + AT24C32 EEPROM. Keeps date/time across power cycles (CR2032 backup); fallback time source when no GPS fix.', conn: 'SCL → GPIO22, SDA → GPIO21, VCC → 3.3V/5V, GND → GND on the central I2C header.' },
+    { id: 'p-bme280', label: 'BME280', sub: 'T / RH / P', type: 'module', target: 'i2c', edge: 'right', wire: '#ec4899', section: 'weather',
+      gpio: 'I2C (0x76/0x77)', fn: 'Weather sensor — temp / humidity / pressure', desc: 'GY-BME280 over I2C. Provides ambient data used to compute the dew point for the heaters.', conn: 'SCL → GPIO22, SDA → GPIO21, VCC → 3.3V, GND → GND. Shares the I2C header.' },
+    { id: 'p-oled', label: 'OLED', sub: '0.96″ I2C', type: 'module', target: 'i2c', edge: 'right', wire: '#a855f7', section: 'wifi',
+      gpio: 'I2C (0x3C)', fn: 'Optional status display', desc: 'Small SSD1306 OLED on the I2C bus for showing status without a PC (community add-on).', conn: 'SCL → GPIO22, SDA → GPIO21, VCC → 3.3V, GND → GND.' },
+
+    /* ===== LEFT — power LED + OneWire bus ===== */
+    { id: 'p-powerled', label: 'Power LED', sub: '+ 10kΩ', type: 'led', target: 'pled', edge: 'left', wire: '#ef4444', section: 'troubleshooting',
+      gpio: '24V / GND', fn: 'Power-on indicator LED', desc: 'Red LED showing the board is powered, fed from the bottom-left 24V/GND tap through a 10kΩ series resistor.', conn: 'LED (+) → 24V via 10kΩ, LED (–) → GND.' },
+    { id: 'p-ds18b20', label: 'DS18B20', sub: '1-Wire temp', type: 'onewire', target: 'i2c', edge: 'left', wire: '#06b6d4', section: 'onewire',
+      gpio: 'AUX / spare', fn: 'OneWire digital temperature sensor', desc: 'One or more DS18B20 on a single data line (unique 64-bit address each). Uses a spare pin broken out on the I2C/AUX header.', conn: 'DATA → spare GPIO, VCC → 3.3V, GND → GND, 4.7kΩ pull-up DATA→3.3V.' },
+
+    /* ===== BOTTOM — regulator, motors, thermistors, PEC ===== */
+    { id: 'p-lm1117', label: 'LM1117-3.3', sub: '3.3V reg', type: 'supply', target: 'i2c', edge: 'bottom', wire: '#facc15', section: 'troubleshooting',
+      gpio: '3.3V', fn: 'LM1117-3.3 linear regulator', desc: 'External 3.3V regulator supplying clean 3.3V to the I2C sensors instead of loading the on-board regulator.', conn: 'IN → 5V, OUT → 3.3V of the I2C header, GND → GND.' },
+    { id: 'p-ra', label: 'Ra/Azm', sub: 'MOT X', type: 'motor', target: 'stepper1', edge: 'bottom', wire: '#10b981', wire2: '#ef4444', section: 'focuser',
+      gpio: 'MOT X', fn: 'Right-Ascension / Azimuth stepper', desc: '4-wire bipolar stepper for the primary axis, driven by the Axis1 TMC2209 (MOT X).', conn: 'Coils A+/A– and B+/B– to MOT X. Twisted pairs per coil.' },
+    { id: 'p-dec', label: 'DEC/Alt', sub: 'MOT Y', type: 'motor', target: 'stepper2', edge: 'bottom', wire: '#3b82f6', wire2: '#ef4444', section: 'focuser',
+      gpio: 'MOT Y', fn: 'Declination / Altitude stepper', desc: '4-wire bipolar stepper for the secondary axis, driven by the Axis2 TMC2209 (MOT Y).', conn: 'Coils A+/A– and B+/B– to MOT Y.' },
+    { id: 'p-foc1', label: 'Focuser1', sub: 'MOT Z', type: 'motor', target: 'stepper3', edge: 'bottom', wire: '#f97316', wire2: '#ef4444', section: 'focuser',
+      gpio: 'MOT Z', fn: 'Focuser 1 stepper', desc: 'Stepper for the first focuser, driven by the Axis4 TMC2209 (MOT Z).', conn: 'Focuser1 stepper coils to MOT Z.' },
+    { id: 'p-foc2', label: 'Focuser2', sub: 'MOT E', type: 'motor', target: 'stepper4', edge: 'bottom', wire: '#facc15', wire2: '#ef4444', section: 'focuser',
+      gpio: 'MOT E', fn: 'Focuser 2 stepper', desc: 'Stepper for the second focuser, driven by the Axis5 TMC2209 (MOT E).', conn: 'Focuser2 stepper coils to MOT E.' },
+    { id: 'p-thermistor', label: 'Thermistor', sub: 'NTC 100k', type: 'thermo', target: 'tb', edge: 'bottom', wire: '#f59e0b', section: 'thermistor',
+      gpio: 'TB (GPIO39)', fn: 'NTC thermistor — focuser / dew temp', desc: 'Glass-bead NTC 100kΩ (β3950) on TB for temp-compensation or dew-point sensing (TE is the second channel).', conn: 'NTC leg 1 → TB, leg 2 → GND. Onboard 4.7kΩ to 3.3V is the series resistor.' },
+    { id: 'p-pec', label: 'PEC Hall', sub: 'index sensor', type: 'swsense', target: 'te', edge: 'bottom', wire: '#38bdf8', section: 'pec',
+      gpio: 'TE (GPIO36)', fn: 'PEC index Hall sensor', desc: 'Hall sensor (A3144 / US5881) on TE giving one pulse per worm revolution for periodic-error correction (alternative to a thermistor on TE).', conn: 'OUT → TE, VCC → 3.3V, GND → GND. Magnet on the worm/rotating part.' },
+  ];
+
+  const findNode = (id) => BOARD_ELEMENTS.find((e) => e.id === id) || BOARD_PERIPHERALS.find((e) => e.id === id);
+
+  /* ---- automatic peripheral placement (edge + target → x/y/w/h) ---- */
+  function targetCenter(id) {
+    const el = BOARD_ELEMENTS.find((e) => e.id === id) || { x: 0, y: 0, w: 0, h: 0 };
+    return { x: BX + el.x + el.w / 2, y: BY + el.y + el.h / 2 };
+  }
+  /* Pack a set of desired centres into [lo,hi] with no overlap (size+gap apart). */
+  function packLine(arr, size, gap, lo, hi) {
+    const n = arr.length; if (!n) return;
+    for (let i = 0; i < n; i++) arr[i].pos = Math.min(Math.max(arr[i].c, lo + size / 2), hi - size / 2);
+    for (let i = 1; i < n; i++) if (arr[i].pos < arr[i - 1].pos + size + gap) arr[i].pos = arr[i - 1].pos + size + gap;
+    for (let i = n - 1; i > 0; i--) {
+      if (arr[i].pos > hi - size / 2) arr[i].pos = hi - size / 2;
+      if (arr[i - 1].pos > arr[i].pos - size - gap) arr[i - 1].pos = arr[i].pos - size - gap;
+    }
+    for (let i = 0; i < n; i++) arr[i].pos = Math.max(arr[i].pos, lo + size / 2);
+  }
+  function layoutPeripherals() {
+    const rows = {
+      top:    { y: 44,   h: 46, w: 104, horiz: true },
+      top2:   { y: 102,  h: 44, w: 122, horiz: true },
+      bottom: { y: 772,  h: 48, w: 118, horiz: true },
+      left:   { x: 16,   w: 118, h: 46, horiz: false },
+      right:  { x: 1172, w: 136, h: 48, horiz: false },
+    };
+    Object.keys(rows).forEach((edge) => {
+      const cfg = rows[edge];
+      const arr = BOARD_PERIPHERALS.filter((p) => p.edge === edge)
+        .map((p) => ({ p, c: cfg.horiz ? targetCenter(p.target).x : targetCenter(p.target).y }))
+        .sort((a, b) => a.c - b.c);
+      if (!arr.length) return;
+      if (cfg.horiz) {
+        packLine(arr, cfg.w, 8, BX, BX + BOARD_W);
+        arr.forEach((o) => { o.p.w = cfg.w; o.p.h = cfg.h; o.p.x = o.pos - cfg.w / 2; o.p.y = cfg.y; });
+      } else {
+        packLine(arr, cfg.h, 10, BY, BY + BOARD_H);
+        arr.forEach((o) => { o.p.w = cfg.w; o.p.h = cfg.h; o.p.x = cfg.x; o.p.y = o.pos - cfg.h / 2; });
+      }
+    });
+  }
+
+  /* Routed cable from a peripheral module to its board connector. */
+  function peripheralWire(p) {
+    const el = BOARD_ELEMENTS.find((e) => e.id === p.target);
+    if (!el) return '';
+    const X = BX + el.x, Y = BY + el.y, W = el.w, H = el.h;
+    let mx, my, mfx, mfy, bside;
+    if (p.x + p.w <= BX + 5) { mx = p.x + p.w; my = p.y + p.h / 2; mfx = 1; mfy = 0; bside = 'left'; }
+    else if (p.x >= BX + BOARD_W - 5) { mx = p.x; my = p.y + p.h / 2; mfx = -1; mfy = 0; bside = 'right'; }
+    else if (p.y + p.h <= BY + 5) { mx = p.x + p.w / 2; my = p.y + p.h; mfx = 0; mfy = 1; bside = 'top'; }
+    else { mx = p.x + p.w / 2; my = p.y; mfx = 0; mfy = -1; bside = 'bottom'; }
+    let bx, by, bfx, bfy;
+    if (bside === 'top') { bx = X + W / 2; by = Y; bfx = 0; bfy = -1; }
+    else if (bside === 'bottom') { bx = X + W / 2; by = Y + H; bfx = 0; bfy = 1; }
+    else if (bside === 'left') { bx = X; by = Y + H / 2; bfx = -1; bfy = 0; }
+    else { bx = X + W; by = Y + H / 2; bfx = 1; bfy = 0; }
+    const dist = Math.hypot(bx - mx, by - my);
+    const k = Math.max(34, Math.min(110, dist * 0.42));
+    const c1x = mx + mfx * k, c1y = my + mfy * k, c2x = bx + bfx * k, c2y = by + bfy * k;
+    const d = `M ${mx} ${my} C ${c1x} ${c1y} ${c2x} ${c2y} ${bx} ${by}`;
+    let out = `<path d="${d}" fill="none" stroke="#0b0c10" stroke-width="5" stroke-linecap="round"/>`
+            + `<path d="${d}" fill="none" stroke="${p.wire}" stroke-width="2.4" stroke-linecap="round"/>`;
+    if (p.wire2) {
+      const d2 = `M ${mx} ${my + 4} C ${c1x} ${c1y + 4} ${c2x} ${c2y} ${bx} ${by}`;
+      out += `<path d="${d2}" fill="none" stroke="#0b0c10" stroke-width="4" stroke-linecap="round"/>`
+           + `<path d="${d2}" fill="none" stroke="${p.wire2}" stroke-width="1.8" stroke-linecap="round"/>`;
+    }
+    out += `<circle cx="${mx}" cy="${my}" r="2.7" fill="${p.wire}"/><circle cx="${bx}" cy="${by}" r="2.7" fill="${p.wire}"/>`;
+    return out;
+  }
+
+  /* Clickable peripheral module box (icon + label + sub-label). */
+  function peripheralModule(p) {
+    const c = TYPE_COLORS[p.type];
+    const sec = SECTIONS.find((s) => s.id === p.section);
+    const icon = sec ? sec.icon : '';
+    const cx = p.x + p.w / 2;
+    const main = `<text x="${cx}" y="${p.y + p.h / 2 + (p.sub ? -1 : 4)}" text-anchor="middle" fill="#e6e8ee" font-size="11" font-weight="700">${p.label}</text>`;
+    const sub = p.sub ? `<text x="${cx}" y="${p.y + p.h / 2 + 12}" text-anchor="middle" fill="#aab1bd" font-size="8">${p.sub}</text>` : '';
+    const ic = icon ? `<text x="${p.x + 10}" y="${p.y + 15}" font-size="12">${icon}</text>` : '';
+    return `<g data-id="${p.id}" data-periph="1" role="button" tabindex="0" aria-label="${p.label} — ${p.fn}">
+      <rect data-rect="${p.id}" x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="7" fill="${c.bg}" stroke="${c.border}" stroke-width="1.5"/>
+      ${ic}${main}${sub}</g>`;
+  }
 
   function boardSVG() {
     let els = '';
@@ -145,13 +322,23 @@
         <rect data-rect="${el.id}" x="${el.x}" y="${el.y}" width="${el.w}" height="${el.h}" rx="5" fill="${c.bg}" stroke="${c.border}" stroke-width="1"/>
         ${label}${gpioTxt}</g>`;
     });
-    return `<svg viewBox="0 0 840 520" class="e4-board-svg" role="img" aria-label="FYSETC E4 Board Diagram">
-      <rect x="4" y="4" width="832" height="512" rx="14" fill="#121318" stroke="#33353f" stroke-width="2"/>
-      <rect x="12" y="20" width="460" height="38" rx="4" fill="none" stroke="#33353f" stroke-width="1" stroke-dasharray="4 3"/>
-      <text x="15" y="16" fill="#8b9099" font-size="9" font-weight="600" letter-spacing="1">TOP HEADERS</text>
-      <rect x="12" y="462" width="400" height="46" rx="4" fill="none" stroke="#33353f" stroke-width="1" stroke-dasharray="4 3"/>
-      <text x="15" y="460" fill="#8b9099" font-size="9" font-weight="600" letter-spacing="1">BOTTOM HEADERS</text>
-      ${els}</svg>`;
+    const boardInner = `
+      <rect x="2" y="2" width="${BOARD_W - 4}" height="${BOARD_H - 4}" rx="16" fill="#121318" stroke="#33353f" stroke-width="2"/>
+      <rect x="10" y="10" width="${BOARD_W - 20}" height="${BOARD_H - 20}" rx="12" fill="none" stroke="#1f2128" stroke-width="1"/>
+      <text x="250" y="430" text-anchor="middle" fill="#2f323c" font-size="74" font-weight="800" letter-spacing="4">E4</text>
+      <text x="250" y="454" text-anchor="middle" fill="#272a33" font-size="11" font-weight="600" letter-spacing="2">v1.0 · ESP32 + 4× TMC2209</text>
+      <text x="36" y="74" fill="#5a5f6b" font-size="9" font-weight="600" letter-spacing="1">POWER · HEATERS · ENDSTOPS</text>
+      <text x="140" y="478" fill="#5a5f6b" font-size="9" font-weight="600" letter-spacing="1">MOTOR OUTPUTS</text>
+      <text x="540" y="478" fill="#5a5f6b" font-size="9" font-weight="600" letter-spacing="1">THERM.</text>
+      <text x="118" y="294" fill="#5a5f6b" font-size="9" font-weight="600" letter-spacing="1">TMC2209 DRIVERS</text>
+      ${els}`;
+    layoutPeripherals();
+    let wires = '', mods = '';
+    BOARD_PERIPHERALS.forEach((p) => { wires += peripheralWire(p); mods += peripheralModule(p); });
+    return `<svg viewBox="0 0 1340 860" class="e4-board-svg" role="img" aria-label="FYSETC E4 board diagram with mounted peripherals">
+      <g transform="translate(${BX},${BY})">${boardInner}</g>
+      ${wires}
+      ${mods}</svg>`;
   }
 
   /* ------------------------------------------------------- section content */
@@ -206,8 +393,24 @@
         It has 4× TMC2209 UART stepper drivers, built-in WiFi/BT, dew-heater outputs, thermistor inputs and I2C — all from a single 12–24V supply.</p>
       ${callout('warn', '<strong>Critical:</strong> Remove ALL factory shunts. Jumper <strong>Z-MIN (GPIO15)</strong> → TMC2209 PDN/UART pin.')}
       <div class="e4-card">
-        <h3>Interactive Board Diagram</h3>
-        <p class="e4-card-desc">Click any component or connector for details, GPIO mapping and wiring guidance.</p>
+        <h3>Interactive Board Diagram &amp; Mounted Hardware</h3>
+        <p class="e4-card-desc">Connector positions mirror the real FYSETC E4 board: the green <strong>12V·0V·H1·H2</strong> terminal and
+          <strong>Z/Y/X-MIN</strong> endstops along the top, <strong>ESP32 · USB · SD</strong> on the right, the 4 <strong>TMC2209</strong> drivers and
+          central <strong>I2C/AUX</strong> header in the middle, and <strong>MOT X/Y/Z/E</strong> motor outputs with <strong>TB/TE</strong> thermistors along the bottom.
+          <strong>Every add-on OnStepX supports on the E4</strong> is wired in around it — power supply &amp; regulator, 4 motors, GPS, RTC, BME280,
+          OLED, DS18B20, thermistor, PEC Hall, 2 dew heaters, DSLR shutter, reticle, buzzer, power LED, endstops and USB.
+          Click any board connector <em>or</em> peripheral for details, GPIO mapping and wiring guidance.</p>
+        <div class="e4-board-legend">
+          <span><i style="background:#facc15"></i>Power / regulator</span>
+          <span><i style="background:#f97316"></i>Heater</span>
+          <span><i style="background:#3b82f6"></i>Endstop / switch</span>
+          <span><i style="background:#10b981"></i>GPS</span>
+          <span><i style="background:#ec4899"></i>I2C module</span>
+          <span><i style="background:#f59e0b"></i>Thermistor / Hall</span>
+          <span><i style="background:#06b6d4"></i>OneWire</span>
+          <span><i style="background:#ef4444"></i>Motor / LED</span>
+          <span><i style="background:#8b5cf6"></i>TMC driver</span>
+        </div>
         <div class="e4-board-layout">
           <div class="e4-board-svg-wrap">${boardSVG()}<div class="e4-board-hint" style="display:none"></div></div>
           <div class="e4-board-detail" style="display:none"></div>
@@ -1059,7 +1262,7 @@
     if (!svg) return;
     let selected = null;
     svg.querySelectorAll('g[data-id]').forEach((g) => {
-      const el = BOARD_ELEMENTS.find((e) => e.id === g.dataset.id);
+      const el = findNode(g.dataset.id);
       const rect = g.querySelector('rect');
       const c = TYPE_COLORS[el.type];
       g.addEventListener('mouseenter', () => {
@@ -1073,7 +1276,7 @@
       g.addEventListener('click', () => {
         // reset previous
         svg.querySelectorAll('g[data-id] rect').forEach((r) => {
-          const e = BOARD_ELEMENTS.find((x) => x.id === r.parentNode.dataset.id);
+          const e = findNode(r.parentNode.dataset.id);
           r.setAttribute('stroke', TYPE_COLORS[e.type].border); r.setAttribute('stroke-width', '1');
         });
         if (selected === el.id) { selected = null; renderBoardDetail(root, null); return; }

@@ -131,6 +131,14 @@
 
 /* ---- interactive board diagram ---- */
 #tab-e4guide .e4-board-layout { display: flex; flex-direction: column; gap: 12px; }
+#tab-e4guide .e4-board-legend {
+  display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 4px 0 12px;
+  font-size: 11.5px; color: var(--e4-dim);
+}
+#tab-e4guide .e4-board-legend span { display: inline-flex; align-items: center; gap: 5px; }
+#tab-e4guide .e4-board-legend i {
+  width: 11px; height: 11px; border-radius: 3px; display: inline-block;
+}
 #tab-e4guide .e4-board-svg-wrap { position: relative; }
 #tab-e4guide svg.e4-board-svg { width: 100%; height: auto; display: block; }
 #tab-e4guide svg.e4-board-svg g[data-id] { cursor: pointer; }
