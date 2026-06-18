@@ -110,23 +110,22 @@
   };
 
   /* Board connector layout mirrors the real FYSETC E4 photo (annotated reference):
-     TOP    = green screw terminal 12V/0V/H1/H2, Z/Y/X-MIN endstops, FAN/AUX, DC jack
+     TOP    = green screw terminal 12V/0V/H1/H2, FAN+, Z/Y/X-MIN endstops, EXT-RST
      RIGHT  = ESP32 module, USB, MicroSD          CENTRE = 4 TMC2209 drivers + I2C/AUX header
      BOTTOM = MOT X/Y/Z/E motor outputs (Ra·DEC·Foc1·Foc2), TB/TE thermistors, 24V/GND tap
      Internal board canvas is 920 x 540, translated by (BX, BY). */
   const BOARD_ELEMENTS = [
-    /* TOP edge — green screw terminal (power + heaters), endstops, FAN/AUX, DC jack */
+    /* TOP edge — green screw terminal (power + heaters), FAN+, endstops, EXT-RST */
     { id: 'power', label: 'PWR|12V·0V', type: 'power', x: 36, y: 12, w: 92, h: 40, gpio: '—', fn: 'Main power input — 12V / 0V screw terminal', desc: 'Left pair of the green screw block: 12V (+) and 0V (–). Feeds the whole board: motors, ESP32, heaters.', conn: '12–24V DC, 5A+. Observe polarity: 12V = +, 0V = GND.', section: 'troubleshooting' },
     { id: 'heate0', label: 'H1', type: 'output', x: 132, y: 12, w: 52, h: 40, gpio: 'GPIO2', fn: 'H1 — Heater output 1 (AUX5)', desc: 'Screw terminal H1. PWM output, must be LOW at boot. Drives a 12V dew heater via an external MOSFET.', conn: 'MOSFET gate (via 1kΩ) → 12V heater tape. 10kΩ pull-down to GND.', section: 'dew' },
     { id: 'heatbed', label: 'H2', type: 'output', x: 188, y: 12, w: 52, h: 40, gpio: 'GPIO4', fn: 'H2 — Heater output 2 (AUX6)', desc: 'Screw terminal H2. Second PWM heater output (no boot constraint).', conn: 'MOSFET gate (via 1kΩ) → 12V heater tape. 10kΩ pull-down to GND.', section: 'dew' },
+    { id: 'fane0', label: 'FAN+', type: 'output', x: 244, y: 12, w: 52, h: 40, gpio: 'GPIO13', fn: 'FAN+ output (AUX8 / FAN_E0) — 3-pin connector', desc: '3-pin FAN+ header located between HOTBED (H2) and Z-MIN. The signal pin (nearest HOTBED) is GPIO13; the 3rd pin (nearest Z-MIN) is GND. Drives a status LED/buzzer, reticle lamp, or the intervalometer optocoupler.', conn: 'Signal pin (near HOTBED) → load; GND pin (3rd, near Z-MIN) → return. Enable 5V shunt if needed.', section: 'troubleshooting' },
     { id: 'zmin', label: 'Z-MIN', type: 'input', x: 300, y: 12, w: 58, h: 40, gpio: 'GPIO15', fn: 'Z-MIN endstop / TMC UART', desc: 'Z endstop header. On the E4 this pin is jumpered to the TMC2209 PDN/UART line, but is also a spare endstop input.', conn: 'Endstop NO → GND, or the TMC2209 UART jumper.', section: 'limits' },
     { id: 'ymin', label: 'Y-MIN', type: 'input', x: 362, y: 12, w: 58, h: 40, gpio: 'GPIO35', fn: 'Y-MIN — Home Axis2', desc: 'Input-only. Default home switch for Axis2 (DEC/Alt).', conn: 'NO switch to GND (home/limit). Input only.', section: 'limits' },
     { id: 'xmin', label: 'X-MIN', type: 'input', x: 424, y: 12, w: 58, h: 40, gpio: 'GPIO34', fn: 'X-MIN — Home Axis1 / Limit / GPS', desc: 'Input-only. Default home switch for Axis1; also LIMIT_SENSE_PIN in E4 Config.h. Can take a single-wire GPS.', conn: 'NO switch to GND (home/limit). Or GPS TX (single-wire mode).', section: 'limits' },
-    { id: 'fane0', label: 'FAN|AUX', type: 'output', x: 496, y: 12, w: 56, h: 40, gpio: 'GPIO13', fn: 'FAN / AUX output (AUX8) — reticle / status', desc: 'FAN/AUX header. Drives a status LED, buzzer, or (as in the reference build) a reticle lamp via a series resistor.', conn: 'Reticle/LED (+) via resistor → output, (–) → GND. Enable 5V shunt if needed.', section: 'troubleshooting' },
-    { id: 'dcjack', label: 'DC IN', type: 'power', x: 566, y: 12, w: 64, h: 40, gpio: '—', fn: 'DC barrel jack (alternate power in)', desc: '5.5/2.1mm barrel jack — an alternative to the 12V/0V screw terminal. Do NOT power from both at once.', conn: 'Center-positive 12–24V DC.', section: 'troubleshooting' },
+    { id: 'extrst', label: 'EXT-RST', type: 'control', x: 566, y: 12, w: 64, h: 40, gpio: '—', fn: 'EXT-RST — external reset header', desc: 'Top-right 2-pin header for an external reset button. The E4 has NO DC barrel jack — this corner is EXT-RST. Shorting it to GND resets the ESP32.', conn: 'Momentary push-button between EXT-RST and GND.', section: 'troubleshooting' },
     /* RIGHT — ESP32 module, reset, USB, MicroSD */
     { id: 'esp32', label: 'ESP32', type: 'mcu', x: 648, y: 116, w: 182, h: 128, gpio: '—', fn: 'Dual-core Xtensa LX6 @ 240MHz', desc: 'Main microcontroller with built-in WiFi, Bluetooth, I2C, SPI, UART, ADC and DAC.', conn: 'No external wiring needed. Built-in WiFi/BT antenna.', section: 'wifi' },
-    { id: 'rst', label: 'RST', type: 'control', x: 648, y: 256, w: 46, h: 20, gpio: '—', fn: 'Hardware reset button', desc: 'Press to reset the ESP32. Also used for bootloader timing during upload.', conn: 'Add a 10µF cap across EN/GND if uploads fail.', section: 'troubleshooting' },
     { id: 'usb', label: 'USB', type: 'comm', x: 872, y: 116, w: 46, h: 44, gpio: '—', fn: 'Firmware upload & serial monitor', desc: 'Micro USB for programming via Arduino IDE and serial comms with ASCOM/INDI.', conn: 'Connect to PC. Use a quality data cable (not charge-only).', section: 'firmware' },
     { id: 'sd', label: 'SD', type: 'comm', x: 872, y: 172, w: 46, h: 50, gpio: '—', fn: 'MicroSD card slot', desc: 'On-board microSD slot (unused by stock OnStepX).', conn: 'Insert a microSD only if a feature requires it.', section: 'firmware' },
     /* CENTRE — I2C/AUX header + 4 TMC2209 drivers */
@@ -156,7 +155,7 @@
   /* Every add-on OnStepX supports on the E4. Positions are computed by
      layoutPeripherals() (edge + target only); wires fan to the real connector. */
   const BOARD_PERIPHERALS = [
-    /* ===== TOP row 1 — power, heaters, endstops, GPS, reticle, DC jack ===== */
+    /* ===== TOP row 1 — power, heaters, FAN+, endstops, GPS, reticle, EXT-RST ===== */
     { id: 'p-psu', label: '12–24V PSU', sub: 'power supply', type: 'supply', target: 'power', edge: 'top', wire: '#facc15', wire2: '#ef4444', section: 'troubleshooting',
       gpio: '12V / 0V', fn: 'Main DC power supply (12–24V)', desc: 'Bench or sealed 12–24V DC supply feeding the 12V/0V screw terminal — runs motors, ESP32, heaters and peripherals.', conn: '+ → 12V, – → 0V. 5A+ recommended; observe polarity.' },
     { id: 'p-heat1', label: 'Dew Heater 1', sub: 'H1 strap', type: 'heater', target: 'heate0', edge: 'top', wire: '#f97316', section: 'dew',
@@ -171,12 +170,12 @@
       gpio: 'X-MIN (GPIO34)', fn: 'GPS module — auto time & location', desc: 'GY-GPSV3 (NEO-M8N / NEO-6M). Feeds UTC time, latitude and longitude via NMEA at 9600 baud.', conn: 'GPS TX → X-MIN (single-wire, remove filter cap) or GPIO16, VCC → 3.3V, GND → GND. 3.3V only!' },
     { id: 'p-reticle', label: 'Reticle', sub: 'LED + 68kΩ', type: 'led', target: 'fane0', edge: 'top', wire: '#ef4444', section: 'troubleshooting',
       gpio: 'FAN/AUX (GPIO13)', fn: 'Illuminated reticle lamp', desc: 'Red reticle illumination LED driven from the FAN/AUX output, dimmed through a 68kΩ series resistor.', conn: 'LED (+) → FAN/AUX via 68kΩ, LED (–) → GND.' },
-    { id: 'p-dcjack', label: 'DC Jack', sub: '5.5/2.1mm', type: 'supply', target: 'dcjack', edge: 'top', wire: '#eab308', section: 'troubleshooting',
-      gpio: 'DC IN', fn: 'Barrel-jack power adapter (alt input)', desc: 'Center-positive 12–24V barrel-jack adapter — an alternative to the screw terminal. Never power from both at once.', conn: 'Center → +, sleeve → GND.' },
+    { id: 'p-extrst', label: 'Reset btn', sub: 'EXT-RST', type: 'swsense', target: 'extrst', edge: 'top', wire: '#eab308', section: 'troubleshooting',
+      gpio: 'EXT-RST', fn: 'External reset button', desc: 'Optional momentary push-button on the top-right EXT-RST header (this corner is the reset header, not a DC jack). Resets the ESP32 when pressed.', conn: 'Button between EXT-RST and GND.' },
 
     /* ===== TOP row 2 — alternative uses of shared output / input pins ===== */
-    { id: 'p-dslr', label: 'DSLR shutter', sub: 'intervalometer', type: 'output', target: 'heatbed', edge: 'top2', wire: '#ec4899', section: 'intervalometer',
-      gpio: 'H2 / AUX', fn: 'DSLR shutter release (via optocoupler)', desc: 'Camera shutter trigger for astrophotography, driven from a spare feature output through an optocoupler (4N35 / PC817).', conn: 'AUX → 1kΩ → optocoupler LED; transistor side → camera shutter (2.5mm TRS).' },
+    { id: 'p-dslr', label: 'DSLR shutter', sub: 'intervalometer', type: 'output', target: 'fane0', edge: 'top2', wire: '#ec4899', section: 'intervalometer',
+      gpio: 'FAN+ (GPIO13)', fn: 'DSLR shutter release (via optocoupler)', desc: 'Camera shutter trigger for astrophotography, driven from the FAN+ output (GPIO13) through an optocoupler (4N35 / PC817). Use the FAN+ signal pin (nearest HOTBED) and the FAN+ GND pin (3rd pin, nearest Z-MIN).', conn: 'FAN+ signal (near HOTBED) → 1kΩ → optocoupler LED(+); optocoupler LED(–) → FAN+ GND (3rd pin, near Z-MIN); transistor side → camera shutter (2.5mm TRS).' },
     { id: 'p-buzzer', label: 'Buzzer', sub: 'status', type: 'led', target: 'fane0', edge: 'top2', wire: '#f472b6', section: 'troubleshooting',
       gpio: 'FAN/AUX (GPIO13)', fn: 'Status buzzer (shared with FAN/AUX)', desc: 'Active buzzer for goto/limit alerts, on the same FAN/AUX output as the reticle/LED (pick one).', conn: 'Buzzer (+) → FAN/AUX, (–) → GND. Enable 5V shunt if needed.' },
     { id: 'p-homex', label: 'Home/Limit X', sub: 'switch', type: 'swsense', target: 'xmin', edge: 'top2', wire: '#60a5fa', section: 'limits',
