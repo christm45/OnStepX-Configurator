@@ -4957,7 +4957,9 @@ const BOARD_DEFAULTS = {
     label: 'FYSETC E4',
     note: 'Click: fetches the Config.h from hjd1964/OnStepX branch "E4" (180+ fields) into the Output tab, ' +
           'keeps Source ref on main (latest OnStepX), and ticks the Website plugin. Matches Howard\'s ' +
-          'documented E4 + Website build.',
+          'documented E4 + Website build. SERIAL_B_BAUD_DEFAULT, STATUS_LED and STATUS_BUZZER are forced ' +
+          'OFF because main\'s FYSETC_E4 pinmap defines no SERIAL_B and shares AUX8_PIN (GPIO13) between ' +
+          'the LED and buzzer — leaving them on hard-#errors the build.',
     liveFetch: 'https://raw.githubusercontent.com/hjd1964/OnStepX/E4/Config.h',
     fields: {}, // applied via live fetch + plugin auto-tick in applyBoardDefaults.
   },
@@ -5286,6 +5288,31 @@ function applyCalculatorToRawConfig() {
   return patched;
 }
 
+// Force the given macros to OFF in the raw Output text, preserving indentation
+// and any trailing comment/alignment. Used by the FYSETC_E4 path: main's
+// Pins.FYSETC_E4.h defines no SERIAL_B and shares AUX8_PIN (GPIO13) between
+// STATUS_LED and STATUS_BUZZER, so the E4-branch Config.h's non-OFF values for
+// these hard-#error when compiled against main. Returns the number of lines
+// rewritten. Mirrors the build-service sanitizer so the file the user sees and
+// downloads matches what actually compiles.
+function forceRawConfigOff(names) {
+  const output = document.getElementById('configOutput');
+  if (!output || !output.value) return 0;
+  let text = output.value;
+  let patched = 0;
+  for (const name of names) {
+    // Match an active "#define NAME value [// comment]" line; the value token
+    // is \S+ and the trailing group keeps the comment alignment intact.
+    const re = new RegExp('^([ \\t]*#define[ \\t]+' + name + '[ \\t]+)(\\S+)(.*)$', 'm');
+    if (re.test(text)) {
+      text = text.replace(re, '$1OFF$3');
+      patched++;
+    }
+  }
+  if (patched > 0) output.value = text;
+  return patched;
+}
+
 window.applyBoardDefaults = async function () {
   const pinmap = document.getElementById('PINMAP')?.value;
 
@@ -5317,9 +5344,24 @@ window.applyBoardDefaults = async function () {
       // calculated values across all axes — not the E4 defaults.
       try { calcAxis1(); calcAxis2(); calcAxis3(); calcSlew(); calcPEC(); } catch {}
       const patched = applyCalculatorToRawConfig();
+      // main's Pins.FYSETC_E4.h has diverged from the E4 branch this Config.h
+      // targets: it defines no SERIAL_B and shares AUX8_PIN (GPIO13) between
+      // STATUS_LED and STATUS_BUZZER. The E4-branch values for these
+      // (SERIAL_B_BAUD_DEFAULT baud, STATUS_BUZZER 2000, STATUS_LED ON) compile
+      // fine on the E4 branch but hard-#error against main. Force all three OFF
+      // — in the form fields (so a later "Generate Config.h" stays correct) and
+      // in the raw Output text Compile sends verbatim. Matches the build-service
+      // sanitizer, so this is belt-and-braces.
+      const E4_FORCE_OFF = ['SERIAL_B_BAUD_DEFAULT', 'STATUS_BUZZER', 'STATUS_LED'];
+      for (const id of E4_FORCE_OFF) {
+        const el = document.getElementById(id);
+        if (el) { el.value = 'OFF'; el.dispatchEvent(new Event('change', { bubbles: true })); }
+      }
+      const offPatched = forceRawConfigOff(E4_FORCE_OFF);
       showStatus?.(
         `FYSETC E4 defaults applied; Website plugin auto-enabled. ` +
-        `Calculator values re-applied to ${patched} field${patched === 1 ? '' : 's'} (steps/deg, slew, PEC).`
+        `Calculator values re-applied to ${patched} field${patched === 1 ? '' : 's'} (steps/deg, slew, PEC); ` +
+        `SERIAL_B/STATUS_LED/STATUS_BUZZER forced OFF on ${offPatched} line${offPatched === 1 ? '' : 's'} (main-pinmap conflict).`
       );
     } catch (err) {
       alert(`Could not fetch E4 branch Config.h: ${err.message}`);
