@@ -204,7 +204,7 @@ window.I18N_FR = {
   "Password for your existing WiFi network": "Mot de passe de votre réseau WiFi existant",
   "Gateway (usually identical to AP_IP_ADDR)": "Passerelle (généralement identique à AP_IP_ADDR)",
   "Subnet mask": "Masque de sous-réseau",
-  "Hostname up to 16 chars": "Nom d'hôte jusqu'à 16 caractères",
+  "Hostname up to 16 chars — also the WiFi network name on E4": "Nom d'hôte (≤16 car.) — aussi le nom du réseau WiFi sur E4",
   "Device name (≤16 chars). Becomes mDNS \"onstepsws.local\"": "Nom de l'appareil (≤16 car.). Devient le nom mDNS « onstepsws.local »",
   "true = SWS broadcasts its own WiFi network (\"ONSTEP\" by default)": "true = le SWS diffuse son propre réseau WiFi (« ONSTEP » par défaut)",
   "true = SWS connects to your home/observatory router": "true = le SWS se connecte au routeur de votre maison/observatoire",
