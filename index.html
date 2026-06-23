@@ -5313,6 +5313,34 @@ function forceRawConfigOff(names) {
   return patched;
 }
 
+// Set an active "#define NAME value" line in the raw Output text: replace the
+// value token in place if the define already exists (preserving indentation and
+// any trailing comment/alignment), otherwise insert a fresh line just after the
+// PINMAP define (falling back to prepend). Used by the FYSETC_E4 path to force
+// HOST_NAME, which the E4-branch Config.h omits entirely. On OnStepX the WiFi
+// access-point SSID is `#define AP_SSID HOST_NAME` (src/lib/wifi/
+// WifiManager.defaults.h), so with no HOST_NAME line the AP comes up under the
+// firmware's built-in default instead of the name typed in the Host Name field.
+// Returns 'updated' | 'inserted' | 'unchanged'.
+function setRawConfigDefine(name, value) {
+  const output = document.getElementById('configOutput');
+  if (!output || !output.value) return 'unchanged';
+  let text = output.value;
+  const re = new RegExp('^([ \\t]*#define[ \\t]+' + name + '[ \\t]+)(\\S+)(.*)$', 'm');
+  if (re.test(text)) {
+    text = text.replace(re, '$1' + value + '$3');
+    output.value = text;
+    return 'updated';
+  }
+  // Pad the name to the column the surrounding file uses so the inserted line
+  // lines up with its neighbours; minimum one space.
+  const line = '#define ' + name + ' '.repeat(Math.max(1, 24 - name.length)) + value;
+  const pinRe = /^([ \t]*#define[ \t]+PINMAP[ \t]+\S+.*)$/m;
+  text = pinRe.test(text) ? text.replace(pinRe, '$1\n' + line) : line + '\n' + text;
+  output.value = text;
+  return 'inserted';
+}
+
 window.applyBoardDefaults = async function () {
   const pinmap = document.getElementById('PINMAP')?.value;
 
@@ -5358,10 +5386,24 @@ window.applyBoardDefaults = async function () {
         if (el) { el.value = 'OFF'; el.dispatchEvent(new Event('change', { bubbles: true })); }
       }
       const offPatched = forceRawConfigOff(E4_FORCE_OFF);
+      // The E4-branch Config.h ships no HOST_NAME line, so the WiFi AP would
+      // otherwise broadcast the firmware's built-in default name. HOST_NAME
+      // drives the AP SSID on OnStepX (`#define AP_SSID HOST_NAME`), so inject
+      // it from the Host Name field — this is the only place we can: the build
+      // service receives the textarea verbatim and never sees the form value.
+      let hostStatus = '';
+      const hostEl = document.getElementById('HOST_NAME');
+      let hostName = (hostEl?.value || '').trim().replace(/"/g, '');
+      if (hostName) {
+        if (hostName.length > 16) hostName = hostName.slice(0, 16); // OnStepX caps HOST_NAME at 16 chars
+        const res = setRawConfigDefine('HOST_NAME', '"' + hostName + '"');
+        hostStatus = ` HOST_NAME ${res} → "${hostName}" (becomes the WiFi AP SSID).`;
+      }
       showStatus?.(
         `FYSETC E4 defaults applied; Website plugin auto-enabled. ` +
         `Calculator values re-applied to ${patched} field${patched === 1 ? '' : 's'} (steps/deg, slew, PEC); ` +
-        `SERIAL_B/STATUS_LED/STATUS_BUZZER forced OFF on ${offPatched} line${offPatched === 1 ? '' : 's'} (main-pinmap conflict).`
+        `SERIAL_B/STATUS_LED/STATUS_BUZZER forced OFF on ${offPatched} line${offPatched === 1 ? '' : 's'} (main-pinmap conflict).` +
+        hostStatus
       );
     } catch (err) {
       alert(`Could not fetch E4 branch Config.h: ${err.message}`);
