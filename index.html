@@ -6084,6 +6084,23 @@ function snapshotForValidation() {
   // Bundle the selected plugin list so validateConfig can rule on
   // plugin-vs-config interactions (e.g. Website needs SERIAL_RADIO=WIFI_*).
   s._plugins = (typeof getSelectedPlugins === 'function') ? getSelectedPlugins() : [];
+  // Bundle the temperature fields (FOCUSER_TEMPERATURE + every rendered
+  // FEATUREn_TEMP) so validateConfig can flag THERMISTOR usage that lacks the
+  // THERMISTOR1_* calibration defines. These IDs aren't in relevantIds because
+  // FEATUREn_TEMP is rendered dynamically on the Auxiliary tab.
+  const tempFields = [];
+  const focuserTemp = document.getElementById('FOCUSER_TEMPERATURE');
+  if (focuserTemp) tempFields.push({ id: 'FOCUSER_TEMPERATURE', value: focuserTemp.value });
+  for (let i = 1; i <= 8; i++) {
+    const el = document.getElementById(`FEATURE${i}_TEMP`);
+    if (el) tempFields.push({ id: `FEATURE${i}_TEMP`, value: el.value });
+  }
+  s._tempFields = tempFields;
+  // THERMISTOR1_* are never emitted by this form; they only exist if the user
+  // imported/loaded a Config.h that carries them. Probe the current output so
+  // the THERMISTOR warning stays quiet for configs that legitimately define them.
+  const out = document.getElementById('configOutput')?.value || '';
+  s._hasThermistorParams = /\bTHERMISTOR1_\w+/.test(out);
   return s;
 }
 function snapshotForShcValidation() {

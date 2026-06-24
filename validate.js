@@ -314,6 +314,29 @@ export function validateConfig(values) {
     }
   }
 
+  // FOCUSER_TEMPERATURE / FEATUREn_TEMP = THERMISTOR is a frequent build
+  // breaker. Picking THERMISTOR pulls in the thermistor temperature path,
+  // which needs the THERMISTOR1_* calibration defines (TNOM / RNOM / BETA /
+  // RSERIES) plus an analog sense pin. A Config.h generated from scratch by
+  // this form never emits THERMISTOR1_*, so the build commonly fails (or reads
+  // garbage) unless the user imported an E4 Config.h that already carries them.
+  // Howard Dutton's guidance on the forum is to set these to OFF unless you've
+  // actually wired a thermistor and defined its parameters. A DS18B20 serial
+  // number is fine here — only the literal THERMISTOR needs the extra setup.
+  const tempFields = Array.isArray(values._tempFields) ? values._tempFields : [];
+  const thermistorFields = tempFields.filter((f) => f && f.value === 'THERMISTOR');
+  if (thermistorFields.length > 0 && !values._hasThermistorParams) {
+    const names = thermistorFields.map((f) => f.id).join(', ');
+    const plural = thermistorFields.length > 1;
+    add('warn', thermistorFields[0].id,
+      `${names} ${plural ? 'are' : 'is'} set to THERMISTOR, but the Config.h has no ` +
+      `THERMISTOR1_* parameters. The thermistor path needs THERMISTOR1_TNOM / RNOM / ` +
+      `BETA / RSERIES and an analog sense pin — without them the build commonly fails. ` +
+      `Unless you've wired a thermistor and imported a Config.h that defines those, set ` +
+      `${names} to OFF (per Howard Dutton's advice). A DS18B20 serial number is fine here; ` +
+      `only THERMISTOR needs the extra setup.`);
+  }
+
   const counts = {
     error: issues.filter((i) => i.level === 'error').length,
     warn: issues.filter((i) => i.level === 'warn').length,
