@@ -19,8 +19,16 @@ export function supported() {
  *
  * files: {[filename]: Uint8Array}  (as returned by fetchFirmware)
  * log:   function(string)          progress/log callback
+ * opts:  {eraseAll?: boolean}      eraseAll wipes the WHOLE chip (incl. the
+ *                                  NVS/EEPROM region) before writing — the
+ *                                  equivalent of Arduino IDE's "Erase All Flash
+ *                                  Contents". Use it to clear a stale/corrupt
+ *                                  NV that OnStepX can't reformat (the
+ *                                  persistent "Init NV/EEPROM error"). Default
+ *                                  false so normal re-flashes keep saved
+ *                                  settings/PEC data.
  */
-export async function flash(files, log = console.log) {
+export async function flash(files, log = console.log, opts = {}) {
   if (!supported()) throw new Error('Web Serial not supported — use Chrome, Edge, or Opera');
 
   const useMerged = !!files['merged-firmware.bin'];
@@ -83,13 +91,15 @@ export async function flash(files, log = console.log) {
         { data: binaryString(files['firmware.bin']), address: 0x10000 },
       ];
 
+  const eraseAll = opts.eraseAll === true;
+  if (eraseAll) log('Erasing entire flash first (this wipes saved NV/EEPROM settings and takes ~10–30 s)…');
   log(`Writing ${fileArray.length} file${fileArray.length === 1 ? '' : 's'}…`);
   await esploader.writeFlash({
     fileArray,
     flashSize: 'keep',
     flashMode: 'keep',
     flashFreq: 'keep',
-    eraseAll: false,
+    eraseAll,
     compress: true,
     reportProgress: (fileIndex, written, total) => {
       const pct = ((written / total) * 100).toFixed(1);

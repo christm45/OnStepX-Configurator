@@ -2835,6 +2835,10 @@
       Your config has changed since this firmware was built. Recompile before flashing, or the board
       will run stale firmware.
     </div>
+    <label style="display:flex;align-items:flex-start;gap:8px;color:var(--label);font-size:0.85em;margin-bottom:10px;cursor:pointer;">
+      <input type="checkbox" id="flashEraseAll" style="width:auto;margin-top:3px;">
+      <span>Erase entire flash before writing — fixes a stuck "Init NV/EEPROM error" (ESP32/ESP8266 only; wipes saved settings/PEC, adds ~10–30 s).</span>
+    </label>
     <div class="btn-row">
       <button class="btn btn-generate" id="flashBtn" onclick="flashBoard()" disabled>Flash to Board</button>
     </div>
@@ -6757,7 +6761,8 @@ window.flashBoard = async function () {
       env === 'teensy32' || env === 'teensy40' || env === 'teensy41' ||
       env === 'shc_teensy40' || env === 'shc_teensy32';
     const isStm32Dfu = env === 'blackpill_f411' || env === 'skr_pro_f407' || env === 'f446_fysetc_s6';
-    if (isEsp) await esp32Flasher.flash(files, log);
+    const eraseAll = !!document.getElementById('flashEraseAll')?.checked;
+    if (isEsp) await esp32Flasher.flash(files, log, { eraseAll });
     else if (isStm32Dfu) await stm32Flasher.flash(files, log);
     else if (isTeensy) await teensyFlasher.flash(files, env, log);
     else throw new Error(`no flasher for env ${env}`);

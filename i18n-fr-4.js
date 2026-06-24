@@ -4,6 +4,7 @@
    window.I18N_FR. Loaded before i18n.js.
    ========================================================================== */
 window.I18N_FR = Object.assign(window.I18N_FR || {}, {
+  "Erase entire flash before writing — fixes a stuck \"Init NV/EEPROM error\" (ESP32/ESP8266 only; wipes saved settings/PEC, adds ~10–30 s).": "Effacer toute la flash avant l'écriture — corrige une « Init NV/EEPROM error » persistante (ESP32/ESP8266 uniquement ; efface les réglages/PEC enregistrés, ajoute ~10–30 s).",
   "(Controller) — pick the board you have. Wrong value = firmware drives wrong pins.": "(Contrôleur) — choisissez la carte que vous possédez. Mauvaise valeur = le firmware pilote les mauvaises broches.",
   "(Controller, ESP32 only) — enable if you want SkySafari over WiFi.": "(Contrôleur, ESP32 uniquement) — activez si vous voulez SkySafari via WiFi.",
   "(ESP32). Click": "(ESP32). Cliquez",
