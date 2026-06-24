@@ -3832,7 +3832,69 @@ location.reload();</pre>
 </div>
 
 <script>
+// ============================================================================
+// OnStepX Configurator — main inline script (classic, non-module block)
+// ============================================================================
+//
+// WHAT THIS APP DOES
+//   A static, client-side web app that turns a form full of telescope/board
+//   settings into a ready-to-compile OnStep "Config.h", then (optionally)
+//   compiles that Config.h in the cloud and flashes the resulting firmware to
+//   the user's board over USB — all from the browser, no toolchain to install.
+//
+// BUILD / FLASH PIPELINE (high level)
+//   form values
+//     → generateConfig()            builds the OnStepX Config.h text
+//                                    (generateSHCConfig / generateSWSConfig for
+//                                     the other two project modes)
+//     → compile.js startCompile()   POSTs Config.h to a Cloudflare Worker
+//     → Cloudflare Worker           triggers a GitHub Actions workflow
+//     → GitHub Actions              clones hjd1964/OnStepX (or SHC/SWS), swaps
+//                                   in this Config.h, builds with PlatformIO,
+//                                   uploads the firmware as an artifact
+//     → compile.js fetchFirmware()  downloads the artifact (.bin / .hex + manifest)
+//     → flashers                    write the firmware to the board over USB:
+//                                     flash/esp32.js  — ESP32/ESP8266 via WebSerial
+//                                     flash/stm32.js  — STM32 DFU via WebUSB
+//                                     flash/teensy.js — Teensy via WebHID (or .hex download)
+//
+// FILE / MODULE MAP
+//   index.html        — this file: all UI markup, CSS, and the two <script>s.
+//                       * classic <script> (this block): form logic, the
+//                         Steps/Slew/PEC calculators, generateConfig(), the
+//                         starfield background, copy/download/load helpers.
+//                       * module <script type="module"> (further down): project
+//                         mode switching, board defaults, localStorage persistence,
+//                         per-field help bubbles, SHC/SWS config generators,
+//                         preflight validation glue, and the compile+flash flow
+//                         that imports the ES modules below.
+//   compile.js        — talks to the Cloudflare Worker: startCompile / pollUntilDone
+//                       / fetchFirmware, env inference, ref resolution, hashing.
+//   validate.js       — pure config sanity checks (validateConfig, findSecrets)
+//                       used by preflight before allowing a compile.
+//   flash/esp32.js    — WebSerial flasher (ESP32 / ESP8266).
+//   flash/stm32.js    — WebUSB DFU flasher (STM32 boards).
+//   flash/teensy.js   — WebHID flasher (Teensy), with .hex-download fallback.
+//   i18n.js           — EN/FR DOM-walker translation engine.
+//   i18n-fr*.js       — French translation dictionaries (key:value entries).
+//   e4-guide.js / .css— the standalone FYSETC E4 illustrated wiring guide.
+//   cloudflare-worker/, build-service/ — server side of the compile pipeline.
+//
+// THREE UI "MODES" (window.currentMode, persisted in localStorage)
+//   'onstepx' — the mount controller (default). Full axis/driver/mount form.
+//   'shc'     — SmartHandController pendant. SHC_* fields, simpler config.
+//   'sws'     — SmartWebServer / WiFi bridge. SWS_* fields, network config.
+//   setMode() (module block) swaps title/tabs/board list and re-runs preflight.
+//
+// HARD CONSTRAINT WORTH KNOWING
+//   The Output textarea (#configOutput) is the source of truth for compiling.
+//   Whatever it contains is sent byte-for-byte. Loading/importing a Config.h
+//   fills it verbatim so upstream fields the form can't represent survive.
+// ============================================================================
+
 // === TAB SWITCHING ===
+// Show one tab's content and highlight its button; `name` is the tab id suffix
+// (the element is #tab-<name>). Button match is fuzzy on stripped lowercase text.
 function showTab(name) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -3843,6 +3905,9 @@ function showTab(name) {
 }
 
 // === AUXILIARY FEATURES GENERATOR ===
+// Build the 8 FEATURE1..8 input rows (purpose/name/temp/pin/value/on-state)
+// as HTML and inject them into #features-container. Called once at init; all
+// rows start from the fixed `defaults` (every PIN defaults to OFF — see note).
 function buildFeatures() {
   const container = document.getElementById('features-container');
   const defaults = [
@@ -3915,6 +3980,9 @@ function buildFeatures() {
 }
 
 // === CALCULATORS ===
+// AXIS1 (RA/Az) steps-per-degree from motor steps × microsteps × worm × pulley.
+// Writes the result into both the calculator readout and AXIS1_STEPS_PER_DEGREE,
+// then refreshes the slew and PEC calculators that depend on it.
 function calcAxis1() {
   const ms = parseFloat(document.getElementById('calc_a1_motor_steps').value) || 0;
   const us = parseFloat(document.getElementById('calc_a1_microsteps').value) || 1;
@@ -3928,6 +3996,8 @@ function calcAxis1() {
   calcSlew();
   calcPEC();
 }
+// AXIS2 (Dec/Alt) steps-per-degree, same formula as calcAxis1; writes the
+// readout and AXIS2_STEPS_PER_DEGREE and refreshes the slew calculator.
 function calcAxis2() {
   const ms = parseFloat(document.getElementById('calc_a2_motor_steps').value) || 0;
   const us = parseFloat(document.getElementById('calc_a2_microsteps').value) || 1;
@@ -3940,6 +4010,9 @@ function calcAxis2() {
   document.getElementById('AXIS2_STEPS_PER_DEGREE').value = spd.toFixed(4);
   calcSlew();
 }
+// AXIS3 (rotator/derotator) steps-per-degree. Computes a "sensor" speed from
+// the camera chip diagonal for reference, plus the mechanical speed from motor
+// steps × microsteps × gear ratio; writes AXIS3_STEPS_PER_DEGREE.
 function calcAxis3() {
   const cx = parseFloat(document.getElementById('calc_a3_cam_x').value) || 0;
   const cy = parseFloat(document.getElementById('calc_a3_cam_y').value) || 0;
@@ -3954,6 +4027,11 @@ function calcAxis3() {
   document.getElementById('calc_a3_result').value = mechSpd.toFixed(4);
   document.getElementById('AXIS3_STEPS_PER_DEGREE').value = mechSpd.toFixed(4);
 }
+// Slew-rate feasibility calculator. From AXIS1 steps/deg + desired base rate
+// (accounting for any GOTO microstep switching), computes the fastest µs/step
+// the runtime would demand, fills the tracking-resolution + slew-speed readouts,
+// transports the chosen rate and wave form into the real config fields, and
+// flags which MCU platforms can't keep up (per-platform µs/step limits table).
 function calcSlew() {
   const a1spd = parseFloat(document.getElementById('calc_a1_result').value) || parseFloat(document.getElementById('AXIS1_STEPS_PER_DEGREE').value) || 0;
   const calcRateRaw = document.getElementById('calc_slew_rate').value;
@@ -4083,6 +4161,9 @@ function calcSlew() {
     warnEl.classList.remove('show');
   }
 }
+// PEC buffer size: steps per full worm rotation = AXIS1 steps/deg × 360 / worm
+// teeth, rounded up to an integer. Writes the readout and transports the value
+// into PEC_STEPS_PER_WORM_ROTATION (still hand-editable).
 function calcPEC() {
   const worm = parseFloat(document.getElementById('calc_a1_worm').value) || 0;
   const a1spd = parseFloat(document.getElementById('calc_a1_result').value) || parseFloat(document.getElementById('AXIS1_STEPS_PER_DEGREE').value) || 0;
@@ -4104,15 +4185,19 @@ function calcPEC() {
 }
 
 // === VALUE HELPER ===
+// Read a form field's value by element id; returns 'OFF' if the field is absent.
 function v(id) {
   const el = document.getElementById(id);
   if (!el) return 'OFF';
   return el.value;
 }
+// Wrap a value in double quotes (for string-valued #defines).
 function q(val) {
   // Quote string values
   return '"' + val + '"';
 }
+// Format one aligned "#define NAME value // default comment" Config.h line:
+// name padded to 42 cols, value to 8, then the default and a trailing comment.
 function pad(name, val, def, comment) {
   const nameStr = '#define ' + name;
   const padded = nameStr.padEnd(42);
@@ -4121,6 +4206,9 @@ function pad(name, val, def, comment) {
 }
 
 // === GENERATE CONFIG ===
+// Build the full OnStepX Config.h text from every Controller/Mount/Axis/Aux
+// form field and write it into the #configOutput textarea (the source of truth
+// that Compile sends). `L(s)` appends a line; uses v()/q()/pad() helpers above.
 function generateConfig() {
   let c = '';
   const L = (s) => { c += s + '\n'; };
@@ -4413,6 +4501,8 @@ function generateConfig() {
   showStatus('Config.h generated successfully!');
 }
 
+// === OUTPUT ACTIONS (copy / download / load Config.h) ===
+// Copy the Output textarea to the clipboard (generating it first if empty).
 function copyConfig() {
   const output = document.getElementById('configOutput');
   if (!output.value) generateConfig();
@@ -4421,6 +4511,8 @@ function copyConfig() {
   });
 }
 
+// Download the Output textarea contents as a file named "Config.h"
+// (generating it first if empty).
 function downloadConfig() {
   const output = document.getElementById('configOutput');
   if (!output.value) generateConfig();
@@ -4434,6 +4526,9 @@ function downloadConfig() {
   showStatus('Config.h downloaded!');
 }
 
+// File-input handler: read a user-picked Config.h, populate matching form
+// fields from its #define lines, and preserve the raw text verbatim in the
+// Output textarea so Compile sends it byte-for-byte (incl. unmappable fields).
 function loadConfig(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -4465,6 +4560,7 @@ function loadConfig(event) {
   reader.readAsText(file);
 }
 
+// Flash a transient message in the bottom status bar for 3 seconds.
 function showStatus(msg) {
   const bar = document.getElementById('statusBar');
   bar.textContent = msg;
@@ -4485,6 +4581,7 @@ calcPEC();
   const canvas = document.getElementById('matrixCanvas');
   const ctx = canvas.getContext('2d');
 
+  // Match the canvas pixel size to the window (re-run on resize).
   function resize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -4496,6 +4593,8 @@ calcPEC();
   const SPEED = 2;
   const stars = [];
 
+  // (Re)spawn a single star at a random x/y and full depth (z) for the
+  // perspective warp-speed effect.
   function initStar(star) {
     star.x = (Math.random() - 0.5) * canvas.width * 2;
     star.y = (Math.random() - 0.5) * canvas.height * 2;
@@ -4512,6 +4611,9 @@ calcPEC();
     stars.push(s);
   }
 
+  // One animation frame: advance every star toward the viewer and draw a
+  // streak from its previous to current projected position (the warp effect).
+  // Driven by a setInterval(draw, 33) ~30fps loop set up below.
   function draw() {
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
@@ -4675,6 +4777,9 @@ calcPEC();
     },
   };
 
+  // Lay out the "OnStepX" word as a vertical column of letter constellations
+  // and render it as SVG circles (stars) + lines into #constellationOx, sizing
+  // the viewBox to the computed total height. Rebuilds from scratch each call.
   function renderConstellation() {
     if (!constellation) return;
     // Clear any previous content (preserves the SVG element + classes)
@@ -4774,6 +4879,8 @@ calcPEC();
     prefs = { ...defaults, ...saved };
   } catch (e) { /* ignore corrupt prefs */ }
 
+  // Persist the background tuning prefs (stars/constellation/animate/density/
+  // speed) to localStorage under "bgPrefs".
   function savePrefs() {
     try { localStorage.setItem('bgPrefs', JSON.stringify(prefs)); } catch (e) {}
   }
@@ -4802,6 +4909,9 @@ calcPEC();
     sf.appendChild(frag);
   }
 
+  // Apply all current bgPrefs to the DOM at once: stars on/off + density,
+  // constellation visibility, animation play state, twinkle speed CSS var, and
+  // sync the tuning-panel widgets to match. Called on load and after any change.
   function applyAll() {
     // Stars on/off (also nukes existing stars)
     if (!prefs.stars) {
@@ -4881,6 +4991,10 @@ window.currentMode = (() => {
   try { return localStorage.getItem(MODE_KEY) || 'onstepx'; } catch { return 'onstepx'; }
 })();
 
+// Switch the whole UI between the three project modes ('onstepx' | 'shc' |
+// 'sws'): persists the choice, restyles the mode buttons, swaps title/subtitle,
+// shows/hides mode-specific tabs, rebuilds the compile board list, and re-runs
+// preflight + ref resolution. Side-effects only; no return value.
 function setMode(mode) {
   if (!['onstepx', 'shc', 'sws'].includes(mode)) return;
   window.currentMode = mode;
@@ -5129,6 +5243,9 @@ const BOARD_DEFAULTS = {
   },
 };
 
+// Update the "Apply board defaults" button label/hint and enabled state to
+// match the currently selected PINMAP (enabled only when BOARD_DEFAULTS has an
+// entry for it). Called on PINMAP change and after a language switch.
 function refreshBoardDefaultsButton() {
   const btn = document.getElementById('applyBoardDefaultsBtn');
   const hint = document.getElementById('applyBoardDefaultsHint');
@@ -5345,6 +5462,11 @@ function setRawConfigDefine(name, value) {
   return 'inserted';
 }
 
+// "Apply board defaults" button handler: load a starter config for the
+// selected PINMAP. FYSETC_E4 is special-cased (live-fetch the E4 branch
+// Config.h, tick Website, re-run calculators, force OFF the fields that
+// #error against main, inject HOST_NAME); all other boards just splat the
+// static BOARD_DEFAULTS[pinmap].fields into the form and re-run the calculators.
 window.applyBoardDefaults = async function () {
   const pinmap = document.getElementById('PINMAP')?.value;
 
@@ -5457,6 +5579,9 @@ window.applyBoardDefaults = async function () {
   showStatus?.(`${entry.label} defaults applied.`);
 };
 
+// Repopulate the COMPILE_ENV (build target) dropdown with the board list for
+// the current project mode (OnStepX / SHC / SWS), preserving the prior choice
+// if still valid, and set the mode-specific hint text. Called on mode change.
 function updateCompileBoardOptions() {
   const sel = document.getElementById('COMPILE_ENV');
   if (!sel) return;
@@ -5515,6 +5640,9 @@ const SWS_PREFIX = 'SWS_';
 function isShcField(id) { return id.startsWith(SHC_PREFIX); }
 function isSwsField(id) { return id.startsWith(SWS_PREFIX); }
 
+// Snapshot every persistable form field into a {onstepx, shc, sws, shared}
+// object keyed by id (checkbox → boolean, else value), skipping VOLATILE_IDS.
+// Shared fields (COMPILE_ENV, ONSTEPX_REF) live in all three modes.
 function collectFormState() {
   const out = { onstepx: {}, shc: {}, sws: {}, shared: {} };
   const sharedIds = new Set(['COMPILE_ENV', 'ONSTEPX_REF']); // visible in all modes
@@ -5529,6 +5657,8 @@ function collectFormState() {
   return out;
 }
 
+// Write a {id: value} map back onto matching form fields (checkbox ← boolean,
+// else value). Missing fields are skipped. Inverse of collectFormState's groups.
 function applyFieldMap(map) {
   if (!map) return;
   for (const [id, val] of Object.entries(map)) {
@@ -5539,6 +5669,9 @@ function applyFieldMap(map) {
   }
 }
 
+// Load saved form state from localStorage (migrating the flat v1 key to the
+// per-mode v2 shape on first run) and apply all four field groups, then re-run
+// the calculators. Returns true if state was restored, false otherwise.
 function restoreFormState() {
   try {
     let raw = localStorage.getItem(STORAGE_KEY);
@@ -5576,12 +5709,15 @@ function restoreFormState() {
 }
 
 let saveTimer = null;
+// Debounced (500ms) persist of the current form state to localStorage; wired to
+// every field's input/change events so saving doesn't fire on each keystroke.
 function queueSave() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(collectFormState())); } catch {}
   }, 500);
 }
+// "Reset to defaults" handler: clear all saved state + mode keys and reload.
 window.resetToDefaults = function () {
   if (!confirm('Clear all saved form state and reload the page?')) return;
   localStorage.removeItem(STORAGE_KEY);
@@ -5691,6 +5827,9 @@ const FIELD_HELP = {
   },
 };
 
+// Wire up the per-field help system: inject a "?" icon next to every label
+// that has a FIELD_HELP entry, and manage a single shared tooltip bubble that
+// shows on hover/click (with hover-intent delays and click-to-pin). Run once.
 function setupFieldHelp() {
   let bubble = document.getElementById('field-help-bubble');
   if (!bubble) {
@@ -5704,6 +5843,7 @@ function setupFieldHelp() {
   let isPinned = false;
   let hideTimer = null;
 
+  // Cancel any pending auto-hide timer for the help bubble.
   function cancelHide() {
     if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
   }
@@ -5716,6 +5856,9 @@ function setupFieldHelp() {
     hideTimer = setTimeout(hide, delay);
   }
 
+  // Populate and position the shared bubble for a given help icon's field
+  // (title, tip, optional "Learn more →" link), then show it. `pinned` keeps it
+  // open until explicitly dismissed (click/touch); otherwise hover rules apply.
   function showFor(icon, { pinned = false } = {}) {
     cancelHide();
     const id = icon.dataset.fieldId;
@@ -5776,6 +5919,7 @@ function setupFieldHelp() {
     isPinned = pinned;
   }
 
+  // Hide the help bubble and clear the active/pinned state.
   function hide() {
     cancelHide();
     if (activeIcon) activeIcon.setAttribute('aria-expanded', 'false');
@@ -6079,6 +6223,9 @@ const relevantIds = [
   'AXIS3_DRIVER_MICROSTEPS', 'AXIS3_DRIVER_IRUN', 'AXIS3_DRIVER_IHOLD',
   'AXIS4_DRIVER_MICROSTEPS', 'AXIS4_DRIVER_IRUN', 'AXIS4_DRIVER_IHOLD',
 ];
+// Build the input object for validateConfig() (OnStepX mode): the relevantIds
+// field values plus bundled extras the validator needs — selected plugins,
+// temperature fields, and whether the output already defines THERMISTOR1_*.
 function snapshotForValidation() {
   const s = {};
   for (const id of relevantIds) {
@@ -6107,6 +6254,8 @@ function snapshotForValidation() {
   s._hasThermistorParams = /\bTHERMISTOR1_\w+/.test(out);
   return s;
 }
+// Collect the few SHC-mode fields (display, serial-to-OnStep, radio, build env)
+// that validateShcConfig() rules on.
 function snapshotForShcValidation() {
   const env = document.getElementById('COMPILE_ENV')?.value || '';
   return {
@@ -6117,6 +6266,8 @@ function snapshotForShcValidation() {
   };
 }
 
+// SHC-mode preflight rules: returns { issues: [{level, id, message}] } flagging
+// a missing display, no link to OnStep, radio without ESP32, or wrong build env.
 function validateShcConfig(s) {
   const issues = [];
   if (!s.SHC_DISPLAY_OLED || s.SHC_DISPLAY_OLED === 'OFF') {
@@ -6136,6 +6287,8 @@ function validateShcConfig(s) {
   return { issues };
 }
 
+// Collect the SWS-mode fields (operational mode, WiFi AP/STA creds, MAC, host
+// name, build env, etc.) that validateSwsConfig() rules on.
 function snapshotForSwsValidation() {
   const get = (id) => document.getElementById(id)?.value;
   return {
@@ -6155,6 +6308,9 @@ function snapshotForSwsValidation() {
   };
 }
 
+// SWS-mode preflight rules: returns { issues: [...] } checking build env,
+// operational mode, BLE-needs-ESP32, host-name length, WiFi credential sanity
+// (AP/STA enabled, password length, channel), NV_WIPE, default password, MAC.
 function validateSwsConfig(s) {
   const issues = [];
   if (!s.COMPILE_ENV || !s.COMPILE_ENV.startsWith('sws_')) {
@@ -6201,6 +6357,9 @@ function validateSwsConfig(s) {
   return { issues };
 }
 
+// Run the right validator for the current mode (plus a secrets scan of the
+// generated config), render the pass/warn/error banner + issue list, and gate
+// the Compile button: enabled when clean, otherwise requires the override box.
 function runPreflight() {
   const summary = document.getElementById('preflightSummary');
   const list = document.getElementById('preflightList');
@@ -6297,6 +6456,8 @@ const ONSTEPX_PLUGINS = [
   { id: 'usb', name: 'USB Power Control', desc: 'Adds dedicated USB power port control to the aux-switching system.', flags: [] },
 ];
 
+// Render the OnStepX plugin catalog as a list of checkboxes (id PLUGIN_<id>)
+// into #pluginsList, each wired to refresh the compatibility warning on change.
 function renderPlugins() {
   const list = document.getElementById('pluginsList');
   if (!list) return;
@@ -6315,6 +6476,8 @@ function renderPlugins() {
   }
 }
 
+// Show/hide the plugin compatibility warning: flags ESP32-only plugins picked
+// on a non-ESP32 target, and reminds the user to enable WiFi for wifi plugins.
 function refreshPluginsWarning() {
   const warn = document.getElementById('pluginsWarning');
   if (!warn) return;
@@ -6336,12 +6499,14 @@ function refreshPluginsWarning() {
   warn.style.display = msgs.length ? 'block' : 'none';
 }
 
+// Show the plugins section only in OnStepX mode (SHC/SWS have no plugins).
 function refreshPluginsSectionVisibility() {
   const section = document.getElementById('pluginsSection');
   if (!section) return;
   section.style.display = window.currentMode === 'onstepx' ? 'block' : 'none';
 }
 
+// Return the list of checked plugin ids (e.g. ['website','metrics']).
 function getSelectedPlugins() {
   return ONSTEPX_PLUGINS
     .filter((p) => document.getElementById(`PLUGIN_${p.id}`)?.checked)
@@ -6397,6 +6562,9 @@ const refInput = document.getElementById('ONSTEPX_REF');
 const refBody = document.getElementById('refResolvedBody');
 let refTimer = null;
 let refRequestSeq = 0;
+// Resolve the ONSTEPX_REF field (branch/tag/sha) against the current mode's
+// upstream repo via compile.js and render the resolved commit (sha/author/date/
+// message) into #refResolvedBody. Sequence-guarded so stale results are dropped.
 async function refreshRef() {
   if (!refInput || !refBody) return;
   const ref = (refInput.value || 'main').trim() || 'main';
@@ -6419,6 +6587,7 @@ async function refreshRef() {
     refBody.innerHTML = `<span style="color:var(--highlight);">could not resolve: ${escapeHtml(err.message)}</span>`;
   }
 }
+// Escape &, <, >, ", ' so untrusted text is safe to drop into innerHTML.
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 }
@@ -6428,6 +6597,8 @@ refInput?.addEventListener('input', () => {
 });
 refreshRef(); // initial resolution on page load
 
+// --- Compile/flash status + log UI helpers ----------------------------------
+// Set the #compileStatus panel text and colour-state (info | ok | err).
 function setStatus(msg, kind = 'info') {
   const el = document.getElementById('compileStatus');
   if (!el) return;
@@ -6443,6 +6614,7 @@ function setStatus(msg, kind = 'info') {
   el.style.color = '';
 }
 
+// Append a line to a log element (compileLog/flashLog), show it, and autoscroll.
 function appendLog(targetId, line) {
   const el = document.getElementById(targetId);
   if (!el) return;
@@ -6465,6 +6637,7 @@ function progShow(wrapId, barId, labelId, opts = {}) {
   const label = document.getElementById(labelId);
   if (label) label.textContent = opts.label || '';
 }
+// Set a determinate progress bar to a clamped 0–100% and update its label.
 function progSet(barId, labelId, pct, label) {
   const bar = document.getElementById(barId);
   if (bar) {
@@ -6474,10 +6647,12 @@ function progSet(barId, labelId, pct, label) {
   const l = document.getElementById(labelId);
   if (l && label != null) l.textContent = label;
 }
+// Update only a progress bar's text label (e.g. the elapsed-time ticker).
 function progLabel(labelId, text) {
   const l = document.getElementById(labelId);
   if (l) l.textContent = text;
 }
+// Hide a progress-bar wrapper element.
 function progHide(wrapId) {
   const w = document.getElementById(wrapId);
   if (w) w.style.display = 'none';
@@ -6495,6 +6670,8 @@ function tr(s) {
     ? window.I18N_FR[s] : s;
 }
 
+// Render the firmware Flash/RAM usage bars from the build's manifest.json
+// (used/total bytes). Hidden if the manifest lacks size data; warns above 90%.
 function renderSizeIndicator(files) {
   const el = document.getElementById('sizeIndicator');
   if (!el) return;
@@ -6532,6 +6709,9 @@ function renderSizeIndicator(files) {
   el.style.display = 'block';
 }
 
+// Update the #flashSupport hint for the selected build target: warns when the
+// browser lacks the needed API (WebSerial/WebUSB/WebHID) and gives board-
+// specific flashing instructions (Teensy program button, STM32 DFU mode, etc.).
 function refreshFlashSupportHint() {
   const env = document.getElementById('COMPILE_ENV')?.value || '';
   const hint = document.getElementById('flashSupport');
@@ -6567,6 +6747,12 @@ function refreshFlashSupportHint() {
   hint.style.color = msgs.length ? 'var(--warn)' : 'var(--label)';
 }
 
+// --- Compile & flash flow ---------------------------------------------------
+// "Compile Firmware" button handler: the end-to-end cloud build. Sends the
+// Output Config.h (+ env/ref/project/plugins) via compile.js startCompile,
+// polls the GitHub Actions run to completion, fetches the firmware artifact,
+// logs which plugins got bundled, shows the size indicator, and enables the
+// Download/Flash buttons. Drives the indeterminate compile progress bar.
 window.startCompileFlow = async function () {
   const compileBtn = document.getElementById('compileBtn');
   const downloadBtn = document.getElementById('downloadFwBtn');
@@ -6707,6 +6893,8 @@ window.startCompileFlow = async function () {
   }
 };
 
+// "Download Firmware" button handler: save the last build's firmware.bin
+// (or firmware.hex for Teensy) to disk.
 window.downloadFirmware = function () {
   if (!lastBuild) return;
   const { files } = lastBuild;
@@ -6715,6 +6903,12 @@ window.downloadFirmware = function () {
   else if (files['firmware.hex']) downloadBlob('firmware.hex', files['firmware.hex'], 'text/plain');
 };
 
+// "Flash to Board" button handler: write the last build's firmware to the
+// connected board, dispatching to the right flasher by build env (ESP32/ESP8266
+// → WebSerial, STM32 → WebUSB DFU, Teensy → WebHID). Guards against flashing
+// firmware that's stale vs. the current Config.h, parses the flasher's "NN%"
+// log lines into the progress bar, and (OnStepX mode) resets the form to board
+// defaults on success.
 window.flashBoard = async function () {
   if (!lastBuild) return;
   const flashBtn = document.getElementById('flashBtn');
