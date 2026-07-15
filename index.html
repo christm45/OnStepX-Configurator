@@ -3981,9 +3981,30 @@ function buildFeatures() {
 }
 
 // === CALCULATORS ===
+// Push a microstep value chosen on the Calculator tab into one of the
+// AXIS*_DRIVER_MICROSTEPS[_GOTO] driver selects, keeping the two in sync.
+// AXIS*_STEPS_PER_DEGREE is derived from the calculator's microsteps, so the
+// driver MUST track at the same microstep count or the tracking rate is wrong
+// — this is the coupling that makes the calculator authoritative for microsteps
+// (mirroring how it's already authoritative for steps/degree). `raw` is the
+// calculator select's string value; pass null/'' to skip (leaves the field as
+// the board default). Only assigns if the driver select actually offers that
+// option, and fires a change event so downstream (validation, config text) sees it.
+function applyCalcMicrosteps(driverId, raw) {
+  if (raw === null || raw === undefined || raw === '') return;
+  const el = document.getElementById(driverId);
+  if (!el) return;
+  const target = String(raw);
+  if (![...el.options].some((o) => o.value === target)) return;
+  if (el.value !== target) {
+    el.value = target;
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+}
 // AXIS1 (RA/Az) steps-per-degree from motor steps × microsteps × worm × pulley.
 // Writes the result into both the calculator readout and AXIS1_STEPS_PER_DEGREE,
-// then refreshes the slew and PEC calculators that depend on it.
+// mirrors the chosen microsteps into AXIS1_DRIVER_MICROSTEPS, then refreshes the
+// slew and PEC calculators that depend on it.
 function calcAxis1() {
   const ms = parseFloat(document.getElementById('calc_a1_motor_steps').value) || 0;
   const us = parseFloat(document.getElementById('calc_a1_microsteps').value) || 1;
@@ -3994,6 +4015,7 @@ function calcAxis1() {
   document.getElementById('calc_a1_result').value = spd.toFixed(4);
   document.getElementById('calc_a1_total').value = total.toFixed(0);
   document.getElementById('AXIS1_STEPS_PER_DEGREE').value = spd.toFixed(4);
+  applyCalcMicrosteps('AXIS1_DRIVER_MICROSTEPS', document.getElementById('calc_a1_microsteps').value);
   calcSlew();
   calcPEC();
 }
@@ -4009,6 +4031,7 @@ function calcAxis2() {
   document.getElementById('calc_a2_result').value = spd.toFixed(4);
   document.getElementById('calc_a2_total').value = total.toFixed(0);
   document.getElementById('AXIS2_STEPS_PER_DEGREE').value = spd.toFixed(4);
+  applyCalcMicrosteps('AXIS2_DRIVER_MICROSTEPS', document.getElementById('calc_a2_microsteps').value);
   calcSlew();
 }
 // AXIS3 (rotator/derotator) steps-per-degree. Computes a "sensor" speed from
@@ -4027,6 +4050,7 @@ function calcAxis3() {
   const mechSpd = (ms * us * (gn/gd)) / 360;
   document.getElementById('calc_a3_result').value = mechSpd.toFixed(4);
   document.getElementById('AXIS3_STEPS_PER_DEGREE').value = mechSpd.toFixed(4);
+  applyCalcMicrosteps('AXIS3_DRIVER_MICROSTEPS', document.getElementById('calc_a3_microsteps').value);
 }
 // Slew-rate feasibility calculator. From AXIS1 steps/deg + desired base rate
 // (accounting for any GOTO microstep switching), computes the fastest µs/step
@@ -4053,6 +4077,9 @@ function calcSlew() {
   const gotoUsVal = parseFloat(document.getElementById('calc_a1_goto_us').value) || 0;
   const gotoUs = gotoUsVal > 0 ? gotoUsVal : trackingUs;
   const usRatio = gotoUs / trackingUs; // <1 means fewer steps during slew (faster)
+  // Mirror the Calculator's GOTO-microsteps choice into AXIS1_DRIVER_MICROSTEPS_GOTO.
+  // The calc uses "0" for "same as tracking"; the driver field spells that "OFF".
+  applyCalcMicrosteps('AXIS1_DRIVER_MICROSTEPS_GOTO', gotoUsVal > 0 ? String(gotoUsVal) : 'OFF');
 
   let fastestUs = 0;
   if (a1spd > 0) {
@@ -5383,10 +5410,16 @@ function applyCalculatorToRawConfig() {
   let text = output.value;
 
   // Config.h #define name <- form field that currently holds the calc result.
+  // The DRIVER_MICROSTEPS entries are the microstep counts steps/degree was
+  // derived from — patch them alongside so the E4 raw config's tracking
+  // microsteps match the steps/degree (the same coupling the form enforces).
   const driven = [
     'AXIS1_STEPS_PER_DEGREE',
     'AXIS2_STEPS_PER_DEGREE',
     'AXIS3_STEPS_PER_DEGREE',
+    'AXIS1_DRIVER_MICROSTEPS',
+    'AXIS2_DRIVER_MICROSTEPS',
+    'AXIS3_DRIVER_MICROSTEPS',
     'SLEW_RATE_BASE_DESIRED',
     'PEC_STEPS_PER_WORM_ROTATION',
   ];
@@ -5541,7 +5574,19 @@ window.applyBoardDefaults = async function () {
   const entry = BOARD_DEFAULTS[pinmap];
   if (!entry) return;
 
+  // Axis 1/2/3 driver microsteps are owned by the Calculator tab: steps/degree
+  // is derived from the calc's microsteps, so the driver must match it. Skip
+  // these here (the calcAxis*() re-run below sets them) — otherwise the preview
+  // would advertise a microsteps change we immediately overwrite. Axis 4
+  // (focuser) has no geometry calc, so its board-default microsteps still apply.
+  const CALC_OWNED = new Set([
+    'AXIS1_DRIVER_MICROSTEPS', 'AXIS1_DRIVER_MICROSTEPS_GOTO',
+    'AXIS2_DRIVER_MICROSTEPS', 'AXIS2_DRIVER_MICROSTEPS_GOTO',
+    'AXIS3_DRIVER_MICROSTEPS', 'AXIS3_DRIVER_MICROSTEPS_GOTO',
+  ]);
+
   const existing = Object.keys(entry.fields)
+    .filter((id) => !CALC_OWNED.has(id))
     .map((id) => {
       const el = document.getElementById(id);
       if (!el) return null;
@@ -5559,9 +5604,9 @@ window.applyBoardDefaults = async function () {
   const preview = existing.map((e) => `  ${e.id}: "${e.current || '(empty)'}" → "${e.next}"`).join('\n');
   const ok = confirm(
     `Apply ${entry.label} starter config? The following fields will be overwritten:\n\n${preview}\n\n` +
-    `Calculator-driven fields (AXIS1/2/3_STEPS_PER_DEGREE, SLEW_RATE_BASE_DESIRED, ` +
-    `PEC_STEPS_PER_WORM_ROTATION) are not touched — they're kept in sync with the ` +
-    `Calculator-tab inputs.`
+    `Calculator-driven fields are not touched here — they're taken from the ` +
+    `Calculator tab: AXIS1/2/3_STEPS_PER_DEGREE, AXIS1/2/3_DRIVER_MICROSTEPS(_GOTO), ` +
+    `SLEW_RATE_BASE_DESIRED, and PEC_STEPS_PER_WORM_ROTATION.`
   );
   if (!ok) return;
 
@@ -5573,8 +5618,9 @@ window.applyBoardDefaults = async function () {
   }
   // Re-run the steps/deg + slew-rate + PEC calculators so the Calculator-tab
   // inputs remain authoritative for AXIS{1,2,3}_STEPS_PER_DEGREE,
-  // SLEW_RATE_BASE_DESIRED, and PEC_STEPS_PER_WORM_ROTATION. Board defaults
-  // set driver/microsteps/current; mount-geometry-derived values come from
+  // AXIS{1,2,3}_DRIVER_MICROSTEPS(_GOTO), SLEW_RATE_BASE_DESIRED, and
+  // PEC_STEPS_PER_WORM_ROTATION. Board defaults set driver model + run current;
+  // mount-geometry-derived values (steps/deg and their microsteps) come from
   // the Calculator only.
   try { calcAxis1(); calcAxis2(); calcAxis3(); calcSlew(); calcPEC(); } catch {}
   showStatus?.(`${entry.label} defaults applied.`);
