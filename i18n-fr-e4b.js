@@ -624,5 +624,11 @@ window.I18N_FR = Object.assign(window.I18N_FR || {}, {
   "2-pin screw terminal": "Borne à vis 2 broches",
   "Land both strap wires straight on the H1 / H2 terminal. Polarity does not matter for resistive tape.": "Raccordez les deux fils de la bande directement sur la borne H1 / H2. La polarité n'a pas d'importance pour une bande résistive.",
   "blade on the supply": "à lame, sur l'alimentation",
-  "Fuse the main 12–24V input (shared by motors + heaters) so a shorted strap blows the fuse. Fire safety.": "Protégez l'entrée principale 12–24V (partagée par les moteurs + résistances) pour qu'une bande en court-circuit fasse fondre le fusible. Sécurité incendie."
+  "Fuse the main 12–24V input (shared by motors + heaters) so a shorted strap blows the fuse. Fire safety.": "Protégez l'entrée principale 12–24V (partagée par les moteurs + résistances) pour qu'une bande en court-circuit fasse fondre le fusible. Sécurité incendie.",
+  /* ---- Pinmap fixes: TB/GPIO39 is thermistor-only (E4 Config.h moves LIMIT_SENSE to X-MIN/GPIO34). ---- */
+  "Thermistor (FEATURE2)": "Thermistance (FEATURE2)",
+  "Thermistor": "Thermistance",
+  "Input only — focuser/dew temp (FEATURE2). Limit is moved to X-MIN on the E4.": "Entrée seule — temp. focuseur/anti-buée (FEATURE2). La limite est déplacée sur X-MIN sur l'E4.",
+  "Thermistor (FEATURE2 / focuser temp)": "Thermistance (FEATURE2 / temp. focuseur)",
+  "Input only — limit moved to X-MIN on E4": "Entrée seule — limite déplacée sur X-MIN sur l'E4"
 });

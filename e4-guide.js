@@ -346,7 +346,7 @@
   C.pinmap = () => {
     const headerPins = [
       ['X-MIN (AUX3)', 'GPIO34', 'Home / Limit', '#3b82f6'], ['Y-MIN (AUX4)', 'GPIO35', 'Home Axis2', '#3b82f6'],
-      ['TE (TEMP0)', 'GPIO36', 'PEC / Thermistor', '#8b5cf6'], ['TB (TEMP1)', 'GPIO39', 'Limit / Thermistor', '#8b5cf6'],
+      ['TE (TEMP0)', 'GPIO36', 'PEC / Thermistor', '#8b5cf6'], ['TB (TEMP1)', 'GPIO39', 'Thermistor (FEATURE2)', '#8b5cf6'],
       ['HEAT_E0', 'GPIO2', 'Dew Heater 1', '#f59e0b'], ['HEAT_BED', 'GPIO4', 'Dew Heater 2', '#f59e0b'],
       ['FAN_E0 (AUX8)', 'GPIO13', 'LED / Buzzer', '#10b981'], ['AUX7 SPARE', '—', 'OneWire / IO', '#06b6d4'],
       ['I2C SDA', 'GPIO21', 'BME280 / RTC', '#ec4899'], ['I2C SCL', 'GPIO22', 'BME280 / RTC', '#ec4899'],
@@ -364,14 +364,14 @@
       ['AUX7 / SPARE_RX', '—', '—', 'OneWire bus', 'DS18B20 temp sensors (default bus)'],
       ['AUX8 / FAN_E0', 'GPIO13', '13', 'LED/Buzzer/Dew', 'Status LED, buzzer, or dew heater'],
       ['TEMP0 / TE', 'GPIO36', '36', 'PEC / Thermistor', 'Input only — PEC index or temp'],
-      ['TEMP1 / TB', 'GPIO39', '39', 'Limit / Thermistor', 'Input only — limit switch or temp'],
+      ['TEMP1 / TB', 'GPIO39', '39', 'Thermistor', 'Input only — focuser/dew temp (FEATURE2). Limit is moved to X-MIN on the E4.'],
       ['SHARED EN', 'GPIO25', '25', 'Enable', 'Shared enable for all stepper drivers'],
       ['TMC_TX / Z-MIN', 'GPIO15', '15', 'TMC UART TX', 'Jumper to TMC2209 PDN pin'],
     ];
     const gpioRef = [
       ['GPIO2', 'HEAT_E0', 'PWM dew heater, switch, intervalometer', 'Must be low at boot'],
       ['GPIO4', 'HEAT_BED', 'PWM dew heater, switch, intervalometer', '—'],
-      ['GPIO12', 'Z-STEP', 'Axis3/Axis5 DIR', 'Must be low at boot'],
+      ['GPIO12', '—', 'Axis3/Axis5 DIR', 'Must be low at boot'],
       ['GPIO13', 'FAN_E0', 'Status LED, buzzer, dew, intervalometer', 'LED/buzzer shared'],
       ['GPIO14', '—', 'Axis3/Axis5 STEP', 'Shared with Axis5'],
       ['GPIO15', 'Z-MIN', 'TMC UART TX', 'Jumpered to TMC PDN'],
@@ -384,7 +384,7 @@
       ['GPIO34', 'X-MIN', 'Home SW Axis1, limit, GPS RX', 'Input only'],
       ['GPIO35', 'Y-MIN', 'Home SW Axis2', 'Input only'],
       ['GPIO36', 'TE', 'PEC index, thermistor', 'Input only'],
-      ['GPIO39', 'TB', 'Limit switch, thermistor', 'Input only'],
+      ['GPIO39', 'TB', 'Thermistor (FEATURE2 / focuser temp)', 'Input only — limit moved to X-MIN on E4'],
     ];
     return `
       <h2 class="e4-h2">Pinmap &amp; Overview</h2>
