@@ -132,7 +132,7 @@ window.I18N_FR = Object.assign(window.I18N_FR || {}, {
   "Change it.": "Changez-le.",
   "Change the WiFi channel if overlapping with other networks.": "Changez de canal WiFi en cas de chevauchement avec d'autres réseaux.",
   "Channel 2 (TB/GPIO39) nominal temp °C": "Canal 2 (TB/GPIO39) température nominale °C",
-  "Cheapest. Add RC debounce (10kΩ + 0.1µF).": "Le moins cher. Ajoutez un anti-rebond RC (10kΩ + 0,1µF).",
+  "Cheapest. Works as-is (firmware debounce + built-in pull-up); add a 1–2kΩ pull-up or RC only if a long cable picks up noise.": "Le moins cher. Fonctionne tel quel (anti-rebond logiciel + tirage intégré) ; ajoutez un tirage de 1–2kΩ ou un RC seulement si un long câble capte du bruit.",
   "Check for 3.3V sag:": "Vérifiez l'affaissement du 3,3V :",
   "Check the Z-MIN → PDN jumper is secure.": "Vérifiez que le cavalier Z-MIN → PDN est bien en place.",
   "Click any component or connector for details, GPIO mapping and wiring guidance.": "Cliquez sur n'importe quel composant ou connecteur pour les détails, le mappage GPIO et les conseils de câblage.",

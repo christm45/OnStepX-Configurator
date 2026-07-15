@@ -117,8 +117,8 @@
   const BOARD_ELEMENTS = [
     /* TOP edge — green screw terminal (power + heaters), FAN+, endstops, EXT-RST */
     { id: 'power', label: 'PWR|12V·0V', type: 'power', x: 36, y: 12, w: 92, h: 40, gpio: '—', fn: 'Main power input — 12V / 0V screw terminal', desc: 'Left pair of the green screw block: 12V (+) and 0V (–). Feeds the whole board: motors, ESP32, heaters.', conn: '12–24V DC, 5A+. Observe polarity: 12V = +, 0V = GND.', section: 'troubleshooting' },
-    { id: 'heate0', label: 'H1', type: 'output', x: 132, y: 12, w: 52, h: 40, gpio: 'GPIO2', fn: 'H1 — Heater output 1 (AUX5)', desc: 'Screw terminal H1. PWM output, must be LOW at boot. Drives a 12V dew heater via an external MOSFET.', conn: 'MOSFET gate (via 1kΩ) → 12V heater tape. 10kΩ pull-down to GND.', section: 'dew' },
-    { id: 'heatbed', label: 'H2', type: 'output', x: 188, y: 12, w: 52, h: 40, gpio: 'GPIO4', fn: 'H2 — Heater output 2 (AUX6)', desc: 'Screw terminal H2. Second PWM heater output (no boot constraint).', conn: 'MOSFET gate (via 1kΩ) → 12V heater tape. 10kΩ pull-down to GND.', section: 'dew' },
+    { id: 'heate0', label: 'H1', type: 'output', x: 132, y: 12, w: 52, h: 40, gpio: 'GPIO2', fn: 'H1 — Heater output 1 (AUX5)', desc: 'Screw terminal H1 (the printer HEAT_E0 output). A switched 12–24V power terminal driven by an onboard MOSFET — GPIO2 only gates it. Connect a dew-heater strap directly; no external MOSFET needed. GPIO2 is an ESP32 boot-strap pin, so OnStepX holds it LOW at boot.', conn: 'Dew-heater strap wires straight across the H1 2-pin terminal; the board switches the low side.', section: 'dew' },
+    { id: 'heatbed', label: 'H2', type: 'output', x: 188, y: 12, w: 52, h: 40, gpio: 'GPIO4', fn: 'H2 — Heater output 2 (AUX6)', desc: 'Screw terminal H2 (the printer HEAT_BED output). Second switched 12–24V power terminal with its own onboard MOSFET — GPIO4 gates it. Connect a dew-heater strap directly; no external MOSFET, no boot constraint.', conn: 'Dew-heater strap wires straight across the H2 2-pin terminal; the board switches the low side.', section: 'dew' },
     { id: 'fane0', label: 'FAN+', type: 'output', x: 244, y: 12, w: 52, h: 40, gpio: 'GPIO13', fn: 'FAN+ output (AUX8 / FAN_E0) — 3-pin connector', desc: '3-pin FAN+ header located between HOTBED (H2) and Z-MIN. The signal pin (nearest HOTBED) is GPIO13; the 3rd pin (nearest Z-MIN) is GND. Drives a status LED/buzzer, reticle lamp, or the intervalometer optocoupler.', conn: 'Signal pin (near HOTBED) → load; GND pin (3rd, near Z-MIN) → return. Enable 5V shunt if needed.', section: 'troubleshooting' },
     { id: 'zmin', label: 'Z-MIN', type: 'input', x: 300, y: 12, w: 58, h: 40, gpio: 'GPIO15', fn: 'Z-MIN endstop / TMC UART', desc: 'Z endstop header. On the E4 this pin is jumpered to the TMC2209 PDN/UART line, but is also a spare endstop input.', conn: 'Endstop NO → GND, or the TMC2209 UART jumper.', section: 'limits' },
     { id: 'ymin', label: 'Y-MIN', type: 'input', x: 362, y: 12, w: 58, h: 40, gpio: 'GPIO35', fn: 'Y-MIN — Home Axis2', desc: 'Input-only. Default home switch for Axis2 (DEC/Alt).', conn: 'NO switch to GND (home/limit). Input only.', section: 'limits' },
@@ -159,9 +159,9 @@
     { id: 'p-psu', label: '12–24V PSU', sub: 'power supply', type: 'supply', target: 'power', edge: 'top', wire: '#facc15', wire2: '#ef4444', section: 'troubleshooting',
       gpio: '12V / 0V', fn: 'Main DC power supply (12–24V)', desc: 'Bench or sealed 12–24V DC supply feeding the 12V/0V screw terminal — runs motors, ESP32, heaters and peripherals.', conn: '+ → 12V, – → 0V. 5A+ recommended; observe polarity.' },
     { id: 'p-heat1', label: 'Dew Heater 1', sub: 'H1 strap', type: 'heater', target: 'heate0', edge: 'top', wire: '#f97316', section: 'dew',
-      gpio: 'H1 (GPIO2)', fn: 'Dew heater strap 1 (via MOSFET)', desc: 'PWM dew-heater strap on H1. Needs an external logic-level MOSFET (IRLZ44N) to switch 12V tape.', conn: 'GPIO2 → 1kΩ → MOSFET gate, 10kΩ pull-down, drain → heater (–), 12V → heater (+).' },
+      gpio: 'H1 (GPIO2)', fn: 'Dew heater strap 1 (onboard MOSFET)', desc: 'PWM dew-heater strap on H1. The E4 already switches this output with an onboard power MOSFET — wire the strap straight to the terminal, no external MOSFET.', conn: 'Strap across the H1 2-pin screw terminal. GPIO2 gates the onboard MOSFET; OnStepX PWMs it.' },
     { id: 'p-heat2', label: 'Dew Heater 2', sub: 'H2 strap', type: 'heater', target: 'heatbed', edge: 'top', wire: '#f97316', section: 'dew',
-      gpio: 'H2 (GPIO4)', fn: 'Dew heater strap 2 (via MOSFET)', desc: 'Second PWM dew-heater channel on H2. Same external MOSFET circuit as Dew 1.', conn: 'GPIO4 → 1kΩ → MOSFET gate, 10kΩ pull-down, drain → heater (–), 12V → heater (+).' },
+      gpio: 'H2 (GPIO4)', fn: 'Dew heater strap 2 (onboard MOSFET)', desc: 'Second PWM dew-heater channel on H2, switched by its own onboard power MOSFET. Wire the strap straight to the terminal.', conn: 'Strap across the H2 2-pin screw terminal. GPIO4 gates the onboard MOSFET.' },
     { id: 'p-endz', label: 'Endstop Z', sub: 'switch', type: 'swsense', target: 'zmin', edge: 'top', wire: '#3b82f6', section: 'limits',
       gpio: 'Z-MIN', fn: 'Z endstop / extra limit switch', desc: 'Optional Z-MIN endstop or limit microswitch (note: this pin is also the TMC UART jumper on the E4).', conn: 'COM → Z-MIN, NO → GND (active LOW).' },
     { id: 'p-homey', label: 'Home Y', sub: 'switch / Hall', type: 'swsense', target: 'ymin', edge: 'top', wire: '#3b82f6', section: 'limits',
@@ -454,7 +454,7 @@
       title: 'Home Switches — Mechanical Microswitch',
       desc: 'Standard mechanical microswitches (e.g. Omron D2F, D2MV) provide reliable homing. Normally-open (NO) to GND is recommended for failsafe operation.',
       warnings: [
-        { label: 'Debounce Required', text: 'Mechanical switches bounce for 5–20ms. Without an RC debounce (10kΩ + 0.1µF), OnStepX may read multiple triggers causing false home detection.' },
+        { label: 'Debounce is optional', text: 'Mechanical switches bounce for 5–20ms, but OnStepX debounces home/limit inputs in firmware and the E4\'s built-in pull-up holds the line — bare switches work as-is. Only if a long switch cable picks up RFI/EMI and causes false triggers, add a stronger 1–2kΩ pull-up to 3.3V (per the OnStep E4 wiki) or a small RC (10kΩ + 0.1µF).' },
         { label: 'NO vs NC', text: 'Use Normally-Open (NO) connecting to GND when activated. Configure AXISn_SENSE_HOME LOW. NC is possible but less failsafe (broken wire = false trigger).' },
         { label: 'Input Only Pins', text: 'GPIO34/GPIO35 are input-only on ESP32 — no internal pull-up/down. The E4 has discrete 2kΩ pull-ups on both X-MIN and Y-MIN connectors.' },
       ],
@@ -638,24 +638,21 @@
 
   C.dew = () => `
     <h2 class="e4-h2">Dew Heater Implementation</h2>
-    <p class="e4-desc">The E4 has two dedicated heater outputs: HEAT_E0 (GPIO2) and HEAT_BED (GPIO4). These are PWM-capable at 3.3V logic and
-      require an external N-channel MOSFET to switch 12V heater tape. Controlled via the FEATURE system as DEW_HEATER type.</p>
+    <p class="e4-desc">The E4 has two dedicated heater outputs — HEAT_E0 / H1 (GPIO2) and HEAT_BED / H2 (GPIO4) — carried over from its 3D-printer origins. Each is a switched 12–24V power terminal driven by an onboard power MOSFET (the board's "BED+Heater" stage is rated ~15A total), so a dew-heater strap connects directly to the 2-pin screw terminal — no external MOSFET, gate resistor, or pull-down is needed. GPIO2/GPIO4 only drive the MOSFET gates. Controlled via the FEATURE system as DEW_HEATER type.</p>
     ${card({
-      title: 'Dew Heater Control — External MOSFET Circuit',
-      desc: 'OnStepX regulates dew-heater power with slow PWM (2-second period). Power is computed from the ambient-vs-dew-point difference (0–255 duty).',
+      title: 'Dew Heater Control — Direct Connection',
+      desc: 'OnStepX regulates dew-heater power with slow PWM (2-second period). Power is computed from the ambient-vs-dew-point difference (0–255 duty). GPIO2/GPIO4 drive the E4\'s onboard MOSFETs — there is no external switching stage to build.',
       warnings: [
-        { label: 'External MOSFET Required', text: 'GPIO2/GPIO4 are 3.3V logic only — use IRLZ44N (logic-level N-channel) or equivalent. Standard MOSFETs (e.g. IRF520) need >5V gate drive and will NOT fully turn on.' },
-        { label: 'GPIO2 Boot State', text: 'GPIO2 must be LOW at boot or the ESP32 may fail to start. The 10kΩ pull-down in the circuit ensures this. DO NOT omit it.' },
-        { label: 'Fuse Protection', text: 'ALWAYS fuse the heater power line. Use a 3A blade fuse (ATO) per channel. Unfused heater wiring can cause fire if the MOSFET fails short.' },
-        { label: 'Heater Power Rating', text: '~1W per inch of aperture: an 8" SCT = 8W tape. At 12V, 8W = 0.67A.' },
-        { label: '24V Supply', text: 'On 24V, heater power quadruples (P=V²/R). Use 24V-rated tape or reduce the PWM limit via FEATUREn_VALUE_LIMIT.' },
+        { label: 'No external MOSFET', text: 'H1/H2 are the board\'s HEAT_E0 / HEAT_BED power outputs — the MOSFET is already onboard (~15A total stage). Do NOT add an IRLZ44N or any gate/pull-down parts; just land the heater strap on the 2-pin terminal.' },
+        { label: 'Match heater voltage to your supply', text: 'The terminal outputs your full input voltage. Run a 12V strap on a 12V supply. If the board runs at 24V, use 24V-rated tape or cap the duty via FEATUREn_VALUE_LIMIT — 24V into 12V tape is ~4× the rated power.' },
+        { label: 'Fuse the supply', text: 'The E4 shares one 12–24V input across the motors and both heaters. Fuse the main supply appropriately so a shorted strap blows the fuse, not the board.' },
+        { label: 'Heater power rating', text: '~1W per inch of aperture: an 8" SCT ≈ 8W tape. At 12V, 8W = 0.67A — well within the output\'s rating.' },
+        { label: 'Strip factory shunts', text: 'Per the OnStep E4 wiki, remove all factory Marlin/3D-printer shunts before use and ignore the board\'s Marlin heater wiring notes — OnStepX drives these pins directly.' },
       ],
       wiring: [
-        { e4: 'HEAT_E0 (GPIO2 / AUX5)', gpio: 'GPIO2', to: '1kΩ resistor → IRLZ44N Gate' },
-        { e4: 'HEAT_BED (GPIO4 / AUX6)', gpio: 'GPIO4', to: '1kΩ resistor → IRLZ44N Gate' },
-        { e4: 'E4 GND', gpio: '—', to: 'IRLZ44N Source + 10kΩ gate pull-down' },
-        { e4: '12V supply (+ rail)', gpio: '—', to: '3A fuse → Heater tape (+) terminal' },
-        { e4: 'IRLZ44N Drain', gpio: '—', to: 'Heater tape (-) terminal (switched ground)' },
+        { e4: 'H1 terminal (HEAT_E0)', gpio: 'GPIO2', to: 'Dew-heater strap 1 — both wires to the 2-pin terminal' },
+        { e4: 'H2 terminal (HEAT_BED)', gpio: 'GPIO4', to: 'Dew-heater strap 2 — both wires to the 2-pin terminal' },
+        { e4: '12V / 0V input', gpio: '—', to: 'Single 12–24V supply also feeds the heater outputs' },
       ],
       config: [
         { dir: 'FEATURE1_PURPOSE', val: 'DEW_HEATER', note: 'Enable Dew Heater 1' },
@@ -667,27 +664,28 @@
         { dir: 'WEATHER', val: 'BME280_0x76', note: 'Enable BME280 for dew point calculation' },
       ],
       notes:
-        `<pre class="e4-pre">                +12V (from PSU)
-                   ├── 3A Fuse ──┬── Heater Tape (+) ────┐
-                                 │                       │
-                                 │                  ┌────┤ Heater Tape (-)
-                                 │                  └──── IRLZ44N Drain
-  E4 GPIO2 ── R1 1kΩ ───────────┴── IRLZ44N Gate ──┐         │
-                                    R2 10kΩ ── GND ─┴─────────┴── GND</pre>
+        `<pre class="e4-pre">  Onboard MOSFET stage — already on the E4:
+
+     +Vin ──────────────────┬────────────── H1 pin 1 ─┐
+                            (drain)                    ├─ Dew heater strap
+  GPIO2 ── gate ──► [ N-ch MOSFET ] ── H1 pin 2 ──────┘
+                            (source → 0V when ON)
+
+  You only land the two strap wires on the H1 (and H2) 2-pin terminal.</pre>
         ${callout('info', '<strong>Dew point:</strong> With BME280 active, OnStepX calculates dew point from ambient temp + RH and adjusts PWM to keep optics ≥2°C above dew point. Configure the target delta in the SWS Dew tab.')}
-        ${callout('warn', '<strong>GPIO2 Boot Warning:</strong> If using HEAT_E0 (GPIO2), the 10kΩ pull-down R2 is MANDATORY — without it GPIO2 may float HIGH during power-on reset and the board won\'t boot.')}`,
+        ${callout('info', '<strong>GPIO2 note:</strong> GPIO2 (HEAT_E0) is an ESP32 boot-strap pin, but the board and OnStepX already hold it low at boot — you don\'t add anything. Either output works for dew heat.')}`,
     })}
     ${card({
       title: 'Auto Regulation, Sizing & 24V Derating',
       desc: 'With a temperature source assigned (FEATUREn_TEMP) plus a BME280 for dew point, OnStepX runs each heater as a closed loop — it raises PWM as the optic temperature approaches the dew point and eases off once it is safely above. Without a temperature source the channel is just a manual 0–255 PWM output you set in the SWS/app.',
       warnings: [
-        { label: 'Logic-level MOSFET only', text: 'IRLZ44N / IRLB3034 / AOD4184 turn fully on at a 3.3V gate. Standard IRFZ44N / IRF520 need ~10V and will run hot and half-on — they are NOT a substitute.' },
+        { label: 'Onboard MOSFET — nothing to add', text: 'The E4 already switches H1/H2 with onboard power MOSFETs. There is no IRLZ44N to source or wire; the strap lands straight on the terminal.' },
         { label: 'Two independent zones', text: 'FEATURE1 (GPIO2/HEAT_E0) and FEATURE2 (GPIO4/HEAT_BED) are separate channels — e.g. main objective strap on one with TE feedback, secondary/finder strap on the other with TB feedback.' },
-        { label: 'Active-high default', text: 'FEATUREn_ON_STATE is HIGH for the N-channel low-side circuit shown above (GPIO HIGH → MOSFET on). Only set it LOW if your driver stage inverts.' },
+        { label: 'Active-high default', text: 'FEATUREn_ON_STATE is HIGH for the onboard N-channel low-side MOSFET (GPIO HIGH → output on). Leave it HIGH; only change it if you insert an inverting stage of your own.' },
       ],
       config: [
         { dir: 'FEATURE1_VALUE_DEFAULT', val: 'OFF', note: 'Startup state — OFF, or 0–255 for a fixed PWM level' },
-        { dir: 'FEATURE1_ON_STATE', val: 'HIGH', note: 'GPIO HIGH = heater on (matches the IRLZ44N circuit)' },
+        { dir: 'FEATURE1_ON_STATE', val: 'HIGH', note: 'GPIO HIGH = heater on (matches the onboard low-side MOSFET)' },
         { dir: 'FEATURE1_TEMP', val: 'THERMISTOR', note: 'Optic temp source → enables dew-point auto control' },
         { dir: 'FEATURE1_VALUE_LIMIT', val: '255', note: 'Cap max duty — set ~64 (≈25%) when running 24V' },
         { dir: 'WEATHER', val: 'BME280_0x76', note: 'Ambient temp + humidity → dew point' },
@@ -1162,7 +1160,7 @@
 
       ${cat('#3b82f6', '🛤️ Home & Limit Switches')}
       ${table(['Type', 'Model', 'Output', 'Notes'], [
-        ['Mechanical', '<strong>SS-5GL2</strong> / D2F-L', 'NO to GND', 'Cheapest. Add RC debounce (10kΩ + 0.1µF).'],
+        ['Mechanical', '<strong>SS-5GL2</strong> / D2F-L', 'NO to GND', 'Cheapest. Works as-is (firmware debounce + built-in pull-up); add a 1–2kΩ pull-up or RC only if a long cable picks up noise.'],
         ['Hall (bipolar)', '<strong>A3144</strong> / KY-003', 'Open-collector, LOW on magnet', 'Both poles trigger. Most reliable for PEC.'],
         ['Hall (unipolar)', '<strong>US5881</strong>', 'Open-collector, LOW on south pole', 'Only one pole triggers — flip magnet if no detection.'],
         ['Hall (3.3V)', '<strong>US1881</strong> / OH090U', 'Open-collector', 'Works at 3.3V — no divider needed.'],
@@ -1195,11 +1193,10 @@
 
       ${cat('#f97316', '💧 Dew Heater Components')}
       ${table(['Item', 'Part', 'Notes'], [
-        ['Heater tape', 'Kendrick / generic 12V silicone strip', '5–15W per heater; match to OTA diameter.'],
-        ['MOSFET', '<strong>IRLZ44N</strong> (TO-220)', 'Logic-level — fully ON at 3.3V gate. NOT IRFZ44N (needs 10V).'],
-        ['Gate resistor', '1kΩ 1/4W', 'In series GPIO → gate.'],
-        ['Pull-down', '10kΩ 1/4W', 'Gate→GND. Critical for GPIO2 (must be LOW at boot).'],
-        ['Fuse', '<strong>3A ATO</strong> blade', 'Between 12V and heater tape. Fire safety — mandatory.'],
+        ['Heater tape', 'Kendrick / generic silicone strip', '5–15W per heater; match to OTA diameter and to your supply voltage (12V strap on 12V, 24V-rated on 24V).'],
+        ['<strong>MOSFET / driver parts</strong>', '<strong>None — onboard</strong>', 'The E4\'s H1/H2 (HEAT_E0/HEAT_BED) outputs already have onboard power MOSFETs. No IRLZ44N, gate resistor, or pull-down to buy.'],
+        ['Connection', '2-pin screw terminal', 'Land both strap wires straight on the H1 / H2 terminal. Polarity does not matter for resistive tape.'],
+        ['Fuse', '<strong>ATO</strong> blade on the supply', 'Fuse the main 12–24V input (shared by motors + heaters) so a shorted strap blows the fuse. Fire safety.'],
       ])}
 
       ${cat('#ec4899', '📷 Intervalometer / DSLR')}
