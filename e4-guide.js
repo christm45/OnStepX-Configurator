@@ -478,8 +478,8 @@
               │             └── C 0.1µF ── GND
               │
               └── Switch ── GND  (NO, closes when home reached)</pre>
-        <p style="margin-top:6px;font-size:12px;color:var(--e4-dim)"><strong>Alternative: Hall effect sensor</strong> (A3144, US1881, SS441):
-        open-collector OUT → X-MIN, VCC → 3.3V, GND → GND. Configure ${code('AXIS1_SENSE_HOME HIGH')} (sensor pulls LOW on magnet).
+        <p style="margin-top:6px;font-size:12px;color:var(--e4-dim)"><strong>Alternative: Hall effect sensor</strong> — pick a 3.3V-capable part (<strong>US1881</strong>, US5881, SS441 all run from 3.3V). The popular <strong>A3144 / KY-003 needs 4.5V minimum</strong>, so it must be powered from 5V and its output divided down (1kΩ series + 2kΩ to GND) before it touches a GPIO.
+        Open-collector OUT → X-MIN, VCC → 3.3V, GND → GND. Configure ${code('AXIS1_SENSE_HOME HIGH')} (sensor pulls LOW on magnet).
         The E4's 2kΩ pull-up on X-MIN serves as the required pull-up. Place the magnet on the rotating part, the sensor on the stationary part.</p>`,
     })}
     ${card({
@@ -516,10 +516,10 @@
       title: 'GPS Module — GY-GPSV3 (NEO-M8N / NEO-6M)',
       desc: 'Provides UTC time, latitude, longitude via NMEA sentences. OnStepX parses $GPGGA and $GPRMC automatically at 1Hz.',
       warnings: [
-        { label: 'Capacitor Removal (Single-Wire Mode)', text: 'X-MIN has SMD filter caps (C22, C23, C24 near the X-MIN header) that must be removed for reliable GPS data at 9600 baud.' },
+        { label: 'Capacitor Removal (Single-Wire Mode)', text: 'X-MIN has an SMD filter capacitor that must be lifted for reliable GPS data at 9600 baud. There are <strong>three SMD parts</strong> beside the X-MIN pins: the two outer ones are <strong>resistors — leave them</strong> (one is the pull-up the endstop needs), the <strong>centre</strong> one is the capacitor to remove. Identify it with a multimeter before touching an iron; part designators vary between board revisions, so do not go by a printed reference number.' },
         { label: 'Voltage', text: 'GY-GPSV3 runs on 3.3V. DO NOT connect to 5V — it will damage the GPS module.' },
         { label: 'Baud Rate Mismatch', text: 'Default is 9600 8N1. Some modules ship at 38400 or 115200. Verify with a serial monitor first.' },
-        { label: 'Cold Start', text: 'First fix can take 5–15 min (cold start). Give the antenna a clear sky view. Subsequent starts: 1–5s (hot start with backup battery).' },
+        { label: 'Cold Start', text: 'A cold start is ~30s with a clear sky view (u-blox spec ~27–32s). Allow a few minutes in practice through a window or under partial sky. Subsequent starts: 1–5s (hot start, if the module has a backup battery). If you are still waiting after 10 minutes, suspect the antenna or the wiring rather than the fix time.' },
       ],
       wiring: [
         { e4: 'X-MIN (GPIO34) — single-wire', gpio: 'GPIO34', to: 'GPS TX output (GPS → ESP32, one-way)' },
@@ -536,13 +536,16 @@
       notes:
         `<p style="margin:6px 0"><strong>Capacitor removal (single-wire mode on X-MIN):</strong></p>
         <pre class="e4-pre">  X-MIN Header on E4 board (JST-XH 2-pin):
-  Pin 1: GPIO34 ──┬── R (2kΩ pull-up to 3.3V)
-                  ├── C22 (10µF) ── GND  ← REMOVE this capacitor
-                  ├── C23 (0.1µF) ── GND ← REMOVE this capacitor
-                  ├── C24 (optional) ── GND ← REMOVE if present
+  Pin 1: GPIO34 ──┬── R pull-up to 3.3V   ← LEAVE (outer SMD part)
+                  ├── C filter ── GND     ← REMOVE (centre SMD part only)
+                  ├── R              ← LEAVE (outer SMD part)
                   └── GPS TX (3.3V logic level)
-  Pin 2: GND</pre>
-        ${callout('info', `<strong>Wiring methods:</strong> <b>Single-wire</b> (GPIO34, X-MIN) needs only 1 pin but requires cap removal and is bit-banged. <b>UART/Serial2</b> (GPIO16 RX, GPIO17 TX) is reliable hardware UART with no caps to remove, but conflicts with the Axis4 focuser. <b>I2C GPS</b> shares the I2C bus but has rare module support.`)}`,
+  Pin 2: GND
+
+  Three SMD parts sit beside the X-MIN pins. Two are resistors,
+  the CENTRE one is the filter cap. Meter them first — removing a
+  resistor here kills the endstop pull-up.</pre>
+        ${callout('info', `<strong>Wiring methods:</strong> <b>Single-wire</b> (GPIO34, X-MIN) needs only 1 pin but requires cap removal and is bit-banged. <b>UART/Serial2</b> (GPIO16 RX, GPIO17 TX) is reliable hardware UART with no caps to remove, but conflicts with the Axis4 focuser. There is <b>no I2C GPS option</b> in OnStepX — ${code('TIME_LOCATION_SOURCE')} accepts only OFF, DS3231, SD3031, TEENSY, GPS or NTP, and GPS means a serial connection.`)}`,
     })}
     ${card({
       title: 'Community notes (OnStep forum)',
@@ -572,7 +575,7 @@
       desc: 'Standard NTC 100kΩ glass-bead thermistors (beta 3950). The onboard 4.7kΩ series resistor and the NTC form a voltage divider read by the ESP32 ADC.',
       warnings: [
         { label: 'Input Only', text: 'GPIO36 (TE) and GPIO39 (TB) are input-only — no internal pull-up. The 4.7kΩ series resistor to 3.3V acts as the pull-up.' },
-        { label: 'Filtering Capacitor', text: 'The onboard 10µF cap creates a ~50ms time constant. For fast focuser temp compensation, remove C22 (near TE) or C23 (near TB).' },
+        { label: 'Filtering Capacitor', text: 'The onboard filter cap works with the 4.7kΩ series resistor to slow the input (roughly 50ms with a 10µF part). That is harmless for ambient and dew sensing. Only if a focuser needs fast thermal response would you lift the cap next to that specific TE/TB input — meter it first, and note this is a different part from the one beside X-MIN.' },
         { label: 'Temperature Range', text: 'Standard config: -10°C to +85°C. For sub-freezing, add THERMISTOR_RPARALLEL 10000 (10kΩ) to extend down to -20°C.' },
         { label: 'ADC Non-Linearity', text: 'The ESP32 ADC is not perfectly linear (0–3.3V → 0–4095). OnStepX applies the Steinhart-Hart equation internally.' },
       ],
@@ -631,7 +634,7 @@
           <li><strong>ESP32 ADC accuracy is mediocre for thermistors</strong> — several users saw large reading errors. Verify each sensor in ice water (0°C) and at body temperature (~37°C); if it's off, adjust BETA or switch to a DS18B20. <span style="color:var(--e4-dim)">Source: <a href="https://onstep.groups.io/g/main/message/67146" target="_blank" rel="noopener">#67146</a>, <a href="https://onstep.groups.io/g/main/message/63079" target="_blank" rel="noopener">#63079</a></span></li>
           <li><strong>Second channel = THERMISTOR2.</strong> ${code('FEATUREn_TEMP')} accepts ${code('OFF')}, ${code('THERMISTOR')} (TE), ${code('THERMISTOR2')} (TB), or a DS18B20 serial number. The E4 default Config.h already ties a thermistor to the 2nd channel. <span style="color:var(--e4-dim)">Source: <a href="https://onstep.groups.io/g/main/message/63078" target="_blank" rel="noopener">#63078</a></span></li>
           <li><strong>Commercial dew rings use a 10kΩ NTC.</strong> The Celestron Dew Heater Ring thermistor is 10kΩ, not 100kΩ — set ${code('RNOM 10000')}. A 10k NTC raises the divider voltage, so do NOT also add the 10k RPARALLEL mod. The 4.7kΩ in the E4 config is simply the onboard series resistor. <span style="color:var(--e4-dim)">Source: <a href="https://onstep.groups.io/g/main/message/61779" target="_blank" rel="noopener">#61779</a>, <a href="https://onstep.groups.io/g/main/message/61164" target="_blank" rel="noopener">#61164</a></span></li>
-          <li><strong>DS18B20 is the reliable alternative</strong> (±0.25°C), but on the E4 it typically uses the SD-card header pins and reading each device's 64-bit serial number is the fiddly part. <span style="color:var(--e4-dim)">Source: <a href="https://onstep.groups.io/g/main/message/63079" target="_blank" rel="noopener">#63079</a></span></li>
+          <li><strong>DS18B20 is the reliable alternative</strong> (±0.5°C typical, ±0.25° over a narrow band), but the E4 has no dedicated OneWire pin — you borrow a spare GPIO (the OneWire section suggests AUX7; some users take one off the SD-card header instead), and reading each device's 64-bit serial number is the fiddly part. <span style="color:var(--e4-dim)">Source: <a href="https://onstep.groups.io/g/main/message/63079" target="_blank" rel="noopener">#63079</a></span></li>
         </ul>
         ${callout('info', 'Correction circuitry to improve ESP32 thermistor readings is documented in the official <a href="https://onstep.groups.io/g/main/wiki/32747" target="_blank" rel="noopener">FYSETC E4 wiki</a> (dew-heater section).')}`,
     })}`;
@@ -719,8 +722,8 @@
     const dslr = [
       ['Canon EOS', '2.5mm TRS (stereo)', 'Shutter', 'Focus', 'GND', 'Short tip→sleeve = shutter. Short ring→sleeve = focus.'],
       ['Nikon', '2.5mm TRS (stereo)', 'Focus', 'Shutter', 'GND', 'Nikon uses opposite tip/ring polarity vs Canon.'],
-      ['Sony / Minolta', '2.5mm TRS (stereo)', 'Shutter', 'GND', 'Focus', 'Some Sony use 3.5mm or Multi-terminal. Check the manual.'],
-      ['Fujifilm', '2.5mm TRS (stereo)', 'Shutter', 'GND', 'Focus', 'Similar to Sony. Fuji RR-90 remote compatible.'],
+      ['Sony / Minolta', '2.5mm TRS (stereo)', 'Shutter', 'Focus', 'GND', 'Sleeve is ground, as on every brand here. Many modern Sony bodies use Multi-terminal (USB) instead of a 2.5mm jack — check the manual.'],
+      ['Fujifilm', '2.5mm TRS (stereo)', 'Shutter', 'Focus', 'GND', 'Sleeve is ground. Fuji RR-90 bodies use micro-USB, not the 2.5mm jack — verify yours.'],
       ['Generic (2-pin)', '2.5mm TS (mono)', 'Shutter', '—', 'GND', 'No focus control. Short tip→sleeve = shutter.'],
     ];
     return `
@@ -764,8 +767,8 @@
       desc: 'A Hall sensor detects a magnet on the worm wheel. Each rotation triggers one pulse, synchronising the PEC buffer.',
       warnings: [
         { label: 'GEM/FORK Only', text: 'PEC is completely ignored in ALTAZM mode.' },
-        { label: 'Sensor Selection', text: 'A3144 / KY-003: bipolar latch (switches at both poles). US5881: unipolar (one pole only) — needs correct magnet polarity.' },
-        { label: 'Voltage Level', text: 'KY-003 modules output 5V logic. GPIO36 is NOT 5V-tolerant. Use a divider (2kΩ + 1kΩ) or power the sensor from 3.3V.' },
+        { label: 'Sensor Selection', text: 'A3144 / KY-003: <strong>unipolar switch</strong> — the south pole turns it on, removing the magnet turns it off, so magnet polarity matters. US5881: also unipolar. US1881 is the true <strong>bipolar latch</strong> (one pole sets, the other resets) and is the only one of the four that natively runs at 3.3V.' },
+        { label: 'Voltage Level', text: 'KY-003 modules output 5V logic. GPIO36 is NOT 5V-tolerant. Use a divider — 1kΩ in series from the sensor output, 2kΩ from the GPIO node to GND, giving 5V × 2/3 ≈ 3.3V. Getting the two resistors the wrong way round gives ~1.7V, which the ESP32 will not read as a reliable HIGH.' },
         { label: 'Input Only', text: 'GPIO36 is input-only. The E4 has a 4.7kΩ series resistor on TE (to 3.3V) which serves as the pull-up for open-collector sensors.' },
       ],
       wiring: [
@@ -775,19 +778,24 @@
       ],
       config: [
         { dir: 'PEC_SENSE', val: 'HIGH', note: 'Rising edge = index pulse detected' },
-        { dir: 'PEC_STEPS_PER_WORM_ROTATION', val: '12800', note: '(AXIS1_STEPS_PER_DEGREE × 360) / final_reduction' },
-        { dir: 'PEC_BUFFER_SIZE_LIMIT', val: '720', note: 'Buffer = 720s (12 min) max recording' },
-        { dir: 'AXIS1_STEPS_PER_DEGREE', val: '12800', note: 'Must match your mount gearing' },
+        { dir: 'PEC_STEPS_PER_WORM_ROTATION', val: '<em>calculate it</em>', note: '(AXIS1_STEPS_PER_DEGREE × 360) / worm_wheel_teeth — see the formula below. There is no universal default; a wrong value makes PEC useless.' },
+        { dir: 'PEC_BUFFER_SIZE_LIMIT', val: '720', note: 'Max recording length in seconds (720s = 12 min)' },
+        { dir: 'AXIS1_STEPS_PER_DEGREE', val: '<em>your gearing</em>', note: 'Must match your mount — use the configurator\'s Calculator tab' },
       ],
       notes:
         `<pre class="e4-pre">  Option A: 3.3V sensor (A3144 bare)
   A3144 VCC ── E4 3.3V   |  GND ── E4 GND   |  OUT ── E4 TE (GPIO36)
 
-  Option B: 5V module (KY-003) with divider
-  KY-003 OUT ──┬── R1 2kΩ ── GPIO36
-                └── R2 1kΩ ── GND</pre>
-        <pre class="e4-pre">  PEC_STEPS_PER_WORM_ROTATION = (AXIS1_STEPS_PER_DEGREE × 360) / final_stage_ratio
-  Example (EQ3): (51200 × 360) / 180 = 102400 steps/worm rotation</pre>
+  Option B: 5V module (KY-003) with divider  →  5V × 2/(1+2) ≈ 3.3V
+  KY-003 OUT ── R1 1kΩ ──┬── GPIO36
+                          └── R2 2kΩ ── GND</pre>
+        <pre class="e4-pre">  PEC_STEPS_PER_WORM_ROTATION = (AXIS1_STEPS_PER_DEGREE × 360) / worm_wheel_teeth
+
+  One worm turn advances the axis by 360/teeth degrees, so:
+  Example (EQ3, 180-tooth wheel): (51200 × 360) / 180 = 102400 steps
+
+  Sanity check: the result must be MUCH larger than STEPS_PER_DEGREE.
+  If you get a number equal to STEPS_PER_DEGREE, you have mis-copied it.</pre>
         ${callout('info', '<strong>Recording:</strong> guide for exactly one full worm rotation; OnStepX records the error pattern and applies the inverse correction. The buffer persists until power-off unless saved to NV.')}`,
     })}`;
 
@@ -798,7 +806,7 @@
       title: 'DS18B20 Temperature Sensors',
       desc: 'Digital temperature sensors (±0.5°C). Used for focuser temp compensation, dew-heater feedback or ambient monitoring.',
       warnings: [
-        { label: 'Pull-up', text: 'A 4.7kΩ resistor is required between DATA and VCC (3.3V). Not parasitic-power compatible with this library.' },
+        { label: 'Pull-up', text: 'A 4.7kΩ resistor is required between DATA and VCC (3.3V). Use normal 3-wire power (VCC/GND/DATA) — parasitic power is unreliable here and is not worth the saved wire.' },
         { label: 'Addressing', text: 'Use FEATURE_LIST_DS ON to scan serial numbers, then assign sensors via their 64-bit serial.' },
         { label: 'AUX7 Dependency', text: 'AUX7 is SPARE_RX; availability depends on the TMC UART config. With full UART TMC, this pin may not be free.' },
       ],
@@ -810,7 +818,7 @@
       config: [
         { dir: 'ONE_WIRE_PIN', val: 'AUX7_PIN', note: 'OneWire bus on AUX7 (SPARE_RX)' },
         { dir: 'FOCUSER_TEMPERATURE', val: 'DS18B20', note: 'Use DS18B20 for focuser temp' },
-        { dir: 'FEATURE1_TEMP', val: 'DS1820', note: 'Auto-assign first DS18B20 to Dew Heater 1' },
+        { dir: 'FEATURE1_TEMP', val: '0x28FF…', note: 'Paste the sensor\'s own 64-bit serial number here — FEATUREn_TEMP takes OFF, THERMISTOR, THERMISTOR2, or a DS18B20 serial, not a generic "DS1820" keyword' },
         { dir: 'FEATURE_LIST_DS', val: 'ON', note: 'Temporarily enable to list all OneWire devices' },
       ],
       notes: callout('info', `<strong>Serial format:</strong> DS18B20 serials are 64-bit hex, e.g. ${code('0x28FF5C2C1604D6')}. Enable ${code('FEATURE_LIST_DS ON')}, upload, open the serial monitor — all detected devices are listed. Copy the serial straight into Config.h.`),
@@ -847,7 +855,7 @@
           ['DS3231 RTC', '0x68', 'SDA=GPIO21, SCL=GPIO22'],
           ['DS3231 + AT24C32 EEPROM', '0x68 + 0x57', 'SDA=GPIO21, SCL=GPIO22'],
         ])}
-        ${callout('info', '<strong>Shared bus:</strong> BME280 and DS3231 use different addresses, so they coexist on the same I2C bus. The E4 has 4.7kΩ pull-ups built-in.')}`,
+        ${callout('info', '<strong>Shared bus:</strong> BME280 and DS3231 use different addresses, so they coexist on the same I2C bus. <strong>Keep the pull-up resistors that came on your breakout</strong> (typically 4.7–10kΩ to VCC) — the bus needs them. Do not rely on the ESP32\'s internal pull-ups: those are ~45kΩ, far too weak for I2C.')}`,
     })}`;
 
   C.rtc = () => `
@@ -872,7 +880,7 @@
         { dir: 'TIME_LOCATION_PPS_SENSE', val: 'OFF', note: 'Enable if using DS3231 32kHz PPS output' },
         { dir: 'MOUNT_COORDS_MEMORY', val: 'ON', note: 'Remember mount position (requires FRAM + RTC)' },
       ],
-      notes: callout('info', '<strong>Shared I2C bus:</strong> both BME280 and DS3231 share the bus at different addresses. Add 4.7kΩ pull-ups if your breakout lacks them (the E4 has them built-in).'),
+      notes: callout('info', '<strong>Shared I2C bus:</strong> both BME280 and DS3231 share the bus at different addresses. The bus needs one pair of pull-ups (SDA→3.3V, SCL→3.3V, 4.7kΩ) — nearly every GY-BME280 and ZS-042 breakout already has them, so leave them alone. Only add your own if a scan finds no device and you have confirmed your modules carry none.'),
     })}
     ${callout('warn', `<strong>Community note — the E4 has NO onboard clock.</strong> Without a DS3231 (or GPS) you must re-enter date &amp; time every session, which is tedious via the SHC. A DS3231 fixes this; or combine both with ${code('TIME_LOCATION_SOURCE GPS')} + ${code('TIME_LOCATION_SOURCE_FALLBACK DS3231')} so the RTC covers you until the GPS gets a fix. <span style="color:rgba(255,255,255,.6)">Source: <a href="https://onstep.groups.io/g/main/message/68491" target="_blank" rel="noopener">#68491</a>, <a href="https://onstep.groups.io/g/main/message/66963" target="_blank" rel="noopener">#66963</a></span>`)}`;
 
@@ -907,7 +915,8 @@
       ],
       notes: callout('warn', '<strong>Pin sharing:</strong> Axis5 uses GPIO14 (STEP) and GPIO12 (DIR) — the SAME pins as Axis3 (rotator). Enable only ONE: if AXIS5_DRIVER_MODEL is set, set AXIS3_DRIVER_MODEL to OFF and vice versa.'),
     })}
-    ${callout('info', `<strong>Community note — "focuser has no torque / does not move".</strong> Focuser 1 is <strong>Axis4</strong>, wired to the <strong>MOT-E (E0)</strong> terminal — not MOT-Z. If the focuser knob spins freely (no holding current), confirm the motor is on MOT-E and that ${code('AXIS4_DRIVER_MODEL')} is set while ${code('AXIS3')}/${code('AXIS5')} are OFF (they share MOT-Z pins and will conflict). <span style="color:var(--e4-dim)">Source: <a href="https://onstep.groups.io/g/main/message/67968" target="_blank" rel="noopener">#67968</a></span>`)}`;
+    ${callout('warn', `<strong>⚠ Which motor terminal is Focuser 1? Verify on your own board.</strong> The reliable facts are the GPIO assignments: <strong>Axis4 = GPIO16 (STEP) / GPIO17 (DIR)</strong> on its own socket, and <strong>Axis3 and Axis5 both = GPIO14 / GPIO12</strong>, sharing a single socket. Which silkscreen label (MOT-Z or MOT-E) sits on which of those two sockets is <em>reported inconsistently</em> — a community report (<a href="https://onstep.groups.io/g/main/message/67968" target="_blank" rel="noopener">#67968</a>) puts Axis4/Focuser1 on <strong>MOT-E</strong>, while the board diagram in this guide shows it on MOT-Z. <strong>Do not take either on faith.</strong> Determine it empirically: enable only ${code('AXIS4_DRIVER_MODEL')}, leave ${code('AXIS3')}/${code('AXIS5')} OFF, then feel which socket's motor develops holding torque when powered. Wire to that one.`)}
+    ${callout('info', `<strong>Community note — "focuser has no torque / does not move".</strong> Almost always a pin conflict rather than a wiring fault: Axis3 and Axis5 share STEP/DIR, so if both (or the wrong one) are enabled they fight. Set ${code('AXIS4_DRIVER_MODEL')} for Focuser 1 and hold ${code('AXIS3_DRIVER_MODEL')} / ${code('AXIS5_DRIVER_MODEL')} at OFF until Focuser 1 works, then add the second axis. <span style="color:var(--e4-dim)">Source: <a href="https://onstep.groups.io/g/main/message/67968" target="_blank" rel="noopener">#67968</a></span>`)}`;
 
   C.rotator = () => `
     <h2 class="e4-h2">Rotator / Field De-Rotator</h2>
@@ -919,7 +928,7 @@
         { dir: 'AXIS3_DRIVER_MODEL', val: 'OFF', note: 'Set to a driver to enable the rotator' },
         { dir: 'AXIS3_STEPS_PER_DEGREE', val: '64.0', note: 'Typical for a direct-drive rotator' },
         { dir: 'AXIS3_SLEW_RATE_BASE_DESIRED', val: '1.0', note: 'deg/s' },
-        { dir: 'AXIS3_REVERSE', val: 'OFF', note: 'Reverse direction if needed' },
+        { dir: 'AXIS3_DRIVER_REVERSE', val: 'OFF', note: 'Reverse direction if needed' },
         { dir: 'AXIS3_LIMIT_MIN', val: '0', note: 'Min angle (degrees)' },
         { dir: 'AXIS3_LIMIT_MAX', val: '360', note: 'Max angle (degrees)' },
       ],
@@ -1025,7 +1034,7 @@
         { problem: 'Cannot upload firmware — USB not recognized or upload fails silently', cause: 'Some E4 boards have bootloader timing issues with the auto-reset method used by Arduino IDE.', solutions: ['Add a 10µF capacitor across the reset button pins (negative to ground). This delays reset so the bootloader can catch it.', 'Use the browser-based <a href="https://graydigitalarts.com/OnStep-Web-Tools/" target="_blank" rel="noopener">OnStep Web Installer</a> — no USB timing dependency.', 'Ensure ESP32 board package v2.0.17 is installed.', 'Set "Erase All Flash Before Sketch Upload" to Enabled for first-time flashing.'] },
         { problem: 'Compilation error: "analogWriteResolution was not declared in this scope"', cause: 'Old ESP32 board package version — the analogWrite API was renamed.', solutions: ['Update to ESP32 board package v2.0.17 (recommended for E4).', 'Or downgrade to v2.0.11 if v2.0.17 causes other issues.'] },
         { problem: 'Compilation error: Multiple libraries found for "TMC2209.h"', cause: 'Conflicting TMC2209 libraries (TMC2209 by hjd1964 vs TMC2209Stepper).', solutions: ['Move/rename the TMC2209Stepper folder out of your Arduino/libraries directory.', 'Keep only the TMC2209 library by hjd1964.', 'Restart Arduino IDE after removing the conflicting library.'] },
-        { problem: 'Compilation fails — missing required libraries (BME280, Sensor, Makuna RTC)', cause: 'Default E4 Config.h enables WEATHER and TIME_LOCATION_SOURCE even if you lack those devices; the libraries must still be installed.', solutions: ['Install all three: Adafruit BME280, Adafruit Sensor, Makuna RTC.', 'Or set WEATHER to OFF and TIME_LOCATION_SOURCE to NONE, then comment out the #includes in Extended.config.h.'] },
+        { problem: 'Compilation fails — missing required libraries (BME280, Sensor, Makuna RTC)', cause: 'Default E4 Config.h enables WEATHER and TIME_LOCATION_SOURCE even if you lack those devices; the libraries must still be installed.', solutions: ['Install all three: Adafruit BME280, Adafruit Sensor, Makuna RTC.', 'Or set both to OFF: <code>WEATHER OFF</code> and <code>TIME_LOCATION_SOURCE OFF</code>. Note the value is <strong>OFF</strong>, not "NONE" — NONE is not a valid OnStepX value and will not compile.', 'Building through this configurator\'s Compile &amp; Flash tab avoids this entirely — the libraries are already in the build environment.'] },
         { problem: 'First command in Serial Monitor returns "failed"', cause: 'Garbage data in the serial buffer at boot. Normal.', solutions: ['Just send the command again — the second attempt works.', 'This is bootloader noise before OnStepX initialises, not a bug.'] },
       ] },
       { category: 'WiFi & Connectivity', color: '#3b82f6', items: [
@@ -1059,6 +1068,7 @@
         { problem: 'Board flashes OK but won\'t boot — logs "LEDC not initialized" then nothing', cause: 'Often a "compatible" E4 clone or a marginal board; the firmware uploads and verifies but the ESP32 hangs at start-up.', solutions: ['Re-flash with "Erase All Flash" enabled, using ESP32 board package v2.0.17.', 'Confirm all factory shunts are removed and only the Z-MIN→PDN jumper is fitted.', 'If it still hangs, suspect the clone hardware — test with a genuine FYSETC E4. Source: discussion #68362.'] },
         { problem: 'External-antenna board: weak WiFi or damaged radio', cause: 'Powering the board with the u.FL antenna disconnected can damage the ESP32 RF amplifier; on-board-antenna boards simply have short range.', solutions: ['NEVER power up an external-antenna board without its antenna attached.', 'For range: use WIFI_STATION mode + a better router antenna or a WiFi extender, or the external-antenna E4 variant.', 'Source: discussions #68361, #68795.'] },
         { problem: 'One axis (often DEC) runs weak/jerky when connected to USB', cause: 'The board is being partly powered through the USB 5V line; under load that rail sags and a motor misbehaves.', solutions: ['Always run the board from the 12–24V input (5A+); USB is for data/flashing only.', 'Use a cut-down USB-2 data cable with the 5V wire LEFT DISCONNECTED, so the board is only powered by the 12V supply and is truly off when 12V is removed.', 'Connect the cable shield at one end only. Source: discussions #66142, #67866.'] },
+        { problem: 'BME280 and/or DS3231 not detected — no weather data, time never restored', cause: 'The I2C bus is not communicating at all. On the E4 this is nearly always wiring, power or pull-ups rather than Config.h — the only I2C settings the firmware has are WEATHER and TIME_LOCATION_SOURCE; SDA/SCL come from the pinmap (GPIO21/22) and cannot be set wrongly.', solutions: ['FIRST: flash a plain I2C scanner sketch (Wire.begin(21,22), scan 0x03-0x77). Nothing found = hardware. 0x76/0x77/0x68 found = it is the address or chip type in Config.h.', 'Check the pull-ups: SDA and SCL each need ~4.7kΩ to 3.3V. Most breakouts have them — if you removed them, the bus is dead. Put them back.', 'Check the supply: the E4 I2C header pin is 5V, not 3.3V. Power the modules from 3.3V, and prefer the external LM1117 tap — the onboard 3.3V regulator is already loaded by the ESP32 + WiFi and can brown out with two modules on it.', 'Address mismatch: most purple GY-BME280 boards are 0x76 (SDO→GND) so you need WEATHER BME280_0x76. Plain BME280 means 0x77 and fails silently.', 'Wrong chip: many boards sold as "BME280" are actually BMP280 (no humidity, different chip ID). Use BMP280 / BMP280_0x76 instead.', 'Keep the wires short — over ~20cm of unshielded wire next to the stepper drivers, I2C drops out.'] },
         { problem: 'I2C device (BME280 / DS3231) wired to 5V', cause: 'The ESP32 I2C pins are 3.3V; feeding 5V logic eventually destroys the inputs and can kill the board.', solutions: ['Use the 3.3V variant of the module, or drop the 5V rail: a plain red LED in series gives ~3.1–3.4V (it drops ~1.6–1.9V) and the <1mA draw is fine.', 'Remove the power-on LED from DS3231 modules to cut idle current.', 'Source: discussions #66613, #66616.'] },
       ] },
     ];
@@ -1084,7 +1094,7 @@
     const discussions = [
       { title: 'Stepper Motor Overheating — UART Current Fix', author: 'community', tag: 'stepper', link: 'https://onstep.groups.io/g/main/message/58342', desc: 'Motors run hot on 12V. Root cause: TMC2209 UART comms failure means Config.h current never reaches the driver — it runs at full VRef current.', notes: 'Fix order: (1) check Z-MIN→PDN jumper, (2) reseat the jumper, (3) reduce IRUN to ~400mA / IHOLD ~200mA, (4) update to OnStepX v10.20a+, (5) set TMC2209 VRef pot to max (~2.5V) for UART current control.' },
       { title: 'PEC Wiring KY-003 / A3144 — Step by Step', author: 'community', tag: 'pec', link: 'https://onstep.groups.io/g/main/topic/fysetc_e4_pec_wiring/102827741', desc: 'KY-003 (A3144 latch) open-collector output with the built-in 4.7kΩ pull-up on TE. Test with the Sky Planetarium flash indicator.', notes: 'KY-003 outputs 5V — power it from 3.3V or use a divider, GPIO36 is not 5V-tolerant. Wiring: TE Pin 1 (GPIO36) ← Hall OUT, TE Pin 2 ← GND. Config: PEC_SENSE HIGH, PEC_SENSE_PIN 36.' },
-      { title: 'GPS Module v2 — X-MIN Single-Wire Mode', author: 'community', tag: 'gps', link: 'https://onstep.groups.io/g/main/message/69157', desc: 'NEO-M8N on X-MIN (GPIO34) single-wire bit-banged mode. Capacitor removal required for reliable 9600-baud data.', notes: 'Remove C22 (10µF), C23 (0.1µF), C24 near the X-MIN header. GY-GPSV3 is 3.3V only. Alternative: Serial2 (GPIO16 RX, GPIO17 TX) — no cap removal but conflicts with Axis4 focuser. Config: TIME_LOCATION_SOURCE GPS, SERIAL_GPS_BAUD 9600.' },
+      { title: 'GPS Module v2 — X-MIN Single-Wire Mode', author: 'community', tag: 'gps', link: 'https://onstep.groups.io/g/main/message/69157', desc: 'NEO-M8N on X-MIN (GPIO34) single-wire bit-banged mode. Capacitor removal required for reliable 9600-baud data.', notes: 'Remove the single centre SMD filter capacitor beside the X-MIN pins — the two outer parts are resistors, leave them. GY-GPSV3 is 3.3V only. Alternative: Serial2 (GPIO16 RX, GPIO17 TX) — no cap removal but conflicts with Axis4 focuser. Config: TIME_LOCATION_SOURCE GPS, SERIAL_GPS_BAUD 9600.' },
       { title: 'Win11 CH340 USB Fix — Driver & DTR', author: 'community', tag: 'software', link: 'https://onstep.groups.io/g/main/message/62877', desc: 'CH340 USB-serial issues on Windows 11 solved by driver downgrade and DTR configuration.', notes: '(1) Uninstall current CH340 driver, (2) install CH341SER-3.7, (3) in ASCOM config select "9600-NO DTR", (4) in Device Manager → Ports → Advanced enable DisableModemHandshake.' },
       { title: 'Official FYSETC E4 Wiki — Complete Reference', author: 'Howard Dutton', tag: 'reference', link: 'https://onstep.groups.io/g/main/wiki/32747', desc: 'Complete E4 reference: pinout, safety, schematics, power recommendations (12VDC/5A), peripheral wiring and the 10µF cap upload fix.', notes: 'Remember: remove all factory shunts, install only the Z-MIN → TMC2209 PDN jumper. 12V recommended (24V dew heaters run at 4× power). Two E4 versions exist (internal ceramic vs external IPEX antenna) — both work identically.' },
     ];
@@ -1107,9 +1117,9 @@
         </ul></div>
       <div class="e4-card"><h3>2. Required Libraries</h3>
         <ul style="font-size:13px;line-height:1.9">
-          <li><a href="https://github.com/Makuna/Rtc/releases" target="_blank" rel="noopener">Makuna RTC</a> v2.3.5</li>
-          <li><a href="https://github.com/adafruit/Adafruit_BME280_Library/releases" target="_blank" rel="noopener">Adafruit BME280</a> v2.2.2</li>
-          <li><a href="https://github.com/adafruit/Adafruit_Sensor/releases" target="_blank" rel="noopener">Adafruit Sensor</a> v1.1.7</li>
+          <li><a href="https://github.com/Makuna/Rtc/releases" target="_blank" rel="noopener">Makuna RTC</a> v2.3.5 or newer (this configurator's build service uses 2.4.2)</li>
+          <li><a href="https://github.com/adafruit/Adafruit_BME280_Library/releases" target="_blank" rel="noopener">Adafruit BME280</a> v2.2.2 or newer (build service: 2.2.4)</li>
+          <li><a href="https://github.com/adafruit/Adafruit_Sensor/releases" target="_blank" rel="noopener">Adafruit Sensor</a> v1.1.7 or newer (build service: 1.1.14)</li>
           <li><a href="https://github.com/hjd1964/TMC2209" target="_blank" rel="noopener">TMC2209</a> by hjd1964</li>
         </ul></div>
       <div class="e4-card"><h3>3. Source &amp; Preparation</h3>
@@ -1153,36 +1163,36 @@
       ${table(['Use', 'Model', 'Specs', 'Wiring'], [
         ['Mount RA/Azm', '<strong>NEMA17</strong> (17HS19-2004S1)', '200 steps/rev, 1.0–1.7A', 'MOT-X screw terminals'],
         ['Mount Dec/Alt', '<strong>NEMA17</strong>', '200 steps/rev, 1.0–1.7A', 'MOT-Y screw terminals'],
-        ['Focuser 1', '<strong>NEMA8/11</strong> (8HS15-0604S)', '200 steps/rev, 0.4–0.8A', 'MOT-Z 4-pin header'],
-        ['Rotator', '<strong>28BYJ-48</strong> (mod to bipolar) / NEMA11', '64 steps/rev, 0.1A', 'Axis3 via MOT-Z header'],
+        ['Focuser 1', '<strong>NEMA8/11</strong> (8HS15-0604S)', '200 steps/rev, 0.4–0.8A', 'Axis4 socket (GPIO16/17) — confirm which of MOT-Z / MOT-E that is on your board, see Focuser section'],
+        ['Rotator', '<strong>28BYJ-48</strong> (mod to bipolar) / NEMA11', '~2048 full steps/rev at the output shaft (32 steps/rev motor × 1/64 gearbox), ~0.1–0.3A', 'Axis3 — shares a driver socket with Axis5, see the Focuser section'],
       ])}
-      ${callout('info', `<strong>💡 Motor VRef:</strong> set all TMC2209 VRef pots to max (~2.5V). Current is set via UART — use ${code('AXISn_DRIVER_IRUN')} / ${code('_IHOLD')} in Config.h, not the pot.`)}
+      ${callout('warn', `<strong>💡 Motor VRef — read the caveat:</strong> with working UART, current is set by ${code('AXISn_DRIVER_IRUN')} / ${code('_IHOLD')} in Config.h and the pot is not what limits it. The common advice is to turn VRef up so it never caps the UART setting. <strong>But this is exactly what makes a UART failure destructive:</strong> if the Z-MIN→PDN jumper is missing or loose, the driver ignores Config.h and falls back to the pot — at max, that is full current into the motor, which is the #1 cause of the "motors run scorching hot" reports. Confirm the driver status page shows live UART comms <em>before</em> winding the pots up, and start conservative.`)}
 
       ${cat('#3b82f6', '🛤️ Home & Limit Switches')}
       ${table(['Type', 'Model', 'Output', 'Notes'], [
         ['Mechanical', '<strong>SS-5GL2</strong> / D2F-L', 'NO to GND', 'Cheapest. Works as-is (firmware debounce + built-in pull-up); add a 1–2kΩ pull-up or RC only if a long cable picks up noise.'],
-        ['Hall (bipolar)', '<strong>A3144</strong> / KY-003', 'Open-collector, LOW on magnet', 'Both poles trigger. Most reliable for PEC.'],
+        ['Hall (unipolar)', '<strong>A3144</strong> / KY-003', 'Open-collector, LOW on south pole', 'Needs 4.5V+ — power at 5V and divide the output down.'],
         ['Hall (unipolar)', '<strong>US5881</strong>', 'Open-collector, LOW on south pole', 'Only one pole triggers — flip magnet if no detection.'],
         ['Hall (3.3V)', '<strong>US1881</strong> / OH090U', 'Open-collector', 'Works at 3.3V — no divider needed.'],
       ])}
 
       ${cat('#8b5cf6', '🧲 PEC Index Sensors')}
       ${table(['Sensor', 'Type', 'Power', 'Level Shift'], [
-        ['<strong>A3144</strong>', 'Bipolar Hall latch', '4.5–24V (3.3V OK)', 'Not needed at 3.3V'],
-        ['<strong>KY-003</strong>', 'A3144 on PCB', '3.3–5V', 'Divider (2kΩ+1kΩ) if 5V'],
-        ['<strong>US5881</strong>', 'Unipolar Hall', '3.5–24V', 'Required (2kΩ+1kΩ)'],
-        ['<strong>US1881</strong>', 'Bipolar Hall latch', '3.3–24V', 'Not needed'],
+        ['<strong>A3144</strong>', 'Bipolar Hall latch', '<strong>4.5–24V — not a 3.3V part</strong>', 'Run it at 5V + divider (1kΩ series, 2kΩ to GND)'],
+        ['<strong>KY-003</strong>', 'A3144 on PCB', '4.5–5V (it carries an A3144)', 'Divider: 1kΩ series + 2kΩ to GND ≈ 3.3V'],
+        ['<strong>US5881</strong>', 'Unipolar Hall', '3.5–24V', 'None if powered from 3.3V; divider only if run at 5V'],
+        ['<strong>US1881</strong>', 'Bipolar Hall latch', '3.3–24V', 'Not needed — the 3.3V-native choice'],
       ])}
       ${callout('warn', '<strong>⚠ Magnet:</strong> use a small neodymium magnet (3×2mm disc) epoxied to the worm wheel. For unipolar (US5881) only the south pole triggers — mark the pole.')}
 
       ${cat('#10b981', '🛰️ GPS Modules')}
       ${table(['Module', 'Chip', 'Voltage', 'Baud', 'PPS', 'Notes'], [
-        ['<strong>GY-GPSV3</strong>', 'NEO-8M', '3.3V', '9600', 'Yes', 'Most recommended. Works via X-MIN or Serial2.'],
-        ['<strong>NEO-6M</strong>', 'NEO-6M', '3.3V', '9600', 'No', 'Older, slower cold start (up to 30 min).'],
+        ['<strong>GY-GPSV3</strong>', 'NEO-M8N', '3.3V', '9600', 'Yes', 'Most recommended. Works via X-MIN or Serial2.'],
+        ['<strong>NEO-6M</strong>', 'NEO-6M', '3.3V', '9600', 'Yes (pin present)', 'Older, GPS-only, less sensitive than M8N. Cold start ~30s.'],
         ['<strong>NEO-M8N</strong>', 'NEO-M8N', '3.3V', '9600', 'Yes', 'Multi-GNSS, better sensitivity.'],
         ['<strong>BN-880</strong>', 'NEO-M8N', '3.3–5V', '9600', 'Yes', 'Compass + GPS, external SMA antenna.'],
       ])}
-      ${callout('warn', '<strong>⚠ Cap removal:</strong> for single-wire GPS on X-MIN remove C22/C23/C24 near the header. Not needed with Serial2 (GPIO16/17).')}
+      ${callout('warn', '<strong>⚠ Cap removal:</strong> for single-wire GPS on X-MIN, lift only the <strong>centre</strong> SMD part beside the header — it is the filter capacitor; the two either side are resistors and must stay. Not needed at all with Serial2 (GPIO16/17).')}
 
       ${cat('#f59e0b', '🌡️ Temperature Sensors')}
       ${table(['Sensor', 'Interface', 'E4 Pin', 'Config'], [
@@ -1211,12 +1221,12 @@
         ['<strong>ZS-042</strong>', 'DS3231', '0x68', 'Most common, ~$2, ±2ppm. CR2032 backup.'],
         ['<strong>DS3231 + AT24C32</strong>', 'DS3231 + EEPROM', '0x68 + 0x57', 'Includes 32KB EEPROM.'],
       ])}
-      ${callout('warn', '<strong>⚠ 3.3V I2C:</strong> the E4 I2C header provides 5V but the ESP32 pins are 3.3V. Use 3.3V-rated modules; remove module pull-ups (ESP32 has built-in 4.7kΩ).')}
+      ${callout('warn', '<strong>⚠ 3.3V I2C:</strong> the E4 I2C header provides 5V but the ESP32 pins are 3.3V. Power your modules from 3.3V (or drop the 5V rail — see Troubleshooting), and use 3.3V-rated modules. <strong>Do not remove the pull-up resistors from your breakouts</strong> — the ESP32\'s internal pull-ups are ~45kΩ, nowhere near enough to run an I2C bus, and stripping the module pull-ups is a common way to end up with a completely dead bus.')}
 
       ${cat('#94a3b8', '⚡ USB / Serial / Power')}
       ${table(['Item', 'Part', 'Notes'], [
         ['USB bridge', '<strong>CH340C</strong> (built-in)', 'Win10/11 may need CH341SER-3.7. Use 9600-NO DTR in ASCOM.'],
-        ['Power supply', '12VDC, 5A (+ center)', '5A min with peripherals. 24V dew heaters draw 4× power.'],
+        ['Power supply', '12VDC, 5A', 'Lands on the <strong>12V / 0V screw terminal</strong> — the E4 has no barrel jack, so a plug-and-socket PSU needs a screw-terminal pigtail. 5A min with peripherals. Watch polarity: 12V = +, 0V = GND.'],
         ['Upload-fix cap', '10µF 16V electrolytic', 'Across EN and GND on the ESP32 module if uploads fail.'],
         ['Jumper wire', 'F-F Dupont 10cm', 'Z-MIN → TMC2209 PDN. Required for UART.'],
       ])}`;
