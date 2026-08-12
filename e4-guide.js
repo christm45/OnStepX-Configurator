@@ -487,8 +487,8 @@
       desc: 'Hardware limits stop ALL mount movement when triggered. The E4 Config.h overrides the default limit pin to GPIO34 instead of GPIO39.',
       warnings: [
         { label: 'Shared Pin', text: 'Default Config.h: LIMIT_SENSE_PIN = GPIO34 (X-MIN). GPIO34 therefore serves as BOTH Axis1 home AND limit. To separate them, change LIMIT_SENSE_PIN to 39 (TB).' },
-        { label: 'LIMIT_STRICT Behavior', text: 'OFF = limits disabled until unpark (goto clears). ON = limits always active — the mount cannot move until date/time is set.' },
-        { label: 'E-Stop Effect', text: 'When any limit triggers: all gotos abort, tracking stops, the mount freezes. Clear by unparking or sending :U# via serial.' },
+        { label: 'LIMIT_STRICT Behavior', text: 'Per Config.h: OFF disables limits until an unpark goto or a sync; ON enables them at startup (the defaults file adds "if date/time are set"). The stock E4 Config.h ships OFF.' },
+        { label: 'E-Stop Effect', text: 'When any limit triggers: all gotos abort, tracking stops, the mount freezes. Recover by clearing the condition (move off the switch) and then unparking or syncing — with LIMIT_STRICT OFF, an unpark goto or a sync re-arms normal operation.' },
       ],
       wiring: [
         { e4: 'X-MIN (GPIO34) — default', gpio: 'GPIO34', to: 'Limit switch NO → GND (shared with Axis1 home)' },
@@ -496,9 +496,9 @@
         { e4: '3.3V (via 2kΩ pull-up on E4)', gpio: '—', to: 'Internal pull-up on X-MIN/Y-MIN connectors' },
       ],
       config: [
-        { dir: 'LIMIT_SENSE', val: 'LOW', note: 'Active LOW — short to GND = limit triggered' },
-        { dir: 'LIMIT_SENSE_PIN', val: '34', note: 'Override: X-MIN connector (default: 39=TB)' },
-        { dir: 'LIMIT_STRICT', val: 'OFF', note: 'OFF = limits off until unpark; ON = always on' },
+        { dir: 'LIMIT_SENSE', val: 'LOW', note: 'Active LOW — short to GND = limit triggered. Ships OFF, so limits do nothing until you set this' },
+        { dir: 'LIMIT_SENSE_PIN', val: '34', note: 'Already set to 34 in the stock E4 Config.h, overriding the pinmap default of 39 (TB)' },
+        { dir: 'LIMIT_STRICT', val: 'OFF', note: 'Stock value. OFF = limits off until an unpark goto or sync; ON = armed at startup' },
         { dir: 'AXIS1_SENSE_LIMIT_MIN', val: 'LIMIT_SENSE', note: 'Uses shared LIMIT_SENSE' },
         { dir: 'AXIS1_SENSE_LIMIT_MAX', val: 'LIMIT_SENSE', note: 'Uses shared LIMIT_SENSE' },
         { dir: 'AXIS2_SENSE_LIMIT_MIN', val: 'LIMIT_SENSE', note: 'Uses shared LIMIT_SENSE' },
@@ -754,7 +754,7 @@
       notes:
         `<p style="margin:6px 0"><strong>DSLR remote plug wiring by brand:</strong></p>
         ${table(['Brand', 'Plug', 'Tip', 'Ring', 'Sleeve', 'Notes'], dslr.map((d) => [`<strong>${d[0]}</strong>`, d[1], d[2], d[3], d[4], `<span style="font-size:11px;color:var(--e4-dim)">${d[5]}</span>`]))}
-        ${callout('info', `<strong>Operation:</strong> ${code(':CAn#')} set exposure to n seconds (e.g. ${code(':CA30#')}), ${code(':CA#')} trigger now, ${code(':C?#')} query. Or use SWS → Camera tab → Duration / Delay / Frames.`)}`,
+        ${callout('info', `<strong>Operation:</strong> the intervalometer is driven through the auxiliary-feature commands, where <em>n</em> is the FEATURE number (so ${code('3')} for ${code('FEATURE3')}): ${code(':SXXn,E<seconds>#')} exposure length (0–3600), ${code(':SXXn,D<seconds>#')} delay between frames (1–3600), ${code(':SXXn,C<count>#')} frame count (0–255), ${code(':SXXn,V1#')} start / ${code(':SXXn,V0#')} stop, and ${code(':GXXn#')} to read back count, exposure and delay. Or just use SWS → Camera tab → Duration / Delay / Frames.`)}`,
     })}`;
   };
 
@@ -878,7 +878,7 @@
       config: [
         { dir: 'TIME_LOCATION_SOURCE', val: 'DS3231', note: 'Use DS3231 RTC as time source' },
         { dir: 'TIME_LOCATION_PPS_SENSE', val: 'OFF', note: 'Enable if using DS3231 32kHz PPS output' },
-        { dir: 'MOUNT_COORDS_MEMORY', val: 'ON', note: 'Remember mount position (requires FRAM + RTC)' },
+        { dir: 'MOUNT_COORDS_MEMORY', val: 'ON', note: 'Restores where the mount was pointing after a power cycle. Default OFF. Uses NV storage, not the RTC — but it writes often, so FRAM is kinder than flash-backed EEPROM' },
       ],
       notes: callout('info', '<strong>Shared I2C bus:</strong> both BME280 and DS3231 share the bus at different addresses. The bus needs one pair of pull-ups (SDA→3.3V, SCL→3.3V, 4.7kΩ) — nearly every GY-BME280 and ZS-042 breakout already has them, so leave them alone. Only add your own if a scan finds no device and you have confirmed your modules carry none.'),
     })}
@@ -1124,7 +1124,7 @@
         </ul></div>
       <div class="e4-card"><h3>3. Source &amp; Preparation</h3>
         <ul style="font-size:13px;line-height:1.9">
-          <li>Download from <a href="https://github.com/hjd1964/OnStepX/tree/E4" target="_blank" rel="noopener">OnStepX (E4 branch)</a></li>
+          <li>Download <a href="https://github.com/hjd1964/OnStepX" target="_blank" rel="noopener">OnStepX</a> — check the branch list for an E4-specific branch, otherwise take the current release. (Simpler: the <a data-gototab="compile" style="color:#60a5fa;font-weight:600;cursor:pointer;text-decoration:underline">Compile &amp; Flash</a> tab fetches the right source for you.)</li>
           <li>Extract to a folder named ${code('OnStepX')}, open ${code('OnStepX.ino')}</li>
           <li>Remove ALL factory shunts; connect Z-MIN → TMC PDN jumper</li>
           <li>Do NOT attach stepper motors while flashing</li>
