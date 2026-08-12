@@ -132,14 +132,14 @@
     { id: 'i2c', label: 'I2C|AUX', type: 'i2c', x: 500, y: 250, w: 96, h: 44, gpio: 'GPIO21/22', fn: 'I2C / AUX breakout — SCL·SDA·3V3·5V·GND', desc: 'Central pin header exposing SDA=GPIO21, SCL=GPIO22, 3.3V, 5V and GND. RTC, BME280 and the 3.3V regulator tap here.', conn: 'DS3231 RTC (0x68), BME280 (0x76/0x77) and LM1117 all share this header.', section: 'weather' },
     { id: 'tmc1', label: 'TMC1|Ra/Azm', type: 'driver', x: 118, y: 300, w: 84, h: 66, gpio: '—', fn: 'Axis1 (Ra/Azm) stepper driver — TMC2209 UART', desc: 'Driver socket for MOT X. Use FYSETC TMC2209 v3.0/v3.1 or TMC2226 v1.1.', conn: 'Insert TMC2209, ensure PDN jumper connected.', section: 'focuser' },
     { id: 'tmc2', label: 'TMC2|DEC', type: 'driver', x: 210, y: 300, w: 84, h: 66, gpio: '—', fn: 'Axis2 (DEC/Alt) stepper driver — TMC2209 UART', desc: 'Driver socket for MOT Y. Must have PDN jumper for current control.', conn: 'Insert TMC2209.', section: 'focuser' },
-    { id: 'tmc3', label: 'TMC3|Foc1', type: 'driver', x: 302, y: 300, w: 84, h: 66, gpio: '—', fn: 'Axis4 (Focuser1) — TMC2209 UART', desc: 'Driver socket for MOT Z — defaults to Focuser1. GPIO16 (STEP), GPIO17 (DIR).', conn: 'Insert TMC2209.', section: 'focuser' },
-    { id: 'tmc4', label: 'TMC4|Foc2', type: 'driver', x: 394, y: 300, w: 84, h: 66, gpio: '—', fn: 'Axis5 (Focuser2) — TMC2209 UART', desc: 'Driver socket for MOT E — Focuser2. Shares STEP/DIR (GPIO14/GPIO12) with Axis3.', conn: 'Insert TMC2209.', section: 'focuser' },
+    { id: 'tmc3', label: 'TMC3|Rot/Foc2', type: 'driver', x: 302, y: 300, w: 84, h: 66, gpio: '—', fn: 'Axis3 rotator / Axis5 focuser2 — TMC2209 UART', desc: 'Driver socket for MOT Z. Per Pins.FYSETC_E4.h this is the Z-AXIS: Axis3 (rotator) and Axis5 (focuser2) BOTH sit here on GPIO14 (STEP) / GPIO12 (DIR) — enable only one of them.', conn: 'Insert TMC2209.', section: 'focuser' },
+    { id: 'tmc4', label: 'TMC4|Foc1', type: 'driver', x: 394, y: 300, w: 84, h: 66, gpio: '—', fn: 'Axis4 (Focuser1) — TMC2209 UART', desc: 'Driver socket for MOT E. Per Pins.FYSETC_E4.h focuser1 is the E0-AXIS: GPIO16 (STEP), GPIO17 (DIR) — its own pins, no sharing.', conn: 'Insert TMC2209.', section: 'focuser' },
     /* BOTTOM edge — 24V/GND tap, motor outputs, thermistors */
     { id: 'pled', label: '24V|GND', type: 'power', x: 36, y: 486, w: 78, h: 40, gpio: '—', fn: '24V / GND tap (Power-LED feed)', desc: 'Bottom-left 2-pin header providing 24V and GND. In the reference build it drives the Power LED through a 10kΩ resistor.', conn: 'Power LED (+) → 24V via 10kΩ, (–) → GND.', section: 'troubleshooting' },
     { id: 'stepper1', label: 'MOTX|Ra/Azm', type: 'stepper', x: 140, y: 486, w: 88, h: 40, gpio: '—', fn: 'MOT X — Ra/Azm motor output', desc: '4-pin connector for a 4-wire bipolar stepper. Coils: A+/A– and B+/B–.', conn: 'Wire the Ra/Azm stepper coils. Twisted pairs per coil.', section: 'focuser' },
     { id: 'stepper2', label: 'MOTY|DEC', type: 'stepper', x: 234, y: 486, w: 88, h: 40, gpio: '—', fn: 'MOT Y — DEC/Alt motor output', desc: 'Motor output for the DEC/Alt axis.', conn: 'Wire the DEC/Alt stepper coils. Match coil pairs from the datasheet.', section: 'focuser' },
-    { id: 'stepper3', label: 'MOTZ|Foc1', type: 'stepper', x: 328, y: 486, w: 88, h: 40, gpio: '—', fn: 'MOT Z — Focuser1 motor output', desc: 'Motor output for Focuser1.', conn: 'Wire the Focuser1 stepper coils.', section: 'focuser' },
-    { id: 'stepper4', label: 'MOTE|Foc2', type: 'stepper', x: 422, y: 486, w: 88, h: 40, gpio: '—', fn: 'MOT E — Focuser2 motor output', desc: 'Motor output for Focuser2.', conn: 'Wire the Focuser2 stepper coils.', section: 'focuser' },
+    { id: 'stepper3', label: 'MOTZ|Rot/Foc2', type: 'stepper', x: 328, y: 486, w: 88, h: 40, gpio: '—', fn: 'MOT Z — rotator (Axis3) or Focuser2 (Axis5)', desc: 'Motor output on the Z-AXIS. Axis3 and Axis5 share these pins — only one may be enabled.', conn: 'Wire the rotator OR the Focuser2 stepper coils.', section: 'focuser' },
+    { id: 'stepper4', label: 'MOTE|Foc1', type: 'stepper', x: 422, y: 486, w: 88, h: 40, gpio: '—', fn: 'MOT E — Focuser1 motor output (Axis4)', desc: 'Motor output for Focuser1 on the E0-AXIS.', conn: 'Wire the Focuser1 stepper coils.', section: 'focuser' },
     { id: 'tb', label: 'TB', type: 'input', x: 540, y: 486, w: 52, h: 40, gpio: 'GPIO39', fn: 'TB — Thermistor input 2', desc: 'Input-only. 4.7k series resistor + 10µF filter cap on board.', conn: 'NTC 100k thermistor (to GND). Input only!', section: 'thermistor' },
     { id: 'te', label: 'TE', type: 'input', x: 596, y: 486, w: 52, h: 40, gpio: 'GPIO36', fn: 'TE — Thermistor input 1 / PEC', desc: 'Input-only. Same circuit as TB. Also usable for a PEC index (Hall) sensor.', conn: 'NTC 100k thermistor (to GND), or Hall sensor for PEC.', section: 'thermistor' },
   ];
@@ -168,8 +168,8 @@
       gpio: 'Y-MIN (GPIO35)', fn: 'Axis2 home / limit sensor', desc: 'Mechanical microswitch or Hall sensor homing the DEC/Alt axis.', conn: 'COM → Y-MIN, NO → GND (active LOW). Onboard 2kΩ pull-up.' },
     { id: 'p-gps', label: 'GPS', sub: 'NEO-M8N', type: 'gpsmod', target: 'xmin', edge: 'top', wire: '#10b981', section: 'gps',
       gpio: 'X-MIN (GPIO34)', fn: 'GPS module — auto time & location', desc: 'GY-GPSV3 (NEO-M8N / NEO-6M). Feeds UTC time, latitude and longitude via NMEA at 9600 baud.', conn: 'GPS TX → X-MIN (single-wire, remove filter cap) or GPIO16, VCC → 3.3V, GND → GND. 3.3V only!' },
-    { id: 'p-reticle', label: 'Reticle', sub: 'LED + 68kΩ', type: 'led', target: 'fane0', edge: 'top', wire: '#ef4444', section: 'troubleshooting',
-      gpio: 'FAN/AUX (GPIO13)', fn: 'Illuminated reticle lamp', desc: 'Red reticle illumination LED driven from the FAN/AUX output, dimmed through a 68kΩ series resistor.', conn: 'LED (+) → FAN/AUX via 68kΩ, LED (–) → GND.' },
+    { id: 'p-reticle', label: 'Reticle', sub: 'LED + 10kΩ', type: 'led', target: 'fane0', edge: 'top', wire: '#ef4444', section: 'troubleshooting',
+      gpio: 'FAN/AUX (GPIO13)', fn: 'Illuminated reticle lamp', desc: 'Red reticle illumination LED on the FAN/AUX output (RETICLE_LED_PIN defaults to AUX8 = GPIO13, shared with the status LED and buzzer — pick one). Pins.FYSETC_E4.h specifies a 10kΩ series resistor.', conn: 'LED (+) → FAN/AUX via 10kΩ, LED (–) → GND. OnStepX PWMs it for brightness.' },
     { id: 'p-extrst', label: 'Reset btn', sub: 'EXT-RST', type: 'swsense', target: 'extrst', edge: 'top', wire: '#eab308', section: 'troubleshooting',
       gpio: 'EXT-RST', fn: 'External reset button', desc: 'Optional momentary push-button on the top-right EXT-RST header (this corner is the reset header, not a DC jack). Resets the ESP32 when pressed.', conn: 'Button between EXT-RST and GND.' },
 
@@ -205,9 +205,9 @@
     { id: 'p-dec', label: 'DEC/Alt', sub: 'MOT Y', type: 'motor', target: 'stepper2', edge: 'bottom', wire: '#3b82f6', wire2: '#ef4444', section: 'focuser',
       gpio: 'MOT Y', fn: 'Declination / Altitude stepper', desc: '4-wire bipolar stepper for the secondary axis, driven by the Axis2 TMC2209 (MOT Y).', conn: 'Coils A+/A– and B+/B– to MOT Y.' },
     { id: 'p-foc1', label: 'Focuser1', sub: 'MOT Z', type: 'motor', target: 'stepper3', edge: 'bottom', wire: '#f97316', wire2: '#ef4444', section: 'focuser',
-      gpio: 'MOT Z', fn: 'Focuser 1 stepper', desc: 'Stepper for the first focuser, driven by the Axis4 TMC2209 (MOT Z).', conn: 'Focuser1 stepper coils to MOT Z.' },
+      gpio: 'MOT Z', fn: 'Rotator / Focuser 2 stepper', desc: 'Stepper on the Z-AXIS socket — Axis3 (rotator) or Axis5 (focuser2), which share GPIO14/GPIO12. Enable only one.', conn: 'Rotator or Focuser2 stepper coils to MOT Z.' },
     { id: 'p-foc2', label: 'Focuser2', sub: 'MOT E', type: 'motor', target: 'stepper4', edge: 'bottom', wire: '#facc15', wire2: '#ef4444', section: 'focuser',
-      gpio: 'MOT E', fn: 'Focuser 2 stepper', desc: 'Stepper for the second focuser, driven by the Axis5 TMC2209 (MOT E).', conn: 'Focuser2 stepper coils to MOT E.' },
+      gpio: 'MOT E', fn: 'Focuser 1 stepper', desc: 'Stepper for the first focuser, driven by the Axis4 TMC2209 on the E0-AXIS socket (GPIO16/17).', conn: 'Focuser1 stepper coils to MOT E.' },
     { id: 'p-thermistor', label: 'Thermistor', sub: 'NTC 100k', type: 'thermo', target: 'tb', edge: 'bottom', wire: '#f59e0b', section: 'thermistor',
       gpio: 'TB (GPIO39)', fn: 'NTC thermistor — focuser / dew temp', desc: 'Glass-bead NTC 100kΩ (β3950) on TB for temp-compensation or dew-point sensing (TE is the second channel).', conn: 'NTC leg 1 → TB, leg 2 → GND. Onboard 4.7kΩ to 3.3V is the series resistor.' },
     { id: 'p-pec', label: 'PEC Hall', sub: 'index sensor', type: 'swsense', target: 'te', edge: 'bottom', wire: '#38bdf8', section: 'pec',
@@ -660,7 +660,7 @@
       config: [
         { dir: 'FEATURE1_PURPOSE', val: 'DEW_HEATER', note: 'Enable Dew Heater 1' },
         { dir: 'FEATURE1_PIN', val: '2', note: 'GPIO2 = HEAT_E0' },
-        { dir: 'FEATURE1_TEMP', val: 'THERMISTOR', note: 'Temp feedback via TE' },
+        { dir: 'FEATURE1_TEMP', val: 'OFF', note: 'OFF in the stock Config.h — Dew Heat 1 then runs on ambient-vs-dew-point alone. Set THERMISTOR only if you add a probe on TE' },
         { dir: 'FEATURE1_VALUE_LIMIT', val: '255', note: 'Max PWM duty (reduce if 24V supply)' },
         { dir: 'FEATURE2_PURPOSE', val: 'DEW_HEATER', note: 'Enable Dew Heater 2' },
         { dir: 'FEATURE2_PIN', val: '4', note: 'GPIO4 = HEAT_BED' },
@@ -801,27 +801,27 @@
 
   C.onewire = () => `
     <h2 class="e4-h2">OneWire / DS18B20 Sensors</h2>
-    <p class="e4-desc">The OneWire bus allows multiple DS18B20 temperature sensors on a single wire. AUX7 (SPARE_RX) is the default OneWire pin. Up to 8 devices supported.</p>
+    <p class="e4-desc">The OneWire bus allows multiple DS18B20 temperature sensors on a single wire. Up to 8 devices supported.</p>
+    ${callout('warn', `<strong>⚠ Read this before buying DS18B20s for an E4.</strong> The pinmap sets ${code('ONE_WIRE_PIN')} → ${code('AUX7_PIN')} → ${code('SPARE_RX_PIN')}, and <strong>Pins.FYSETC_E4.h defines SPARE_RX_PIN as OFF in both TMC-UART branches</strong>. With the normal E4 setup (4× TMC2209 on UART) there is therefore <strong>no OneWire pin at all</strong> unless you override it yourself. Add an explicit ${code('#define ONE_WIRE_PIN <em>n</em>')} in ${code('Extended.config.h')}, choosing a genuinely free GPIO — and remember GPIO34/35/36/39 are input-only and cannot drive a bidirectional OneWire bus. This is why some users take the line off the SD-card header instead.`)}
     ${card({
       title: 'DS18B20 Temperature Sensors',
       desc: 'Digital temperature sensors (±0.5°C). Used for focuser temp compensation, dew-heater feedback or ambient monitoring.',
       warnings: [
         { label: 'Pull-up', text: 'A 4.7kΩ resistor is required between DATA and VCC (3.3V). Use normal 3-wire power (VCC/GND/DATA) — parasitic power is unreliable here and is not worth the saved wire.' },
-        { label: 'Addressing', text: 'Use FEATURE_LIST_DS ON to scan serial numbers, then assign sensors via their 64-bit serial.' },
-        { label: 'AUX7 Dependency', text: 'AUX7 is SPARE_RX; availability depends on the TMC UART config. With full UART TMC, this pin may not be free.' },
+        { label: 'Addressing', text: 'Set DEBUG VERBOSE plus FEATURE1_TEMP DS1820, flash, and read the serial numbers off the serial monitor — then assign each sensor by its own 64-bit serial. (There is no FEATURE_LIST_DS directive in OnStepX.)' },
+        { label: 'AUX7 is not available', text: 'AUX7 maps to SPARE_RX_PIN, which Pins.FYSETC_E4.h hard-defines as OFF whenever the TMC UART drivers are in use — i.e. the standard E4 build. You must pick and define your own ONE_WIRE_PIN; there is no working default.' },
       ],
       wiring: [
-        { e4: 'AUX7 / SPARE_RX', gpio: '—', to: 'DS18B20 DATA (with 4.7kΩ to 3.3V)' },
+        { e4: 'Your chosen ONE_WIRE_PIN', gpio: 'output-capable GPIO', to: 'DS18B20 DATA (with 4.7kΩ to 3.3V)' },
         { e4: '3.3V', gpio: '—', to: 'DS18B20 VCC' },
         { e4: 'GND', gpio: '—', to: 'DS18B20 GND' },
       ],
       config: [
-        { dir: 'ONE_WIRE_PIN', val: 'AUX7_PIN', note: 'OneWire bus on AUX7 (SPARE_RX)' },
-        { dir: 'FOCUSER_TEMPERATURE', val: 'DS18B20', note: 'Use DS18B20 for focuser temp' },
-        { dir: 'FEATURE1_TEMP', val: '0x28FF…', note: 'Paste the sensor\'s own 64-bit serial number here — FEATUREn_TEMP takes OFF, THERMISTOR, THERMISTOR2, or a DS18B20 serial, not a generic "DS1820" keyword' },
-        { dir: 'FEATURE_LIST_DS', val: 'ON', note: 'Temporarily enable to list all OneWire devices' },
+        { dir: 'ONE_WIRE_PIN', val: '<em>a free GPIO</em>', note: 'MUST be set explicitly on the E4 — see the warning above. Put it in Extended.config.h, e.g. #define ONE_WIRE_PIN 13' },
+        { dir: 'FOCUSER_TEMPERATURE', val: 'DS1820', note: 'Or the specific sensor\'s 64-bit serial' },
+        { dir: 'FEATURE1_TEMP', val: 'DS1820', note: 'Use the bare DS1820 keyword + DEBUG VERBOSE to LIST serial numbers; then replace it with the serial of the sensor you want' },
       ],
-      notes: callout('info', `<strong>Serial format:</strong> DS18B20 serials are 64-bit hex, e.g. ${code('0x28FF5C2C1604D6')}. Enable ${code('FEATURE_LIST_DS ON')}, upload, open the serial monitor — all detected devices are listed. Copy the serial straight into Config.h.`),
+      notes: callout('info', `<strong>Finding the serial numbers:</strong> per the comment in Config.h itself — temporarily set ${code('DEBUG VERBOSE')} (in ${code('Extended.config.h')}) and ${code('FEATURE1_TEMP DS1820')}, then flash and open the serial monitor. Every detected device is listed. Copy the one you want, e.g. ${code('0x28FF5C2C1604D6')}, back into Config.h in place of the ${code('DS1820')} keyword.`),
     })}`;
 
   C.weather = () => `
@@ -886,11 +886,11 @@
 
   C.focuser = () => `
     <h2 class="e4-h2">Motorized Focuser</h2>
-    <p class="e4-desc">OnStepX supports up to 6 focusers (Axis4–Axis9). The E4 has two dedicated focuser axes: Axis4 (E0) uses GPIO16/GPIO17,
-      and Axis5 (Z) shares GPIO14/GPIO12 with Axis3 (rotator).</p>
+    <p class="e4-desc">OnStepX supports up to 6 focusers (Axis4–Axis9). The E4 has two: <strong>Axis4</strong> on the <strong>MOT-E / E0-AXIS</strong> socket with its own GPIO16 (STEP) / GPIO17 (DIR),
+      and <strong>Axis5</strong> on the <strong>MOT-Z / Z-AXIS</strong> socket, sharing GPIO14/GPIO12 with Axis3 (rotator).</p>
     ${card({
       title: 'Motorized Focuser (Axis4)',
-      desc: 'Axis4 uses dedicated pins (GPIO16 STEP, GPIO17 DIR) — no pin-sharing conflicts. Configured for TMC2209 by default.',
+      desc: 'Axis4 is the MOT-E (E0-AXIS) socket and uses dedicated pins (GPIO16 STEP, GPIO17 DIR) — no pin-sharing conflicts. Enabled as TMC2209 in the stock E4 Config.h.',
       warnings: [
         { label: 'TMC2209 Default', text: 'Default Config.h enables TMC2209 for Axis4. For a different driver, change AXIS4_DRIVER_MODEL.' },
         { label: 'Steps/Micron', text: 'CALIBRATION REQUIRED: AXIS4_STEPS_PER_MICRON must be measured for your focuser.' },
@@ -915,7 +915,7 @@
       ],
       notes: callout('warn', '<strong>Pin sharing:</strong> Axis5 uses GPIO14 (STEP) and GPIO12 (DIR) — the SAME pins as Axis3 (rotator). Enable only ONE: if AXIS5_DRIVER_MODEL is set, set AXIS3_DRIVER_MODEL to OFF and vice versa.'),
     })}
-    ${callout('warn', `<strong>⚠ Which motor terminal is Focuser 1? Verify on your own board.</strong> The reliable facts are the GPIO assignments: <strong>Axis4 = GPIO16 (STEP) / GPIO17 (DIR)</strong> on its own socket, and <strong>Axis3 and Axis5 both = GPIO14 / GPIO12</strong>, sharing a single socket. Which silkscreen label (MOT-Z or MOT-E) sits on which of those two sockets is <em>reported inconsistently</em> — a community report (<a href="https://onstep.groups.io/g/main/message/67968" target="_blank" rel="noopener">#67968</a>) puts Axis4/Focuser1 on <strong>MOT-E</strong>, while the board diagram in this guide shows it on MOT-Z. <strong>Do not take either on faith.</strong> Determine it empirically: enable only ${code('AXIS4_DRIVER_MODEL')}, leave ${code('AXIS3')}/${code('AXIS5')} OFF, then feel which socket's motor develops holding torque when powered. Wire to that one.`)}
+    ${callout('warn', `<strong>⚠ Focuser 1 goes on MOT-E, not MOT-Z.</strong> Confirmed against ${code('Pins.FYSETC_E4.h')}: focuser1 is the <strong>E0-AXIS</strong> — ${code('AXIS4_STEP_PIN 16')}, ${code('AXIS4_DIR_PIN 17')}, its own dedicated pins. The <strong>Z-AXIS</strong> socket (MOT-Z) carries ${code('AXIS3')} (rotator) <em>and</em> ${code('AXIS5')} (focuser2), both on ${code('STEP 14')} / ${code('DIR 12')} — which is why only one of those two can ever be enabled. If a focuser motor has no holding torque, this swap is the usual reason.`)}
     ${callout('info', `<strong>Community note — "focuser has no torque / does not move".</strong> Almost always a pin conflict rather than a wiring fault: Axis3 and Axis5 share STEP/DIR, so if both (or the wrong one) are enabled they fight. Set ${code('AXIS4_DRIVER_MODEL')} for Focuser 1 and hold ${code('AXIS3_DRIVER_MODEL')} / ${code('AXIS5_DRIVER_MODEL')} at OFF until Focuser 1 works, then add the second axis. <span style="color:var(--e4-dim)">Source: <a href="https://onstep.groups.io/g/main/message/67968" target="_blank" rel="noopener">#67968</a></span>`)}`;
 
   C.rotator = () => `
@@ -925,7 +925,7 @@
       title: 'Rotator (Axis3)',
       desc: 'Supports both rotator (field orientation) and Alt-Az de-rotation. Steps per degree is typically much lower than mount axes.',
       config: [
-        { dir: 'AXIS3_DRIVER_MODEL', val: 'OFF', note: 'Set to a driver to enable the rotator' },
+        { dir: 'AXIS3_DRIVER_MODEL', val: 'TMC2209', note: 'Already TMC2209 in the stock E4 Config.h — set it OFF if you want Axis5/focuser2 on that socket instead' },
         { dir: 'AXIS3_STEPS_PER_DEGREE', val: '64.0', note: 'Typical for a direct-drive rotator' },
         { dir: 'AXIS3_SLEW_RATE_BASE_DESIRED', val: '1.0', note: 'deg/s' },
         { dir: 'AXIS3_DRIVER_REVERSE', val: 'OFF', note: 'Reverse direction if needed' },
@@ -1139,7 +1139,12 @@
           [code('SERIAL_RADIO'), code('WIFI_ACCESS_POINT'), 'Built-in WiFi AP mode'],
           [code('AXIS1_DRIVER_MODEL'), code('TMC2209'), 'Axis1 stepper driver'],
           [code('AXIS2_DRIVER_MODEL'), code('TMC2209'), 'Axis2 stepper driver'],
-          [code('AXIS1_STEPS_PER_DEGREE'), code('12800'), 'Steps/° for Axis1'],
+          [code('AXIS1_STEPS_PER_DEGREE'), code('18346.6667'), 'Steps/° for Axis1 — a placeholder, you MUST set this for your gearing (Calculator tab)'],
+          [code('LIMIT_SENSE_PIN'), code('34'), 'Overrides the pinmap default of 39, moving limit sense to X-MIN'],
+          [code('AXIS3_DRIVER_MODEL'), code('TMC2209'), 'Rotator active by default on MOT-Z'],
+          [code('AXIS4_DRIVER_MODEL'), code('TMC2209'), 'Focuser1 active by default on MOT-E'],
+          [code('AXIS5_DRIVER_MODEL'), code('OFF'), 'Focuser2 off — it would clash with Axis3'],
+          [code('WEATHER'), code('BME280_0x76'), 'BME280 at 0x76'],
           [code('MOUNT_TYPE'), code('GEM'), 'Mount type (change to ALTAZM as needed)'],
           [code('TIME_LOCATION_SOURCE'), code('DS3231'), 'RTC for timekeeping'],
           [code('FEATURE1_PURPOSE'), code('DEW_HEATER'), 'GPIO2 = Dew Heater 1'],
@@ -1163,7 +1168,7 @@
       ${table(['Use', 'Model', 'Specs', 'Wiring'], [
         ['Mount RA/Azm', '<strong>NEMA17</strong> (17HS19-2004S1)', '200 steps/rev, 1.0–1.7A', 'MOT-X screw terminals'],
         ['Mount Dec/Alt', '<strong>NEMA17</strong>', '200 steps/rev, 1.0–1.7A', 'MOT-Y screw terminals'],
-        ['Focuser 1', '<strong>NEMA8/11</strong> (8HS15-0604S)', '200 steps/rev, 0.4–0.8A', 'Axis4 socket (GPIO16/17) — confirm which of MOT-Z / MOT-E that is on your board, see Focuser section'],
+        ['Focuser 1', '<strong>NEMA8/11</strong> (8HS15-0604S)', '200 steps/rev, 0.4–0.8A', '<strong>MOT-E</strong> (Axis4 / E0-AXIS, GPIO16+17)'],
         ['Rotator', '<strong>28BYJ-48</strong> (mod to bipolar) / NEMA11', '~2048 full steps/rev at the output shaft (32 steps/rev motor × 1/64 gearbox), ~0.1–0.3A', 'Axis3 — shares a driver socket with Axis5, see the Focuser section'],
       ])}
       ${callout('warn', `<strong>💡 Motor VRef — read the caveat:</strong> with working UART, current is set by ${code('AXISn_DRIVER_IRUN')} / ${code('_IHOLD')} in Config.h and the pot is not what limits it. The common advice is to turn VRef up so it never caps the UART setting. <strong>But this is exactly what makes a UART failure destructive:</strong> if the Z-MIN→PDN jumper is missing or loose, the driver ignores Config.h and falls back to the pot — at max, that is full current into the motor, which is the #1 cause of the "motors run scorching hot" reports. Confirm the driver status page shows live UART comms <em>before</em> winding the pots up, and start conservative.`)}
