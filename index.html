@@ -4339,6 +4339,42 @@ function pad(name, val, def, comment) {
 // gated on STEP_DIR_TMC_UART_PRESENT, which doesn't exist yet at Config.h time.
 // validate.js blocks TMC UART driver models on this PINMAP for that reason.
 // ---------------------------------------------------------------------------
+const TERRANS_PIN_BLOCK_BEGIN = '// >>> TERRANS_V5PRO PIN MAP BEGIN (generated — do not hand-edit)';
+const TERRANS_PIN_BLOCK_END   = '// <<< TERRANS_V5PRO PIN MAP END';
+
+// Add, refresh or strip the generated pin block in an existing Config.h so the
+// file always matches the board currently selected on the form. Needed for the
+// "patch existing config" path (see the generateConfig() override), which
+// rewrites #define values in place and would otherwise either leave a stale
+// user pin map behind after switching away from the Terrans board, or leave a
+// PINMAP=OFF config with no pin definitions at all after switching to it.
+// Returns the updated text.
+function syncTerransPinBlock(text, wantBlock) {
+  const startIdx = text.indexOf(TERRANS_PIN_BLOCK_BEGIN);
+  const endIdx = text.indexOf(TERRANS_PIN_BLOCK_END);
+  const hasBlock = startIdx !== -1 && endIdx > startIdx;
+  if (hasBlock) {
+    // Collapse the whitespace on both seams to a fixed shape, so regenerating
+    // repeatedly is byte-stable instead of growing a blank line each time.
+    const head = text.slice(0, startIdx).replace(/\s*$/, '');
+    const tail = text.slice(endIdx + TERRANS_PIN_BLOCK_END.length).replace(/^\n+/, '');
+    // Regenerate rather than reuse: the block's contents depend on serial baud
+    // and AXIS4_POWER_DOWN, which the user may have just changed.
+    return wantBlock
+      ? head + '\n\n' + terransV5ProPinBlock() + '\n\n' + tail
+      : head + '\n\n' + tail;
+  }
+  if (!wantBlock) return text;
+  // Insert ahead of the Extended.config.h include when there is one, so the
+  // block lands where src/pinmaps/Models.h would have pulled a board file in.
+  const incRe = /^[ \t]*#include[ \t]+"Extended\.config\.h".*$/m;
+  const block = terransV5ProPinBlock();
+  // Leading newline too, so an inserted block is byte-identical to a
+  // regenerated one and a no-op re-generate doesn't change the config hash.
+  if (incRe.test(text)) return text.replace(incRe, (m) => '\n' + block + '\n\n' + m);
+  return text.replace(/\s*$/, '') + '\n\n' + block + '\n';
+}
+
 function terransV5ProPinBlock() {
   const out = [];
   const L = (t) => out.push(t);
@@ -4349,7 +4385,7 @@ function terransV5ProPinBlock() {
   const on = (id) => (document.getElementById(id)?.value || 'OFF') === 'ON';
   const off = (id) => (document.getElementById(id)?.value || 'OFF') === 'OFF';
 
-  L('');
+  L(TERRANS_PIN_BLOCK_BEGIN);
   L('// ---------------------------------------------------------------------------------------------------------------------------------');
   L('// TERRANS INDUSTRY V5 PRO — USER PIN MAP  (PINMAP is OFF above; these defines stand in for src/pinmaps/Pins.<board>.h)');
   L('// Stock Pins.MaxESP3.h with the Terrans deltas: AXIS1_DIR_PIN 0->4, AUX2_PIN 4->-1, explicit I2C pins.');
@@ -4442,7 +4478,7 @@ function terransV5ProPinBlock() {
   def('ST4_DEC_S_PIN', 32, 'DE- South');
   def('ST4_DEC_N_PIN', 33, 'DE+ North');
   def('ST4_RA_E_PIN', 35, '[input only] RA+ East');
-  L('');
+  L(TERRANS_PIN_BLOCK_END);
   return out.join('\n');
 }
 
@@ -4744,7 +4780,7 @@ function generateConfig() {
   // Board pin map for PINMAPs that OnStepX ships no Pins.<board>.h for.
   // Emitted last so it lands where src/pinmaps/Models.h would have pulled the
   // board file in, and so every macro it references is already defined above.
-  if (isTerrans) L(terransV5ProPinBlock());
+  if (isTerrans) { L(''); L(terransV5ProPinBlock()); }
   L('');
   L('// ---------------------------------------------------------------------------------------------------------------------------------');
   L('#define FileVersionConfig 6');
@@ -6500,6 +6536,10 @@ function patchFormFieldsIntoConfig(rawText) {
     if (!el) return line;
     let newValue = String(el.value ?? '').trim();
     if (!newValue) return line; // empty form field — leave original alone
+    // TERRANS_V5PRO is a configurator-only token; OnStepX only accepts a board
+    // from Constants.h or OFF. The board's pins ride along in the generated pin
+    // block instead (syncTerransPinBlock, called by the generateConfig override).
+    if (name === 'PINMAP' && newValue === 'TERRANS_V5PRO') newValue = 'OFF';
     // Preserve quoted strings
     const hadQuotes = currentValue.startsWith('"');
     if (hadQuotes && !newValue.startsWith('"')) newValue = `"${newValue}"`;
@@ -6528,7 +6568,16 @@ window.generateConfig = function () {
 
   if (hasDefines) {
     // Patch mode — keep imported / hand-edited content intact.
-    outEl.value = patchFormFieldsIntoConfig(existing);
+    let text = patchFormFieldsIntoConfig(existing);
+    // Boards with no upstream Pins.<board>.h carry their pin map inside
+    // Config.h, so it has to be added, refreshed or stripped here too —
+    // patchFormFieldsIntoConfig only ever rewrites values on lines that
+    // already exist.
+    if (window.currentMode !== 'shc' && window.currentMode !== 'sws') {
+      const wantTerrans = document.getElementById('PINMAP')?.value === 'TERRANS_V5PRO';
+      text = syncTerransPinBlock(text, wantTerrans);
+    }
+    outEl.value = text;
     setConfigSource('Form values patched into existing Config.h — other #defines preserved');
     return outEl.value;
   }
