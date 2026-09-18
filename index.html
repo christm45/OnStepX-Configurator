@@ -5402,8 +5402,29 @@ const BOARD_DEFAULTS = {
       // both OFF; keep that.
       STATUS_LED: 'OFF',
       STATUS_BUZZER: 'OFF',
+      // LIMIT_SENSE defaults to LOW page-wide, which would arm limit-switch
+      // sensing on LIMIT_SENSE_PIN = AUX7_PIN = GPIO39. GPIO34..39 are
+      // input-only on the ESP32 and have no internal pull-up, so with nothing
+      // wired there the pin floats and a stray low reading reads as "limit
+      // tripped" — the mount then refuses to slew, which on a first flash
+      // looks exactly like broken firmware. Terrans ships it OFF.
+      LIMIT_SENSE: 'OFF',
+      // Best signal integrity, and what Terrans ships. PULSE (the page default)
+      // buys step rate the EXOS2 doesn't need.
+      STEP_WAVE_FORM: 'SQUARE',
+      // Inert while STATUS_BUZZER is OFF, but keep them consistent with it.
+      STATUS_BUZZER_DEFAULT: 'OFF',
+      STATUS_BUZZER_MEMORY: 'OFF',
       // --- Mount ---
       MOUNT_TYPE: 'GEM',
+      MOUNT_COORDS: 'TOPOCENTRIC',   // applies refraction, as Terrans ships
+      // Behaviour the stock firmware has: tracking starts at power-on and the
+      // rate / meridian-flip / pier-side choices survive a power cycle. Users
+      // updating from stock would otherwise report these as regressions.
+      TRACK_AUTOSTART: 'ON',
+      SLEW_RATE_MEMORY: 'ON',
+      MFLIP_AUTOMATIC_MEMORY: 'ON',
+      PIER_SIDE_PREFERRED_MEMORY: 'ON',
       ST4_INTERFACE: 'ON',
       ST4_HAND_CONTROL: 'ON',          // required for the Terrans SHC pendant
       ST4_HAND_CONTROL_FOCUSER: 'ON',
