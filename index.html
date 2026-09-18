@@ -5412,6 +5412,10 @@ const BOARD_DEFAULTS = {
       SLEW_RAPID_STOP_DIST: '1.5',
       AXIS1_LIMIT_MIN: '-180',
       AXIS1_LIMIT_MAX: '180',
+      // The page-wide Axis2 defaults (0 .. 80) would fence off the southern
+      // half of the sky on a GEM. Terrans ships -90 .. 90; match them.
+      AXIS2_LIMIT_MIN: '-90',
+      AXIS2_LIMIT_MAX: '90',
       // --- Axis1 / Axis2 ---
       AXIS1_DRIVER_MODEL: 'TMC2225S', AXIS2_DRIVER_MODEL: 'TMC2225S',
       AXIS1_REVERSE: 'ON', AXIS2_REVERSE: 'ON',
@@ -5436,6 +5440,12 @@ const BOARD_DEFAULTS = {
       calc_a1_worm: '144', calc_a1_pulley: '3',
       calc_a2_motor_steps: '200', calc_a2_microsteps: '32',
       calc_a2_worm: '144', calc_a2_pulley: '3',
+      // calcSlew() pushes this into SLEW_RATE_BASE_DESIRED. The page default
+      // of 3 deg/s is what the electronics can clock out, not what an EXOS2
+      // will actually track without losing steps — Terrans ships 2.0, and a
+      // first-flash GOTO that stalls looks like a broken firmware. Users with
+      // a lighter load can raise it on the Calculator tab (or at run time).
+      calc_slew_rate: '2',
     },
   },
   MaxESP3: {
