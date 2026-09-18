@@ -231,7 +231,7 @@ window.I18N_FR = Object.assign(window.I18N_FR || {}, {
   "— BTT SKR PRO V1.2.": "— BTT SKR PRO V1.2.",
   "— ESP32 only in practice (needs WiFi). Make sure your on the Controller tab is or , otherwise the plugin will compile but the radio won't come up. Configure SSID / password in the plugin's own (we don't expose those fields in this configurator yet — you can edit the generated config after compile, or fork OnStepX-Plugins).": "— ESP32 uniquement en pratique (nécessite le WiFi). Assurez-vous que votre réglage dans l'onglet Contrôleur est ou , sinon le plugin compilera mais la radio ne démarrera pas. Configurez le SSID / mot de passe dans la config propre du plugin (nous n'exposons pas encore ces champs dans ce configurateur — vous pouvez éditer la config générée après la compilation, ou forker OnStepX-Plugins).",
   "— ESP32 only. Exposes a Prometheus-compatible endpoint; you need a scraper running somewhere.": "— ESP32 uniquement. Expose un point d'accès compatible Prometheus ; il vous faut un collecteur (scraper) qui tourne quelque part.",
-  "— MaxESP3, MaxESP4, FYSETC_E4, CNC3 (WeMos D1 R32 — deprecated), generic dev boards.": "— MaxESP3, MaxESP4, FYSETC_E4, CNC3 (WeMos D1 R32 — déprécié), cartes de dev génériques.",
+  "— MaxESP3, MaxESP4, FYSETC_E4, Terrans Industry V5 Pro (⚠ support under test), CNC3 (WeMos D1 R32 — deprecated), generic dev boards.": "— MaxESP3, MaxESP4, FYSETC_E4, CNC3 (WeMos D1 R32 — déprécié), cartes de dev génériques.",
   "— MaxPCB4.": "— MaxPCB4.",
   "— MaxSTM3.": "— MaxSTM3.",
   "— MiniPCB v1 (embed-in-mount) and MiniPCB v2 (stand-alone case).": "— MiniPCB v1 (intégrée dans la monture) et MiniPCB v2 (boîtier autonome).",

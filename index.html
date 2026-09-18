@@ -1183,9 +1183,7 @@
         This board profile was derived from source, <b>not yet verified by flashing real hardware</b>.
         A tester has volunteered and this notice will be removed once a build has been confirmed
         working on an actual V5 Pro. Until then: read the generated Config.h before you flash, and
-        keep a copy of your working firmware.<br>
-        <i>Ce profil de carte a été déduit des sources, <b>pas encore validé par un flash sur matériel
-        réel</b>. Un testeur s'en charge ; cet avertissement disparaîtra une fois un build confirmé.</i>
+        keep a copy of your working firmware.
       </div>
       <div style="font-weight:bold; color:var(--green); margin-bottom:4px;">What this profile does</div>
       <ul style="margin-left:18px; color:var(--label);">
@@ -6651,10 +6649,12 @@ const relevantIds = [
   'MOUNT_COORDS_MEMORY', 'MOUNT_ENABLE_IN_STANDBY',
   'TRACK_AUTOSTART', 'ST4_INTERFACE', 'ST4_HAND_CONTROL',
   'GUIDE_DISABLE_BACKLASH', 'GOTO_FEATURE',
-  'AXIS1_DRIVER_MODEL', 'AXIS1_DRIVER_MICROSTEPS', 'AXIS1_STEPS_PER_DEGREE',
+  'AXIS1_DRIVER_MODEL', 'AXIS1_DRIVER_MICROSTEPS', 'AXIS1_DRIVER_MICROSTEPS_GOTO',
+  'AXIS1_STEPS_PER_DEGREE',
   'AXIS1_DRIVER_IRUN', 'AXIS1_DRIVER_IHOLD',
   'AXIS1_LIMIT_MIN', 'AXIS1_LIMIT_MAX', 'AXIS1_REVERSE', 'AXIS1_POWER_DOWN',
-  'AXIS2_DRIVER_MODEL', 'AXIS2_DRIVER_MICROSTEPS', 'AXIS2_STEPS_PER_DEGREE',
+  'AXIS2_DRIVER_MODEL', 'AXIS2_DRIVER_MICROSTEPS', 'AXIS2_DRIVER_MICROSTEPS_GOTO',
+  'AXIS2_STEPS_PER_DEGREE',
   'AXIS2_DRIVER_IRUN', 'AXIS2_DRIVER_IHOLD',
   'AXIS2_LIMIT_MIN', 'AXIS2_LIMIT_MAX', 'AXIS2_REVERSE', 'AXIS2_POWER_DOWN',
   'AXIS3_DRIVER_MICROSTEPS', 'AXIS3_DRIVER_IRUN', 'AXIS3_DRIVER_IHOLD',
@@ -7453,6 +7453,7 @@ window.flashBoard = async function () {
 <script src="i18n-fr-6.js?v=5"></script>
 <script src="i18n-fr-7.js?v=5"></script>
 <script src="i18n-fr-8.js?v=5"></script>
+<script src="i18n-fr-terrans.js?v=5"></script>
 <script src="i18n.js?v=5"></script>
 </body>
 </html>

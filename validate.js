@@ -74,6 +74,24 @@ const PINMAPS_LED_BUZZER_SHARED_PIN = new Set([
   'MaxESP3', 'MaxESP4', 'FYSETC_E4', 'TERRANS_V5PRO',
 ]);
 
+// PINMAPs whose Pins.<Board>.h wires AXIS1_M0/M1 and AXIS2_M0/M1 to the SAME
+// GPIOs. On a standalone (non-UART, non-SPI) driver those pins are what sets
+// the microstep mode, so the two axes physically cannot hold different
+// settings — whichever driver writes the pins last wins for both, while the
+// firmware keeps doing per-axis step maths with the value each axis was
+// configured with. One axis then moves by the wrong factor, silently: it
+// compiles, and OnStepX has no check for it.
+//   MaxESP3 / TERRANS_V5PRO: AXIS1_M0=AXIS2_M0=GPIO13, AXIS1_M1=AXIS2_M1=GPIO14
+// MaxESP4 is NOT affected — its M0/M1 are OFF (hardwired TMC UART addresses).
+const PINMAPS_SHARED_MICROSTEP_PINS = new Set(['MaxESP3', 'TERRANS_V5PRO']);
+
+// Driver models that take their microstep mode from the M0/M1 pins rather than
+// over UART/SPI. Only these are affected by the shared-pin problem above.
+const STANDALONE_DRIVERS = new Set([
+  'A4988', 'DRV8825', 'LV8729', 'S109', 'GENERIC',
+  'TMC2100', 'TMC2130S', 'TMC2208S', 'TMC2225S', 'TMC2209S', 'TMC2226S',
+]);
+
 // OnStepX plugin → required SERIAL_RADIO mode. Plugins that need WiFi
 // fail at compile time with a #error from the plugin's own Validate.h
 // when SERIAL_RADIO is anything else (including BLUETOOTH).
@@ -287,6 +305,42 @@ export function validateConfig(values) {
         add('error', key,
           `${key}=${v} won't work on PINMAP=${values.PINMAP}. ${noUartReason} ` +
           `Switch ${key} to a supported model, or pick a different PINMAP.`);
+      }
+    }
+  }
+
+  // Shared M0/M1 microstep pins: Axis1 and Axis2 must agree, both while
+  // tracking and during gotos. See PINMAPS_SHARED_MICROSTEP_PINS above.
+  if (PINMAPS_SHARED_MICROSTEP_PINS.has(values.PINMAP)) {
+    const m1 = values.AXIS1_DRIVER_MODEL;
+    const m2 = values.AXIS2_DRIVER_MODEL;
+    const bothStandalone =
+      m1 && m2 && STANDALONE_DRIVERS.has(m1) && STANDALONE_DRIVERS.has(m2);
+    if (bothStandalone) {
+      const why =
+        `On PINMAP=${values.PINMAP} both drivers share the same M0/M1 microstep pins ` +
+        `(GPIO13/GPIO14), so Axis1 and Axis2 cannot run at different microstep settings — ` +
+        `the hardware would follow one value while the firmware still computes steps with ` +
+        `the other, and one axis would move by the wrong factor.`;
+      const t1 = values.AXIS1_DRIVER_MICROSTEPS;
+      const t2 = values.AXIS2_DRIVER_MICROSTEPS;
+      const trackingDiffers = t1 && t2 && t1 !== 'OFF' && t2 !== 'OFF' && t1 !== t2;
+      if (trackingDiffers) {
+        add('error', 'AXIS2_DRIVER_MICROSTEPS',
+          `AXIS1_DRIVER_MICROSTEPS=${t1} but AXIS2_DRIVER_MICROSTEPS=${t2}. ${why} ` +
+          `Set both axes to the same value on the Calculator tab.`);
+      }
+      // "OFF" on a _GOTO field means "same as tracking", so compare the
+      // effective values rather than the raw ones.
+      const effective = (goto_, track) => (!goto_ || goto_ === 'OFF') ? track : goto_;
+      const g1 = effective(values.AXIS1_DRIVER_MICROSTEPS_GOTO, t1);
+      const g2 = effective(values.AXIS2_DRIVER_MICROSTEPS_GOTO, t2);
+      // Skip when the tracking values already differ — same root cause, and
+      // one message per problem reads better than two.
+      if (!trackingDiffers && g1 && g2 && g1 !== g2) {
+        add('error', 'AXIS2_DRIVER_MICROSTEPS_GOTO',
+          `During gotos Axis1 would run at ${g1} microsteps and Axis2 at ${g2}. ${why} ` +
+          `Give both axes the same goto microsteps, or leave both OFF.`);
       }
     }
   }
