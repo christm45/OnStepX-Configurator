@@ -5471,6 +5471,15 @@ const BOARD_DEFAULTS = {
       // first-flash GOTO that stalls looks like a broken firmware. Users with
       // a lighter load can raise it on the Calculator tab (or at run time).
       calc_slew_rate: '2',
+      // No microstep switching during GOTO, matching Terrans. This pin map
+      // shares M0/M1 (GPIO13/14) between Axis1 and Axis2, so the two axes
+      // physically cannot hold different microstep settings: whichever driver
+      // writes those pins last wins for both. Keeping the switch off removes
+      // the only situation where the firmware's per-axis step maths and the
+      // shared strapping could disagree. calc_a1_goto_us '0' means "same as
+      // tracking"; Axis2's field spells that OFF.
+      calc_a1_goto_us: '0',
+      AXIS2_DRIVER_MICROSTEPS_GOTO: 'OFF',
     },
   },
   MaxESP3: {
@@ -5945,8 +5954,12 @@ window.applyBoardDefaults = async function () {
   // (focuser) has no geometry calc, so its board-default microsteps still apply.
   const CALC_OWNED = new Set([
     'AXIS1_DRIVER_MICROSTEPS', 'AXIS1_DRIVER_MICROSTEPS_GOTO',
-    'AXIS2_DRIVER_MICROSTEPS', 'AXIS2_DRIVER_MICROSTEPS_GOTO',
-    'AXIS3_DRIVER_MICROSTEPS', 'AXIS3_DRIVER_MICROSTEPS_GOTO',
+    'AXIS2_DRIVER_MICROSTEPS',
+    'AXIS3_DRIVER_MICROSTEPS',
+    // AXIS2/AXIS3_DRIVER_MICROSTEPS_GOTO used to be listed here too, but no
+    // calculator writes them — calcSlew() only drives the Axis1 one, from
+    // calc_a1_goto_us. Listing them meant no board profile could ever set
+    // them, and they silently kept the page default instead.
   ]);
 
   const existing = Object.keys(entry.fields)
