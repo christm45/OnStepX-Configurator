@@ -5410,7 +5410,11 @@ const BOARD_DEFAULTS = {
       // looks exactly like broken firmware. Terrans ships it OFF.
       LIMIT_SENSE: 'OFF',
       // Best signal integrity, and what Terrans ships. PULSE (the page default)
-      // buys step rate the EXOS2 doesn't need.
+      // buys step rate the EXOS2 doesn't need. calcSlew() transports
+      // calc_wave_form into STEP_WAVE_FORM and runs after this splat, so the
+      // Calculator input is the one that actually decides — set both so they
+      // agree instead of flip-flopping.
+      calc_wave_form: 'SQUARE',
       STEP_WAVE_FORM: 'SQUARE',
       // Inert while STATUS_BUZZER is OFF, but keep them consistent with it.
       STATUS_BUZZER_DEFAULT: 'OFF',
