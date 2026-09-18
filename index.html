@@ -1143,6 +1143,7 @@
         <option value="MaxSTM3" selected>MaxSTM3 (STM32F411 BlackPill)</option>
         <option value="MaxSTM3I">MaxSTM3I (STM32F411 + onboard M24C64 EEPROM)</option>
         <option value="FYSETC_E4">FYSETC_E4 (ESP32) — beginner-friendly all-in-one</option>
+        <option value="TERRANS_V5PRO">Terrans Industry V5 Pro (ESP32) — ⚠ UNDER TEST / EN TEST</option>
         <option value="FYSETC_S6">FYSETC_S6 V1.2 (STM32F446VE) — 6-axis 3D-printer board</option>
         <option value="FYSETC_S6_2">FYSETC_S6 V2.0 (STM32F446VE) — 6-axis, V2 connector layout</option>
         <option value="CNC3">CNC3 — WeMos D1 R32 (ESP32) — Deprecated</option>
@@ -1155,8 +1156,11 @@
         <code>MaxPCB4</code> pinmap — the difference is on-PCB wiring, not the firmware constant.
         Same goes for MaxESP4i: pick <code>MaxESP4</code> here and set <code>NV_DRIVER=NV_MB85RC64</code>
         below for the FRAM variant. Teensy 3.2 / 4.1 boards flash one-click via WebHID; ESP32 boards
-        (MaxESP3/4, FYSETC_E4, CNC3) flash via WebSerial; BTT_SKR_PRO flashes via WebUSB DFU
-        (BOOT0 jumper + reset). CNC3 is deprecated — see the OnStep wiki for alternatives.
+        (MaxESP3/4, FYSETC_E4, Terrans V5 Pro, CNC3) flash via WebSerial; BTT_SKR_PRO flashes via
+        WebUSB DFU (BOOT0 jumper + reset). CNC3 is deprecated — see the OnStep wiki for alternatives.
+        <b>Terrans Industry V5 Pro</b> is not an upstream OnStepX pinmap: picking it emits
+        <code>#define PINMAP OFF</code> plus the board's own pin map inline in Config.h (a path OnStepX
+        supports explicitly). <b>It has not been flashed on real hardware yet</b> — see the warning box.
       </span><span class="config-comment">// Choose from: MiniPCB, MiniPCB2, MaxPCB4, MaxESP4, MaxSTM3, FYSETC_E4,</span>
     </div>
     <div class="field-row">
@@ -1167,6 +1171,54 @@
         Apply board defaults
       </button>
       <span class="field-hint" id="applyBoardDefaultsHint" data-no-i18n>Fill in driver model, microsteps, current, etc. for the selected PINMAP</span>
+    </div>
+
+    <!-- Context box for the Terrans Industry V5 Pro. Shown only when
+         PINMAP=TERRANS_V5PRO. Toggled by autoPinRefForPinmap(). -->
+    <div id="terransBox" style="display:none; margin:10px 0 2px; padding:10px 12px; background:rgba(200,140,60,0.12); border-left:3px solid var(--warn); border-radius:0; font-size:0.85em;">
+      <div style="font-weight:bold; color:var(--warn); margin-bottom:6px;">
+        ⚠ Terrans Industry V5 Pro — support UNDER TEST / support EN COURS DE TEST
+      </div>
+      <div style="color:var(--label); margin-bottom:8px;">
+        This board profile was derived from source, <b>not yet verified by flashing real hardware</b>.
+        A tester has volunteered and this notice will be removed once a build has been confirmed
+        working on an actual V5 Pro. Until then: read the generated Config.h before you flash, and
+        keep a copy of your working firmware.<br>
+        <i>Ce profil de carte a été déduit des sources, <b>pas encore validé par un flash sur matériel
+        réel</b>. Un testeur s'en charge ; cet avertissement disparaîtra une fois un build confirmé.</i>
+      </div>
+      <div style="font-weight:bold; color:var(--green); margin-bottom:4px;">What this profile does</div>
+      <ul style="margin-left:18px; color:var(--label);">
+        <li>Emits <code style="color:var(--green);">#define PINMAP OFF</code> and appends the V5 Pro pin
+          map directly to Config.h. OnStepX supports this: <code>src/Validate.h</code> reads
+          <i>"PINMAP must be set to a valid board (from Constants.h) or OFF (for user pin defs in
+          Config.h)"</i>. No build-service or firmware-source change is involved.</li>
+        <li>The pin map is stock <code style="color:var(--green);">Pins.MaxESP3.h</code> with the three
+          changes Terrans made on this hardware:
+          <code>AXIS1_DIR_PIN</code> 0&nbsp;→&nbsp;<b>4</b> (GPIO0 is the ESP32 boot-strap pin here),
+          <code>AUX2_PIN</code> 4&nbsp;→&nbsp;<b>-1</b> (GPIO4 is now AXIS1 DIR, so AUX2 is freed), and
+          <code>I2C_SDA_PIN</code>/<code>I2C_SCL_PIN</code> stated explicitly as 21/22.</li>
+        <li>Stock drivers are <b>TMC2225 "Dual V2" modules strapped standalone</b>, so the driver model is
+          <code style="color:var(--green);">TMC2225S</code> — step/dir, microsteps set on M0/M1, run
+          current set in hardware (the <code>IRUN</code>/<code>IHOLD</code> fields do nothing).
+          TMC UART models will not compile on this profile.</li>
+      </ul>
+      <div style="font-weight:bold; color:var(--warn); margin:8px 0 4px;">Before you flash</div>
+      <ul style="margin-left:18px; color:var(--label);">
+        <li><b>Set the board's switch to the ESP32 position</b> (left) before flashing, and put it back to
+          centre afterwards. The V5 Pro shares one USB port between the ESP32 and the ESP8266.</li>
+        <li><b>Do not reflash the ESP8266.</b> Terrans ships a customised SmartWebServer on it; this
+          profile only rebuilds the ESP32 (OnStepX) half, which is all that's needed for the newer
+          OnStepX features.</li>
+        <li>Settings stored in NV are not migrated — expect to redo date/time, site and alignment.</li>
+        <li>Steps/degree defaults (7680) are for the <b>EXOS2 / CG5 / EQ5</b> class: 200 steps × 32
+          microsteps × 3:1 belt × 144:1 worm ÷ 360. <b>EQ3D and the V5 Lite / V4 Pro are different
+          boards</b> — do not assume this profile fits them.</li>
+      </ul>
+      <div style="margin-top:8px; color:var(--label);">
+        Reference build proving this config compiles against current OnStepX:
+        <a href="https://github.com/im-0/terrans-industry-onstep-firmware" target="_blank" style="color:var(--green);">im-0/terrans-industry-onstep-firmware</a>.
+      </div>
     </div>
   </div>
   <div class="section">
@@ -1325,6 +1377,12 @@
         <option value="TMC2226">TMC2226 (UART) — SMD equiv. of TMC2209</option>
         <option value="TMC2208">TMC2208 (UART) ⚠ legacy — no stall detect</option>
         <option value="TMC2225">TMC2225 (UART) ⚠ legacy — no stall detect</option>
+        <option value="TMC2225S">TMC2225S — standalone TMC2225 (Terrans V5 Pro stock)</option>
+        <option value="TMC2209S">TMC2209S — standalone TMC2209 (step/dir, no UART)</option>
+        <option value="TMC2226S">TMC2226S — standalone TMC2226 (step/dir, no UART)</option>
+        <option value="TMC2208S">TMC2208S — standalone TMC2208 (step/dir, no UART)</option>
+        <option value="TMC2130S">TMC2130S — standalone TMC2130 (step/dir, no SPI)</option>
+        <option value="TMC2100">TMC2100 — standalone only (spreadCycle, max 16x)</option>
         <option value="SERVO_PE">SERVO_PE — DC servo, phase + enable PWM</option>
         <option value="SERVO_EE">SERVO_EE — DC servo, dual PWM (enable/enable)</option>
         <option value="SERVO_TMC2209">SERVO_TMC2209 — closed-loop TMC2209 (VACTUAL)</option>
@@ -1458,6 +1516,12 @@
         <option value="TMC2226">TMC2226 (UART) — SMD equiv. of TMC2209</option>
         <option value="TMC2208">TMC2208 (UART) ⚠ legacy — no stall detect</option>
         <option value="TMC2225">TMC2225 (UART) ⚠ legacy — no stall detect</option>
+        <option value="TMC2225S">TMC2225S — standalone TMC2225 (Terrans V5 Pro stock)</option>
+        <option value="TMC2209S">TMC2209S — standalone TMC2209 (step/dir, no UART)</option>
+        <option value="TMC2226S">TMC2226S — standalone TMC2226 (step/dir, no UART)</option>
+        <option value="TMC2208S">TMC2208S — standalone TMC2208 (step/dir, no UART)</option>
+        <option value="TMC2130S">TMC2130S — standalone TMC2130 (step/dir, no SPI)</option>
+        <option value="TMC2100">TMC2100 — standalone only (spreadCycle, max 16x)</option>
         <option value="SERVO_PE">SERVO_PE — DC servo, phase + enable PWM</option>
         <option value="SERVO_EE">SERVO_EE — DC servo, dual PWM (enable/enable)</option>
         <option value="SERVO_TMC2209">SERVO_TMC2209 — closed-loop TMC2209 (VACTUAL)</option>
@@ -1882,6 +1946,12 @@
         <option value="TMC2226">TMC2226 (UART) — SMD equiv. of TMC2209</option>
         <option value="TMC2208">TMC2208 (UART) ⚠ legacy — no stall detect</option>
         <option value="TMC2225">TMC2225 (UART) ⚠ legacy — no stall detect</option>
+        <option value="TMC2225S">TMC2225S — standalone TMC2225 (Terrans V5 Pro stock)</option>
+        <option value="TMC2209S">TMC2209S — standalone TMC2209 (step/dir, no UART)</option>
+        <option value="TMC2226S">TMC2226S — standalone TMC2226 (step/dir, no UART)</option>
+        <option value="TMC2208S">TMC2208S — standalone TMC2208 (step/dir, no UART)</option>
+        <option value="TMC2130S">TMC2130S — standalone TMC2130 (step/dir, no SPI)</option>
+        <option value="TMC2100">TMC2100 — standalone only (spreadCycle, max 16x)</option>
         <option value="SERVO_PE">SERVO_PE — DC servo, phase + enable PWM</option>
         <option value="SERVO_EE">SERVO_EE — DC servo, dual PWM (enable/enable)</option>
       </select>
@@ -2003,6 +2073,12 @@
         <option value="TMC2226">TMC2226 (UART) — SMD equiv. of TMC2209</option>
         <option value="TMC2208">TMC2208 (UART) ⚠ legacy — no stall detect</option>
         <option value="TMC2225">TMC2225 (UART) ⚠ legacy — no stall detect</option>
+        <option value="TMC2225S">TMC2225S — standalone TMC2225 (Terrans V5 Pro stock)</option>
+        <option value="TMC2209S">TMC2209S — standalone TMC2209 (step/dir, no UART)</option>
+        <option value="TMC2226S">TMC2226S — standalone TMC2226 (step/dir, no UART)</option>
+        <option value="TMC2208S">TMC2208S — standalone TMC2208 (step/dir, no UART)</option>
+        <option value="TMC2130S">TMC2130S — standalone TMC2130 (step/dir, no SPI)</option>
+        <option value="TMC2100">TMC2100 — standalone only (spreadCycle, max 16x)</option>
         <option value="SERVO_PE">SERVO_PE — DC servo, phase + enable PWM</option>
         <option value="SERVO_EE">SERVO_EE — DC servo, dual PWM (enable/enable)</option>
       </select>
@@ -2762,7 +2838,7 @@
     <div class="field-row">
       <label class="field-label">Target MCU <span class="hint-tag hint-reqd">Req'd</span></label>
       <select id="COMPILE_ENV">
-        <option value="esp32">ESP32 (MaxESP3, MaxESP4, FYSETC_E4, …)</option>
+        <option value="esp32">ESP32 (MaxESP3, MaxESP4, FYSETC_E4, Terrans V5 Pro, …)</option>
         <option value="teensy32">Teensy 3.2 (MiniPCB v1 / v2)</option>
         <option value="teensy40">Teensy 4.0</option>
         <option value="teensy41">Teensy 4.1 / MaxPCB4</option>
@@ -3297,7 +3373,7 @@
       so you don't waste a 2-minute build on an obvious oversight:</p>
     <ul>
       <li><b>PINMAP &harr; MCU match</b> &mdash; every PINMAP is pinned to a specific MCU family in the
-        validator. Current map: MaxESP3/MaxESP4/FYSETC_E4 &rarr; <code>esp32</code>; MaxPCB4 &rarr;
+        validator. Current map: MaxESP3/MaxESP4/FYSETC_E4/TERRANS_V5PRO &rarr; <code>esp32</code>; MaxPCB4 &rarr;
         <code>teensy41</code>; CNC3 (WeMos D1 R32) &rarr; <code>esp32</code>; MiniPCB (v1 / v2) &rarr;
         <code>teensy32</code> by default — switch the Compile-tab MCU to <code>teensy40</code> if you
         have a Teensy 4.0 mounted; MaxSTM3 / MaxSTM3I &rarr; <code>blackpill_f411</code>;
@@ -3437,7 +3513,7 @@ GitHub Actions runner:
   <div class="section help-body" id="help-boards">
     <div class="section-title">8 &middot; Board-by-board USB preparation</div>
 
-    <h4>ESP32 (MaxESP3, MaxESP4, FYSETC_E4, generic ESP32 dev boards)</h4>
+    <h4>ESP32 (MaxESP3, MaxESP4, FYSETC_E4, Terrans V5 Pro, generic ESP32 dev boards)</h4>
     <ol>
       <li>Connect USB. Most dev boards (and MaxESP*) auto-reset into bootloader when esptool grabs the port.</li>
       <li>If auto-reset fails: hold <kbd>BOOT</kbd> / <kbd>IO0</kbd>, tap <kbd>EN</kbd> / <kbd>RST</kbd>,
@@ -3768,7 +3844,7 @@ teensy_loader_cli --mcu=TEENSY40 -w -v firmware.hex   # 4.0</pre>
     <p>Everything in the <code>PINMAP</code> dropdown is wired to a matching PlatformIO env on the build
       side. Today that covers:</p>
     <ul>
-      <li><b>ESP32</b> &mdash; MaxESP3, MaxESP4, FYSETC_E4, CNC3 (WeMos D1 R32 &mdash; deprecated), generic dev boards.</li>
+      <li><b>ESP32</b> &mdash; MaxESP3, MaxESP4, FYSETC_E4, Terrans Industry V5 Pro (&#9888; support under test), CNC3 (WeMos D1 R32 &mdash; deprecated), generic dev boards.</li>
       <li><b>Teensy 3.2 / 4.0</b> &mdash; MiniPCB v1 (embed-in-mount) and MiniPCB v2 (stand-alone case).</li>
       <li><b>Teensy 4.1</b> &mdash; MaxPCB4.</li>
       <li><b>STM32F411 BlackPill</b> &mdash; MaxSTM3.</li>
@@ -4233,6 +4309,143 @@ function pad(name, val, def, comment) {
   return padded + valStr + ' // ' + def.padEnd(8) + comment;
 }
 
+// ---------------------------------------------------------------------------
+// Terrans Industry V5 Pro user pin map.
+//
+// TERRANS_V5PRO is a configurator-only PINMAP token: upstream OnStepX has no
+// Pins.Terrans*.h, and our build service only ever injects Config.h — it never
+// patches files under src/pinmaps/. OnStepX covers exactly this case: with
+// `#define PINMAP OFF`, src/pinmaps/Models.h includes no board file and
+// Pins.defaults.h leaves every pin to the user (src/Validate.h spells it out:
+// "PINMAP must be set to a valid board (from Constants.h) or OFF (for user pin
+// defs in Config.h)"). So we emit the board's pin map inline instead.
+//
+// Content = stock Pins.MaxESP3.h @ hjd1964/OnStepX main, with the three deltas
+// Terrans made on this hardware (verified by diffing their shipped pinmap):
+//   AXIS1_DIR_PIN  0 -> 4    GPIO0 is the ESP32 boot-strap pin on this board
+//   AUX2_PIN       4 -> -1   GPIO4 is now AXIS1 DIR, so AUX2 is freed
+//   I2C_SDA/SCL_PIN          stated explicitly as 21/22
+//
+// The pinmap's own `#if` guards can't be reproduced verbatim here: OFF/ON and
+// STEP_DIR_TMC_UART_PRESENT come from src/lib/Constants.h and
+// Config.defaults.h, which the preprocessor only reaches AFTER Config.h — an
+// `#if AXIS4_POWER_DOWN != ON` at this point would compare 0 against 0 and take
+// the wrong branch. So the conditionals are resolved here in JS from the form
+// values and the emitted block is unconditional. Consequence: the block is a
+// snapshot — re-generate Config.h after changing SERIAL_A/B baud or
+// AXIS4_POWER_DOWN rather than hand-editing the textarea.
+//
+// The TMC UART section of the pinmap is deliberately NOT emitted: SERIAL_TMC is
+// gated on STEP_DIR_TMC_UART_PRESENT, which doesn't exist yet at Config.h time.
+// validate.js blocks TMC UART driver models on this PINMAP for that reason.
+// ---------------------------------------------------------------------------
+function terransV5ProPinBlock() {
+  const out = [];
+  const L = (t) => out.push(t);
+  const def = (name, val, comment) => {
+    const line = '#define ' + name + ' '.repeat(Math.max(1, 24 - name.length)) + String(val);
+    L(comment ? line.padEnd(48) + '// ' + comment : line);
+  };
+  const on = (id) => (document.getElementById(id)?.value || 'OFF') === 'ON';
+  const off = (id) => (document.getElementById(id)?.value || 'OFF') === 'OFF';
+
+  L('');
+  L('// ---------------------------------------------------------------------------------------------------------------------------------');
+  L('// TERRANS INDUSTRY V5 PRO — USER PIN MAP  (PINMAP is OFF above; these defines stand in for src/pinmaps/Pins.<board>.h)');
+  L('// Stock Pins.MaxESP3.h with the Terrans deltas: AXIS1_DIR_PIN 0->4, AUX2_PIN 4->-1, explicit I2C pins.');
+  L('// Generated by the OnStepX Configurator — re-generate rather than hand-edit if you change serial baud or AXIS4_POWER_DOWN.');
+  L('// ---------------------------------------------------------------------------------------------------------------------------------');
+  L('');
+  L('// Serial0: RX GPIO3 / TX GPIO1 (USB). Serial2: RX2 GPIO16 / TX2 GPIO17 (on-board ESP8266 running SmartWebServer).');
+  if (!off('SERIAL_A_BAUD_DEFAULT')) def('SERIAL_A', 'Serial');
+  if (!off('SERIAL_B_BAUD_DEFAULT')) {
+    def('SERIAL_B', 'Serial2');
+    def('SERIAL_B_RX', 16);
+    def('SERIAL_B_TX', 17);
+  }
+  L('');
+  L('// ESP32 I2C pins');
+  def('I2C_SDA_PIN', 21);
+  def('I2C_SCL_PIN', 22);
+  L('');
+  L('// Multi-purpose pins');
+  def('AUX2_PIN', -1, 'GPIO4 upstream; GPIO4 is AXIS1 DIR on this board');
+  def('AUX3_PIN', 21, 'Home SW for Axis1, or I2C SDA');
+  def('AUX4_PIN', 22, 'Home SW for Axis2, or I2C SCL');
+  def('AUX7_PIN', 39, 'Limit SW, PPS, etc.');
+  def('AUX8_PIN', 25, '1-Wire, Status LED, Reticle LED, Tone, etc.');
+  L('');
+  L('// Misc. pins');
+  def('ONE_WIRE_PIN', 'AUX8_PIN');
+  def('ADDON_GPIO0_PIN', 26, 'ESP8266 GPIO0 (shared with Axis2 DIR)');
+  def('ADDON_RESET_PIN', 'AUX2_PIN');
+  def('PEC_SENSE_PIN', 36, '[input only]');
+  def('STATUS_LED_PIN', 'AUX8_PIN');
+  def('MOUNT_LED_PIN', 'STATUS_LED_PIN');
+  def('RETICLE_LED_PIN', 'STATUS_LED_PIN');
+  def('STATUS_BUZZER_PIN', 'AUX8_PIN', 'same pin as STATUS_LED — enable only one');
+  def('PPS_SENSE_PIN', 'AUX7_PIN');
+  def('LIMIT_SENSE_PIN', 'AUX7_PIN');
+  L('');
+  L('#define SHARED_DIRECTION_PINS                    // direction pins are shared');
+  def('SHARED_ENABLE_PIN', 12, '[must be low at boot]');
+  L('');
+  L('// Axis1 RA/Azm step/dir driver');
+  def('AXIS1_ENABLE_PIN', 'SHARED');
+  def('AXIS1_M0_PIN', 13);
+  def('AXIS1_M1_PIN', 14);
+  def('AXIS1_M2_PIN', 23);
+  if (!on('AXIS4_POWER_DOWN')) def('AXIS1_M3_PIN', 'AUX2_PIN');
+  def('AXIS1_STEP_PIN', 18);
+  def('AXIS1_DIR_PIN', 4, 'Terrans change: upstream MaxESP3 uses GPIO0');
+  def('AXIS1_SENSE_HOME_PIN', 'AUX3_PIN');
+  L('');
+  L('// Axis2 Dec/Alt step/dir driver');
+  def('AXIS2_ENABLE_PIN', 'SHARED');
+  def('AXIS2_M0_PIN', 13);
+  def('AXIS2_M1_PIN', 14);
+  def('AXIS2_M2_PIN', 5);
+  if (!on('AXIS4_POWER_DOWN')) def('AXIS2_M3_PIN', 'AUX2_PIN');
+  def('AXIS2_STEP_PIN', 27);
+  def('AXIS2_DIR_PIN', 26);
+  def('AXIS2_SENSE_HOME_PIN', 'AUX4_PIN');
+  L('');
+  L('// Axis3 rotator');
+  def('AXIS3_ENABLE_PIN', 'OFF');
+  def('AXIS3_M0_PIN', 'OFF');
+  def('AXIS3_M1_PIN', 'OFF');
+  def('AXIS3_M2_PIN', 'OFF');
+  def('AXIS3_M3_PIN', 'OFF');
+  def('AXIS3_STEP_PIN', 2, '[must be low at boot]');
+  def('AXIS3_DIR_PIN', 15);
+  L('');
+  L('// Axis4 focuser1');
+  if (on('AXIS4_POWER_DOWN')) def('AXIS4_ENABLE_PIN', 'AUX2_PIN');
+  def('AXIS4_M0_PIN', 'OFF');
+  def('AXIS4_M1_PIN', 'OFF');
+  def('AXIS4_M2_PIN', 'OFF');
+  def('AXIS4_M3_PIN', 'OFF');
+  def('AXIS4_STEP_PIN', 19);
+  def('AXIS4_DIR_PIN', 15);
+  L('');
+  L('// Axis5 focuser2 (shares the Axis3 step/dir lines)');
+  def('AXIS5_ENABLE_PIN', 'OFF');
+  def('AXIS5_M0_PIN', 'OFF');
+  def('AXIS5_M1_PIN', 'OFF');
+  def('AXIS5_M2_PIN', 'OFF');
+  def('AXIS5_M3_PIN', 'OFF');
+  def('AXIS5_STEP_PIN', 2);
+  def('AXIS5_DIR_PIN', 15);
+  L('');
+  L('// ST4 interface');
+  def('ST4_RA_W_PIN', 34, '[input only] RA- West');
+  def('ST4_DEC_S_PIN', 32, 'DE- South');
+  def('ST4_DEC_N_PIN', 33, 'DE+ North');
+  def('ST4_RA_E_PIN', 35, '[input only] RA+ East');
+  L('');
+  return out.join('\n');
+}
+
 // === GENERATE CONFIG ===
 // Build the full OnStepX Config.h text from every Controller/Mount/Axis/Aux
 // form field and write it into the #configOutput textarea (the source of truth
@@ -4260,9 +4473,17 @@ function generateConfig() {
   L(pad('HOST_NAME', q(v('HOST_NAME')), q('nStep'), 'Hostname for this device up to 16 chars.                                 Adjust'));
   L('');
   L('// PINMAP ------------------------------------------------- see https://onstep.groups.io/g/main/wiki/Configuration_Controller#PINMAP');
-  L(pad('PINMAP', v('PINMAP'), 'OFF,', 'Choose from: MiniPCB, MiniPCB2, MaxPCB4, MaxESP3, MaxESP4, MaxSTM3,     <-Req\'d'));
+  // TERRANS_V5PRO is our own token, not an OnStepX one. The firmware gets
+  // PINMAP=OFF and the board's pin map is appended to this file verbatim (see
+  // terransV5ProPinBlock()); every other field on the form behaves normally.
+  const isTerrans = v('PINMAP') === 'TERRANS_V5PRO';
+  L(pad('PINMAP', isTerrans ? 'OFF' : v('PINMAP'), 'OFF,', 'Choose from: MiniPCB, MiniPCB2, MaxPCB4, MaxESP3, MaxESP4, MaxSTM3,     <-Req\'d'));
   L('                                          //         MaxSTM3I, FYSETC_E4, BTT_SKR_PRO, CNC3 (WeMos R32, deprecated), etc.');
   L('                                          //         Other boards and more info. in ~/src/Constants.h');
+  if (isTerrans) {
+    L('                                          //         OFF here = user pin defs in Config.h. This build targets the');
+    L('                                          //         Terrans Industry V5 Pro; its pin map is at the end of this file.');
+  }
   L('');
   L('// SERIAL PORT COMMAND CHANNELS --------------------- see https://onstep.groups.io/g/main/wiki/Configuration_Controller#SERIAL_PORTS');
   L(pad('SERIAL_A_BAUD_DEFAULT', v('SERIAL_A_BAUD_DEFAULT'), '9600,', 'n. Where n=9600,19200,57600,115200,230400,460800 (common baud rates.)    Infreq'));
@@ -4520,6 +4741,10 @@ function generateConfig() {
     L(pad('FEATURE'+n+'_VALUE_MEMORY', v('FEATURE'+n+'_VALUE_MEMORY'), 'OFF,', 'ON remembers state across power cycles.                                 Adjust'));
     L(pad('FEATURE'+n+'_ON_STATE', v('FEATURE'+n+'_ON_STATE'), 'HIGH,', 'LOW to invert so "ON" is 0V and "OFF" is Vcc (3.3V usually.)             Adjust'));
   }
+  // Board pin map for PINMAPs that OnStepX ships no Pins.<board>.h for.
+  // Emitted last so it lands where src/pinmaps/Models.h would have pulled the
+  // board file in, and so every macro it references is already defined above.
+  if (isTerrans) L(terransV5ProPinBlock());
   L('');
   L('// ---------------------------------------------------------------------------------------------------------------------------------');
   L('#define FileVersionConfig 6');
@@ -5109,6 +5334,74 @@ const BOARD_DEFAULTS = {
     liveFetch: 'https://raw.githubusercontent.com/hjd1964/OnStepX/E4/Config.h',
     fields: {}, // applied via live fetch + plugin auto-tick in applyBoardDefaults.
   },
+  // Terrans Industry OnStep V5 Pro (EXOS2 / CG5 / EQ5 class). ⚠ SUPPORT UNDER
+  // TEST — derived from source, not yet confirmed by flashing real hardware.
+  // Sources: Terrans' own Config.h + pin map as shipped in
+  // im-0/terrans-industry-onstep-firmware (which builds green against current
+  // OnStepX main), cross-checked against Pins.MaxESP3.h @ hjd1964/OnStepX main.
+  // Deliberately NOT copied from Terrans' stock config:
+  //   - AXIS3 (rotator): they ship it enabled; a stock kit has no rotator, and
+  //     leaving it on claims GPIO2/15. Enable it yourself if you fitted one.
+  //   - FEATURE2 (the 2.5 mm camera/intervalometer port) on GPIO12: that is the
+  //     same pin as SHARED_ENABLE_PIN (stepper enable) in their own pin map, so
+  //     firing the shutter would also toggle the drivers. Left OFF pending
+  //     confirmation on hardware — see the notes in the Controller tab box.
+  TERRANS_V5PRO: {
+    label: 'Terrans V5 Pro',
+    note: '⚠ UNDER TEST — not yet verified on real hardware. ESP32 half of the Terrans Industry V5 Pro ' +
+          '(the on-board ESP8266 keeps its own SmartWebServer — do not reflash it). PINMAP is emitted as ' +
+          'OFF with the board pin map inlined in Config.h. Stock drivers are TMC2225 "Dual V2" modules ' +
+          'strapped standalone, so the model is TMC2225S: microsteps are set on M0/M1 and run current is ' +
+          'fixed in hardware (IRUN/IHOLD do nothing). Geometry defaults are the EXOS2/CG5/EQ5 class — ' +
+          '200 steps x 32 microsteps x 3:1 belt x 144:1 worm = 7680 steps/deg. Bluetooth is on by default, ' +
+          'matching the stock firmware. Set the board switch to the ESP32 position before flashing.',
+    fields: {
+      // --- Controller ---
+      SERIAL_A_BAUD_DEFAULT: '9600',
+      SERIAL_B_BAUD_DEFAULT: '9600',   // Serial2 -> on-board ESP8266 (SmartWebServer)
+      SERIAL_RADIO: 'BLUETOOTH',       // ESP32 BT SPP, as the stock firmware ships
+      TIME_LOCATION_SOURCE: 'DS3231',  // on-board RTC + coin cell
+      // STATUS_LED and STATUS_BUZZER both land on AUX8_PIN (GPIO25) here, and
+      // OnStepX's Validate.h refuses to compile with both ON. Terrans ships
+      // both OFF; keep that.
+      STATUS_LED: 'OFF',
+      STATUS_BUZZER: 'OFF',
+      // --- Mount ---
+      MOUNT_TYPE: 'GEM',
+      ST4_INTERFACE: 'ON',
+      ST4_HAND_CONTROL: 'ON',          // required for the Terrans SHC pendant
+      ST4_HAND_CONTROL_FOCUSER: 'ON',
+      GUIDE_TIME_LIMIT: '0',
+      SLEW_ACCELERATION_DIST: '4.0',
+      SLEW_RAPID_STOP_DIST: '1.5',
+      AXIS1_LIMIT_MIN: '-180',
+      AXIS1_LIMIT_MAX: '180',
+      // --- Axis1 / Axis2 ---
+      AXIS1_DRIVER_MODEL: 'TMC2225S', AXIS2_DRIVER_MODEL: 'TMC2225S',
+      AXIS1_REVERSE: 'ON', AXIS2_REVERSE: 'ON',
+      // Standalone modules: current is set by the module's sense resistor /
+      // trimmer, not over UART. Anything but OFF here is a lie.
+      AXIS1_DRIVER_IRUN: 'OFF', AXIS1_DRIVER_IHOLD: 'OFF',
+      AXIS2_DRIVER_IRUN: 'OFF', AXIS2_DRIVER_IHOLD: 'OFF',
+      // --- Axis3 rotator: off unless you actually fitted one (see note above) ---
+      AXIS3_DRIVER_MODEL: 'OFF',
+      // --- Axis4 focuser ---
+      AXIS4_DRIVER_MODEL: 'TMC2225S',
+      AXIS4_DRIVER_MICROSTEPS: '32',
+      AXIS4_DRIVER_IRUN: 'OFF', AXIS4_DRIVER_IHOLD: 'OFF',
+      AXIS4_STEPS_PER_MICRON: '10',
+      AXIS4_SLEW_RATE_BASE_DESIRED: '500',
+      AXIS4_LIMIT_MAX: '50',
+      // --- Calculator geometry (EXOS2 / CG5 / EQ5) ---
+      // applyBoardDefaults() re-runs calcAxis1/2 after splatting these, so
+      // AXIS1/2_STEPS_PER_DEGREE land on 7680 the same way a user would get
+      // them from the Calculator tab. EQ3D owners: change the worm ratio.
+      calc_a1_motor_steps: '200', calc_a1_microsteps: '32',
+      calc_a1_worm: '144', calc_a1_pulley: '3',
+      calc_a2_motor_steps: '200', calc_a2_microsteps: '32',
+      calc_a2_worm: '144', calc_a2_pulley: '3',
+    },
+  },
   MaxESP3: {
     label: 'MaxESP3',
     note: 'ESP32-based predecessor to MaxESP4. Default driver mix is TMC2209 UART on the mount axes and focuser; if your MaxESP3 was wired for SPI drivers (TMC2130 etc.) override the driver-model fields below. Note: this pinmap routes both STATUS_LED and STATUS_BUZZER to the same AUX8_PIN, so we default the buzzer OFF — flip it back ON only if you set STATUS_LED=OFF.',
@@ -5647,7 +5940,7 @@ function updateCompileBoardOptions() {
     ];
   } else {
     options = [
-      ['esp32', 'ESP32 (MaxESP3, MaxESP4, FYSETC_E4, …)'],
+      ['esp32', 'ESP32 (MaxESP3, MaxESP4, FYSETC_E4, Terrans V5 Pro, …)'],
       ['teensy32', 'Teensy 3.2 (MiniPCB v1 / v2)'],
       ['teensy40', 'Teensy 4.0'],
       ['teensy41', 'Teensy 4.1 / MaxPCB4'],
@@ -6572,6 +6865,11 @@ function autoPinRefForPinmap() {
   const e4Box = document.getElementById('e4RecipeBox');
   const pinmap = document.getElementById('PINMAP')?.value;
   if (e4Box) e4Box.style.display = pinmap === 'FYSETC_E4' ? 'block' : 'none';
+  // "Support under test" notice for the Terrans Industry V5 Pro — visible only
+  // while that board is selected. Remove the box (and this toggle) once a
+  // build has been confirmed working on real V5 Pro hardware.
+  const terransBox = document.getElementById('terransBox');
+  if (terransBox) terransBox.style.display = pinmap === 'TERRANS_V5PRO' ? 'block' : 'none';
 }
 
 // Hard OnStepX constraint: Teensy 4.0/4.1 need STEP_WAVE_FORM=SQUARE.

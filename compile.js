@@ -16,6 +16,11 @@ export const PINMAP_TO_ENV = {
   MaxESP3: 'esp32',
   MaxESP4: 'esp32',
   FYSETC_E4: 'esp32',
+  // Terrans Industry V5 Pro — not an upstream PINMAP. The generated Config.h
+  // sets `#define PINMAP OFF` and carries the board's pin map inline (OnStepX
+  // src/Validate.h: "PINMAP must be set to a valid board (from Constants.h) or
+  // OFF (for user pin defs in Config.h)"). Still an ESP32 build.
+  TERRANS_V5PRO: 'esp32',
   MaxPCB4: 'teensy41',
   // CNC3 = Arduino CNC Shield V3 on WeMos D1 R32 (ESP32). Deprecated per the
   // OnStep wiki; only legacy CNC option. OnStepX Pins.CNC3.h confirms ESP32.

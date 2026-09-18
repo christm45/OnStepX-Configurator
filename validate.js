@@ -15,6 +15,13 @@ export const PINMAP_MCU = {
   MaxESP3: 'esp32',
   MaxESP4: 'esp32',
   FYSETC_E4: 'esp32',
+  // Terrans Industry V5 Pro. Not an upstream PINMAP token: the generated
+  // Config.h emits `#define PINMAP OFF` plus the board's pin map inline, which
+  // OnStepX supports explicitly (src/Validate.h: "PINMAP must be set to a valid
+  // board (from Constants.h) or OFF (for user pin defs in Config.h)"). The
+  // board is an ESP32 + a separate ESP8266 running SmartWebServer; only the
+  // ESP32 half is built here.
+  TERRANS_V5PRO: 'esp32',
   MaxSTM3: 'blackpill_f411',
   // CNC3 = Arduino CNC Shield V3 on WeMos D1 R32 (ESP32). Deprecated per the
   // OnStep wiki (only legacy CNC option). Confirmed by OnStepX
@@ -38,7 +45,21 @@ export const PINMAP_MCU = {
 // step/dir only; picking a UART driver here silently fails at runtime.
 //   FYSETC S6: https://onstep.groups.io/g/main/wiki/21159 — "Do not use any
 //              other driver than: TMC5160, TMC2130, LV8729 or S109."
-const PINMAPS_NO_TMC_UART = new Set(['FYSETC_S6', 'FYSETC_S6_2']);
+//   Terrans V5 Pro: the board ships TMC2225 "Dual V2" modules strapped for
+//              standalone step/dir, and our PINMAP=OFF pin block can't define
+//              SERIAL_TMC anyway — STEP_DIR_TMC_UART_PRESENT is set by
+//              Config.defaults.h, which the preprocessor only reaches after
+//              Config.h, so the pinmap's `#if defined(...)` UART block would
+//              never fire. OnStepX then hard-errors in src/Validate.h with
+//              "This PINMAP doesn't support TMC UART mode drivers".
+const PINMAPS_NO_TMC_UART = {
+  FYSETC_S6: 'Per the OnStep wiki this board only supports TMC2130 / TMC5160 (SPI), LV8729 or S109.',
+  FYSETC_S6_2: 'Per the OnStep wiki this board only supports TMC2130 / TMC5160 (SPI), LV8729 or S109.',
+  TERRANS_V5PRO:
+    'This board uses standalone (non-UART) drivers — use the TMC2225S / TMC2209S / TMC2226S ' +
+    'step/dir models instead. The stock modules are TMC2225 "Dual V2" strapped standalone, so ' +
+    'TMC2225S is the right pick.',
+};
 const TMC_UART_DRIVERS = new Set(['TMC2208', 'TMC2209', 'TMC2225', 'TMC2226']);
 
 // PINMAPs whose Pins.<Board>.h auto-assigns STATUS_LED_PIN and
@@ -48,8 +69,9 @@ const TMC_UART_DRIVERS = new Set(['TMC2208', 'TMC2209', 'TMC2225', 'TMC2226']);
 //   MaxESP3: STATUS_LED_PIN = STATUS_BUZZER_PIN = AUX8_PIN
 //   MaxESP4: STATUS_LED_PIN = STATUS_BUZZER_PIN = 12
 //   FYSETC_E4: STATUS_LED_PIN = STATUS_BUZZER_PIN = AUX8_PIN
+//   TERRANS_V5PRO: inherits MaxESP3's layout — both land on AUX8_PIN (GPIO25)
 const PINMAPS_LED_BUZZER_SHARED_PIN = new Set([
-  'MaxESP3', 'MaxESP4', 'FYSETC_E4',
+  'MaxESP3', 'MaxESP4', 'FYSETC_E4', 'TERRANS_V5PRO',
 ]);
 
 // OnStepX plugin → required SERIAL_RADIO mode. Plugins that need WiFi
@@ -75,7 +97,15 @@ export const DRIVER_MICROSTEPS = {
   RAPS128: [1, 2, 4, 8, 16, 32, 64, 128],
   S109:    [1, 2, 4, 8, 16, 32, 64, 128],
   ST820:   [1, 2, 4, 8, 16, 32, 128, 256],
-  TMC2100: [1, 2, 4, 8, 16, 32, 64, 128, 256],
+  // Standalone (non-UART/SPI) TMC models: microsteps are strapped on the M0/M1
+  // pins, so only the four patterns the chip decodes are reachable. Values and
+  // comments from OnStepX src/lib/Constants.h.
+  TMC2100:  [1, 2, 4, 16],          // spreadCycle only, no 256x interpolation
+  TMC2130S: [1, 2, 4, 16],
+  TMC2208S: [2, 4, 8, 16],
+  TMC2225S: [4, 8, 16, 32],
+  TMC2209S: [8, 16, 32, 64],
+  TMC2226S: [8, 16, 32, 64],
   TMC2208: [1, 2, 4, 8, 16, 32, 64, 128, 256],
   TMC2209: [1, 2, 4, 8, 16, 32, 64, 128, 256],
   TMC2225: [1, 2, 4, 8, 16, 32, 64, 128, 256],
@@ -248,15 +278,15 @@ export function validateConfig(values) {
   // FYSETC S6: per the OnStep wiki, only SPI TMC (2130/5160) or step/dir
   // (LV8729/S109) are supported on this board. UART steppers compile but
   // don't talk to the drivers — silent fail at runtime.
-  if (PINMAPS_NO_TMC_UART.has(values.PINMAP)) {
+  const noUartReason = PINMAPS_NO_TMC_UART[values.PINMAP];
+  if (noUartReason) {
     for (const axis of [1, 2, 3, 4]) {
       const key = `AXIS${axis}_DRIVER_MODEL`;
       const v = values[key];
       if (v && TMC_UART_DRIVERS.has(v)) {
         add('error', key,
-          `${key}=${v} won't work on PINMAP=${values.PINMAP}. ` +
-          `Per the OnStep wiki this board only supports TMC2130 / TMC5160 (SPI), LV8729 or S109. ` +
-          `Switch ${key} to one of those, or pick a different PINMAP.`);
+          `${key}=${v} won't work on PINMAP=${values.PINMAP}. ${noUartReason} ` +
+          `Switch ${key} to a supported model, or pick a different PINMAP.`);
       }
     }
   }

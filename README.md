@@ -207,7 +207,7 @@ If the ref doesn't exist (typo, or tag hasn't been published yet), you'll see a 
 6 · The preflight checklist
 Before any Compile actually goes to the cloud, a local validator scans your form for common mistakes so you don't waste a 2-minute build on an obvious oversight:
 
-PINMAP ↔ MCU match — every PINMAP is pinned to a specific MCU family in the validator. Current map: MaxESP3/MaxESP4/FYSETC_E4 → esp32; MaxPCB4 → teensy41; CNC3 (WeMos D1 R32) → esp32; MiniPCB (v1 / v2) → teensy32 by default — switch the Compile-tab MCU to teensy40 if you have a Teensy 4.0 mounted; MaxSTM3 / MaxSTM3I → blackpill_f411; FYSETC_S6 (V1.2 / V2.0) → f446_fysetc_s6; BTT_SKR_PRO → skr_pro_f407. Mismatches are caught before they hit the runner.
+PINMAP ↔ MCU match — every PINMAP is pinned to a specific MCU family in the validator. Current map: MaxESP3/MaxESP4/FYSETC_E4/TERRANS_V5PRO → esp32; MaxPCB4 → teensy41; CNC3 (WeMos D1 R32) → esp32; MiniPCB (v1 / v2) → teensy32 by default — switch the Compile-tab MCU to teensy40 if you have a Teensy 4.0 mounted; MaxSTM3 / MaxSTM3I → blackpill_f411; FYSETC_S6 (V1.2 / V2.0) → f446_fysetc_s6; BTT_SKR_PRO → skr_pro_f407. Mismatches are caught before they hit the runner.
 Required fields — PINMAP, MOUNT_TYPE, axis driver model, and steps/deg must all be set.
 Driver microsteps — A4988 won't do 256, DRV8825 maxes at 32, etc.
 Unusual steps/deg — typical values are 5,000–50,000; anything outside 500–200,000 is flagged.
@@ -269,7 +269,7 @@ Serial Bluetooth Config — needs an external HC-05 / HC-06 module wired to a se
 Guide Rate Rheostat — needs a physical analog potentiometer on a free analog input.
 USB Power Control — needs a free aux-switch GPIO available on your board.
 8 · Board-by-board USB preparation
-ESP32 (MaxESP3, MaxESP4, FYSETC_E4, generic ESP32 dev boards)
+ESP32 (MaxESP3, MaxESP4, FYSETC_E4, Terrans V5 Pro, generic ESP32 dev boards)
 Connect USB. Most dev boards (and MaxESP*) auto-reset into bootloader when esptool grabs the port.
 If auto-reset fails: hold BOOT / IO0, tap EN / RST, release BOOT.
 Click Flash to Board, pick the port in the browser prompt (it'll be labeled something like CP2102, CH340, or USB JTAG/serial debug unit).
@@ -423,11 +423,22 @@ OnStepX with raw LX200 TCP (no web UI) — e.g. Teensy 4.1 native Ethernet — h
 Which boards can I build for?
 Everything in the PINMAP dropdown is wired to a matching PlatformIO env on the build side. Today that covers:
 
-ESP32 — MaxESP3, MaxESP4, FYSETC_E4, CNC3 (WeMos D1 R32 — deprecated), generic dev boards.
+ESP32 — MaxESP3, MaxESP4, FYSETC_E4, Terrans Industry V5 Pro (⚠ support under test), CNC3 (WeMos D1 R32 — deprecated), generic dev boards.
 Teensy 3.2 / 4.0 — MiniPCB v1 (embed-in-mount) and MiniPCB v2 (stand-alone case).
 Teensy 4.1 — MaxPCB4.
 STM32F411 BlackPill — MaxSTM3.
 STM32F407 — BTT SKR PRO V1.2.
+Terrans Industry V5 Pro — ⚠ support under test
+Not verified on real hardware yet. The profile was derived from Terrans' own Config.h and pin map (as shipped in im-0/terrans-industry-onstep-firmware, which builds green against current OnStepX main) and cross-checked against Pins.MaxESP3.h upstream. A tester has volunteered; the warning comes off once a build is confirmed working. Until then the Controller tab shows an "under test" box whenever this board is selected.
+
+How it works: upstream OnStepX ships no Pins.Terrans*.h, and the build service only ever injects Config.h — it never patches files under src/pinmaps/. OnStepX covers this case directly: with #define PINMAP OFF, src/pinmaps/Models.h includes no board file and Pins.defaults.h leaves every pin to the user (src/Validate.h: "PINMAP must be set to a valid board (from Constants.h) or OFF (for user pin defs in Config.h)"). So picking TERRANS_V5PRO emits PINMAP OFF plus the board's pin map inline at the end of Config.h. No build-service, Worker or workflow change was needed.
+
+The pin map is stock Pins.MaxESP3.h with the three deltas Terrans made on this hardware: AXIS1_DIR_PIN 0 → 4 (GPIO0 is the ESP32 boot-strap pin on this board), AUX2_PIN 4 → -1 (GPIO4 is now AXIS1 DIR), and I2C_SDA_PIN / I2C_SCL_PIN stated explicitly as 21/22.
+
+Hardware notes: the V5 Pro is an ESP32 (OnStepX) plus an ESP8266 (SmartWebServer) sharing one USB port through a physical switch — set it to the ESP32 position before flashing and back to centre afterwards. Do not reflash the ESP8266: Terrans ships a customised SmartWebServer on it, and only the ESP32 half needs updating. Stock drivers are TMC2225 "Dual V2" modules strapped standalone, so the driver model is TMC2225S — microsteps come off M0/M1 and run current is fixed in hardware, which is why IRUN/IHOLD are left OFF. Geometry defaults are the EXOS2 / CG5 / EQ5 class: 200 steps × 32 microsteps × 3:1 belt × 144:1 worm ÷ 360 = 7680 steps/deg. EQ3D, V5 Lite and V4 Pro are different boards — this profile does not claim to cover them.
+
+Two things deliberately not copied from Terrans' stock config: the Axis3 rotator (they ship it enabled; a stock kit has no rotator and it claims GPIO2/15), and FEATURE2 — the 2.5 mm camera/intervalometer port on GPIO12, which is the same pin as SHARED_ENABLE_PIN in their own pin map, so firing the shutter would also toggle the stepper enable line. Both are left OFF pending confirmation on hardware.
+
 To add a board that's not listed, the build service needs a new PlatformIO env — edit build-service/platformio.ini (plus the whitelist in build.yml and the Worker's ALLOWED_BOARDS set), then update the PINMAP dropdown and PINMAP_TO_ENV / PINMAP_MCU mappings here.
 
 Can I run this offline?
