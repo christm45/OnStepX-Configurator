@@ -36,6 +36,14 @@ browser (index.html)  --POST /compile-->  Cloudflare Worker  --workflow_dispatch
 
 ## Step 1 — Create the build-service repo
 
+> ⚠ **Already done — do not re-run this step.**
+> `christm45/onstepx-build-service` exists and is live. The `build-service/`
+> folder in this repo is a **read-only mirror of it**, not the source of
+> truth: fixes have historically landed in the live repo first, and pushing
+> this folder over it would revert them. See
+> [Which copy of build-service wins](#which-copy-of-build-service-wins).
+> The steps here are kept only for standing the service up from scratch.
+
 1. Create a new empty repo on GitHub: **`onstepx-build-service`** (public is
    fine; public repos get unlimited Actions minutes).
 2. Push the `build-service/` folder from this repo to it:
@@ -247,6 +255,31 @@ listed here so re-deployers know the shape of the issue):
 
 ---
 
+## Which copy of build-service wins
+
+Two copies of the build service exist and they are **not** synced
+automatically:
+
+| Copy | Role |
+|---|---|
+| `christm45/onstepx-build-service` (GitHub) | **Source of truth.** This is what Actions actually runs. |
+| `build-service/` (this repo) | Mirror, for reading and reviewing beside the configurator. |
+
+They drifted for months without anyone noticing: the SHC `DISPLAY_LANGUAGE`
+patch, the obsolete-macro sanitizer, the `FYSETC_E4` forced-OFF pass,
+`lib_ignore = NativeEthernet` and the SWS Ethernet libs all existed only in
+the live repo. Following Step 1 during that window would have reverted all
+five and broken SHC Romanian, E4, Teensy 4.0 and SWS Ethernet builds.
+
+So:
+
+- **To change the build service**, change it in `onstepx-build-service`, then
+  run `node tools/sync-build-service.mjs` here and commit the refreshed mirror.
+- **Never** push `build-service/` over the live repo.
+- CI runs `npm run check:build-service` on every push and reports drift. It is
+  informational rather than blocking, since a fix may legitimately land in the
+  live repo first.
+
 ## Keeping the build service in sync with upstream
 
 You don't need to do anything. The workflow clones
@@ -255,7 +288,12 @@ compile uses the latest upstream source automatically. End users pick a
 specific branch / tag / commit in the **OnStepX source** field on the
 Compile & Flash tab when they want reproducibility.
 
-## Renewing the GitHub PAT (important — do this every 90 days)
+## Renewing the GitHub PAT (no longer applicable)
+
+> ✅ **The Worker runs in GitHub App mode, so there is nothing to renew.**
+> `GET /auth-info` on the deployed Worker reports `"mode": "github-app"`; it
+> mints its own installation tokens hourly. Everything below applies only if
+> you ever fall back to a Personal Access Token.
 
 The GitHub fine-grained PAT you stored as the Worker's `GITHUB_TOKEN` secret
 expires on the date you picked when creating it (90 days by default). Once it

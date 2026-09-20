@@ -1,0 +1,61 @@
+name: checks
+
+# This repo IS the deployment: GitHub Pages serves index.html straight from
+# main, with no build step in between. A syntax error in one of the two large
+# inline <script> blocks therefore ships a blank page to every visitor, and a
+# board profile that silently changes ships a wrong Config.h to someone's
+# mount. Neither is visible in a diff. These checks are the gate.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static:
+    name: static checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      # jsdom is the only dependency, and it exists solely for these checks —
+      # the site itself ships none and has no build step.
+      - run: npm ci --no-audit --no-fund
+
+      - name: JavaScript parses
+        run: npm run check:syntax
+
+      - name: Asset cache versions agree
+        run: npm run check:versions
+
+      - name: French dictionaries still reach the source
+        run: npm run check:i18n
+
+      - name: Board profiles match their golden Config.h
+        run: npm run check:golden
+
+  build-service-sync:
+    name: build-service mirror is current
+    runs-on: ubuntu-latest
+    # Informational: the live build repo is the source of truth, and someone
+    # may legitimately land a fix there first. This tells you the mirror needs
+    # pulling; it does not block the site from deploying.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Compare build-service/ against the live repo
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: npm run check:build-service

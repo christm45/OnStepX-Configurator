@@ -461,3 +461,15 @@ Yes. Everything is open-source. Fork christm45/OnStepX-Configurator, follow SETU
 
 The configurator is broken / giving weird output
 File an issue at the configurator repo. If the issue is with OnStepX itself (firmware behavior, missing features), use the OnStep group or the upstream repo.
+
+Working on the configurator itself: the checks
+The site is static and ships no build step — GitHub Pages serves index.html from main as-is. That means a syntax error in one of the two inline <script> blocks, or a board profile that quietly changes, goes straight to users and is invisible in a diff. `tools/` holds the guards, and CI runs them on every push:
+
+  npm install        # jsdom, used only by the checks
+  npm run check      # syntax + asset versions + i18n + board-profile goldens
+
+npm run check:syntax    — parses both inline scripts in index.html and every .js file.
+npm run check:versions  — every local asset carries the same ?v= stamp, so a returning visitor never gets a v6 engine with a v5 dictionary.
+npm run check:i18n      — every French dictionary key is still findable in the source. Reword the English and the entry stops matching silently; this catches that.
+npm run check:golden    — renders Config.h for all 12 board profiles under jsdom and diffs against tools/golden/. It also re-renders each one from a form deliberately polluted with another board's settings and requires an identical result. That second assertion is the one that catches settings leaking across a board switch — the bug that put dew heaters on the Terrans V5 Pro's RA direction pin. After an intended profile change: npm run golden:update, then review the diff.
+npm run check:build-service — reports drift between build-service/ and the live christm45/onstepx-build-service, which is the source of truth. Pull it down with node tools/sync-build-service.mjs.

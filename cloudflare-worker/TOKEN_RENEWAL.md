@@ -1,5 +1,15 @@
 # Cloudflare Worker — GitHub PAT renewal (every 90 days)
 
+> ## ✅ NOT NEEDED — the Worker is already on GitHub App auth
+>
+> Verified against the live Worker: `GET /auth-info` returns
+> `{"mode":"github-app", ...}`, so it mints its own installation tokens
+> hourly and there is no PAT to expire. Nothing in this file is on your
+> calendar.
+>
+> Keep it only as the fallback playbook if the App is ever removed.
+
+
 > 💡 **Skip the rotation forever:** the Worker now also supports GitHub App
 > auth, which mints fresh installation tokens hourly with no human renewal.
 > See [`GITHUB_APP_SETUP.md`](./GITHUB_APP_SETUP.md) for the one-time

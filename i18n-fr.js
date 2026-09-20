@@ -267,7 +267,6 @@ window.I18N_FR = {
   "Apply board defaults": "Appliquer les valeurs par défaut de la carte",
   "Apply FYSETC E4 defaults": "Appliquer les valeurs par défaut FYSETC E4",
   "Fill in driver model, microsteps, current, etc. for the selected PINMAP": "Renseigne le modèle de driver, les micro-pas, le courant, etc. pour le PINMAP sélectionné",
-  "Branch / tag / commit SHA of the upstream repo. Leave as for latest.": "Branche / tag / SHA de commit du dépôt amont. Laissez tel quel pour la dernière version.",
   "main, v10.24, or commit SHA": "main, v10.24, ou SHA de commit",
   "raw GitHub URL of a Config.h (e.g. https://raw.githubusercontent.com/hjd1964/OnStepX/E4/Config.h)": "URL GitHub brute d'un Config.h (ex. https://raw.githubusercontent.com/hjd1964/OnStepX/E4/Config.h)",
   "Fetch a Config.h from a raw URL and back-fill matching form fields": "Récupère un Config.h depuis une URL brute et remplit les champs correspondants",
