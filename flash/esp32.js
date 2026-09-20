@@ -1,9 +1,49 @@
 // ESP32 / ESP8266 flasher — uses esptool-js over the Web Serial API.
-// Loads esptool-js from a pinned version on esm.sh so the Pages site stays
-// fully static. esptool-js auto-detects the chip, so the same flash()
+// Loads esptool-js from a pinned version on a public CDN so the Pages site
+// stays fully static. esptool-js auto-detects the chip, so the same flash()
 // function handles both ESP32 and ESP8266 — only the file layout differs.
 
-const ESPTOOL_MODULE = 'https://esm.sh/esptool-js@0.4.5';
+// Several CDNs, tried in order. jsDelivr's /+esm build is first because it is
+// a single self-contained bundle served from one host; esm.sh ships a shim
+// that immediately imports three more URLs, so any network that blocks or
+// rate-limits it fails with an unhelpful "Failed to fetch dynamically
+// imported module". Networks/regions that block one CDN rarely block them all.
+const ESPTOOL_MODULES = [
+  'https://cdn.jsdelivr.net/npm/esptool-js@0.4.5/+esm',
+  'https://esm.sh/esptool-js@0.4.5',
+  'https://unpkg.com/esptool-js@0.4.5?module',
+];
+
+// Cached so a retry after a failed flash doesn't re-download the library.
+let esptoolPromise = null;
+
+function loadEsptool(log) {
+  if (esptoolPromise) return esptoolPromise;
+  esptoolPromise = (async () => {
+    const errors = [];
+    for (const url of ESPTOOL_MODULES) {
+      try {
+        const mod = await import(url);
+        if (!mod.ESPLoader || !mod.Transport) {
+          throw new Error('module loaded but ESPLoader/Transport missing');
+        }
+        return mod;
+      } catch (e) {
+        errors.push(`${new URL(url).host}: ${e.message || e}`);
+        log(`could not load the flashing library from ${new URL(url).host}, trying another source…`);
+      }
+    }
+    throw new Error(
+      'Could not load the esptool-js flashing library from any CDN. This is ' +
+      'usually a network/firewall or ad-blocker issue — check that ' +
+      'cdn.jsdelivr.net, esm.sh or unpkg.com is reachable, then reload the ' +
+      'page and try again. (' + errors.join('; ') + ')'
+    );
+  })();
+  // Don't cache a failure — the next attempt should retry the CDNs.
+  esptoolPromise.catch(() => { esptoolPromise = null; });
+  return esptoolPromise;
+}
 
 export function supported() {
   return 'serial' in navigator;
@@ -40,7 +80,7 @@ export async function flash(files, log = console.log, opts = {}) {
     }
   }
 
-  const { ESPLoader, Transport } = await import(ESPTOOL_MODULE);
+  const { ESPLoader, Transport } = await loadEsptool(log);
 
   const port = await navigator.serial.requestPort({
     // Common USB-UART bridges used on ESP32 *and* ESP8266 dev boards
