@@ -1205,10 +1205,22 @@
       <ul style="margin-left:18px; color:var(--label);">
         <li><b>Set the board's switch to the ESP32 position</b> (left) before flashing, and put it back to
           centre afterwards. The V5 Pro shares one USB port between the ESP32 and the ESP8266.</li>
-        <li><b>Do not reflash the ESP8266.</b> Terrans ships a customised SmartWebServer on it; this
-          profile only rebuilds the ESP32 (OnStepX) half, which is all that's needed for the newer
-          OnStepX features.</li>
-        <li>Settings stored in NV are not migrated — expect to redo date/time, site and alignment.</li>
+        <li><b>The ESP8266 is a separate flash, and you do not have to do it.</b> This profile rebuilds
+          only the ESP32 (OnStepX) half, which is all the newer OnStepX features need. The factory
+          SmartWebServer on the ESP8266 keeps working for status and slewing.</li>
+        <li><b>If the web UI cannot edit axis settings, the ESP8266 is the part that's out of date.</b>
+          Those controls ride on the :GXA / :SXA command set, which SmartWebServer only draws when
+          OnStepX reports version 10.26 or newer. An older SWS renders the rest of the page normally
+          and simply does nothing when you press "Enable Advanced Configuration", so it reads as a
+          partial failure rather than a version gap. Build a current SmartWebServer here (mode SWS,
+          board ESP8266, SERIAL_BAUD_DEFAULT 9600 to match SERIAL_B_BAUD_DEFAULT above) and flash it
+          with the board switch in the ESP8266 position (right). Terrans' web firmware is stock
+          SmartWebServer plus a config file, so nothing board-specific is lost — but reflashing it
+          resets the WiFi settings, so have the AP password to hand.</li>
+        <li>Settings stored in NV are not migrated — expect to redo date/time, site and alignment.
+          <b>Power-cycle once after the first boot</b> of new firmware: that first run initialises NV,
+          and until it has, the hand controller and web UI can show greyed-out controls or an axis that
+          will not stop.</li>
         <li>Steps/degree defaults (7680) are for the <b>EXOS2 / CG5 / EQ5</b> class: 200 steps × 32
           microsteps × 3:1 belt × 144:1 worm ÷ 360. <b>EQ3D and the V5 Lite / V4 Pro are different
           boards</b> — do not assume this profile fits them.</li>
@@ -4841,7 +4853,12 @@ function loadConfig(event) {
     // sends it byte-for-byte (including fields the form can't represent).
     const out = document.getElementById('configOutput');
     if (out) out.value = text;
-    if (typeof setConfigSource === 'function') setConfigSource('Loaded from file: ' + file.name);
+    // setConfigSource lives in the module script below, hence window.* here:
+    // a bare `typeof setConfigSource` is always 'undefined' from this scope, so
+    // this used to be a silent no-op and the Output tab kept the previous
+    // banner — and, now, the previous ownership, which would let Compile
+    // regenerate over a file the user had just loaded.
+    window.setConfigSource?.('Loaded from file: ' + file.name, 'file');
     showStatus('Config.h loaded! Form values populated, raw content preserved for compile.');
   };
   reader.readAsText(file);
@@ -5383,23 +5400,31 @@ const BOARD_DEFAULTS = {
   TERRANS_V5PRO: {
     label: 'Terrans V5 Pro',
     note: '⚠ UNDER TEST — not yet verified on real hardware. ESP32 half of the Terrans Industry V5 Pro ' +
-          '(the on-board ESP8266 keeps its own SmartWebServer — do not reflash it). PINMAP is emitted as ' +
+          '(the on-board ESP8266 runs its own SmartWebServer and is a separate, optional flash). PINMAP is emitted as ' +
           'OFF with the board pin map inlined in Config.h. Stock drivers are TMC2225 "Dual V2" modules ' +
           'strapped standalone, so the model is TMC2225S: microsteps are set on M0/M1 and run current is ' +
           'fixed in hardware (IRUN/IHOLD do nothing). Geometry defaults are the EXOS2/CG5/EQ5 class — ' +
           '200 steps x 32 microsteps x 3:1 belt x 144:1 worm = 7680 steps/deg. Bluetooth is on by default, ' +
-          'matching the stock firmware. Set the board switch to the ESP32 position before flashing.',
+          'matching the stock firmware. The focuser (Axis4) slot and every auxiliary feature are OFF: the ' +
+          'kit ships with no focuser driver fitted and has no dew-heater outputs. Set the board switch to ' +
+          'the ESP32 position before flashing.',
     fields: {
       // --- Controller ---
       SERIAL_A_BAUD_DEFAULT: '9600',
       SERIAL_B_BAUD_DEFAULT: '9600',   // Serial2 -> on-board ESP8266 (SmartWebServer)
       SERIAL_RADIO: 'BLUETOOTH',       // ESP32 BT SPP, as the stock firmware ships
       TIME_LOCATION_SOURCE: 'DS3231',  // on-board RTC + coin cell
-      // STATUS_LED and STATUS_BUZZER both land on AUX8_PIN (GPIO25) here, and
-      // OnStepX's Validate.h refuses to compile with both ON. Terrans ships
-      // both OFF; keep that.
+      // STATUS_LED, STATUS_MOUNT_LED and STATUS_BUZZER all land on AUX8_PIN
+      // (GPIO25) here. Terrans ships STATUS_LED and STATUS_BUZZER OFF and the
+      // *mount* LED ON, which is what makes the green LED flash in step with
+      // the tracking rate — keep exactly that split so GPIO25 has one owner.
       STATUS_LED: 'OFF',
       STATUS_BUZZER: 'OFF',
+      // Stated explicitly rather than left on the page default: importing any
+      // other board's Config.h first (the FYSETC E4 profile ships it OFF) would
+      // otherwise carry STATUS_MOUNT_LED=OFF into this build, and the tracking
+      // LED would sit dark while the mount tracks.
+      STATUS_MOUNT_LED: 'ON',
       // LIMIT_SENSE defaults to LOW page-wide, which would arm limit-switch
       // sensing on LIMIT_SENSE_PIN = AUX7_PIN = GPIO39. GPIO34..39 are
       // input-only on the ESP32 and have no internal pull-up, so with nothing
@@ -5449,7 +5474,13 @@ const BOARD_DEFAULTS = {
       // --- Axis3 rotator: off unless you actually fitted one (see note above) ---
       AXIS3_DRIVER_MODEL: 'OFF',
       // --- Axis4 focuser ---
-      AXIS4_DRIVER_MODEL: 'TMC2225S',
+      // Terrans' own Config.h declares a TMC2225S here, but the V5 Pro kit
+      // ships with the focuser socket EMPTY — claiming a driver that isn't
+      // fitted puts a phantom focuser in every client and on the SHC. OFF is
+      // the honest default; fit a module (TMC2226, TMC2209, …) and pick it
+      // from the Axis4 list. The remaining AXIS4_* values below are inert
+      // while the model is OFF and become sane starting points once it isn't.
+      AXIS4_DRIVER_MODEL: 'OFF',
       AXIS4_DRIVER_MICROSTEPS: '32',
       AXIS4_DRIVER_IRUN: 'OFF', AXIS4_DRIVER_IHOLD: 'OFF',
       AXIS4_STEPS_PER_MICRON: '10',
@@ -5493,9 +5524,11 @@ const BOARD_DEFAULTS = {
       AXIS4_DRIVER_IRUN: '200', AXIS4_DRIVER_IHOLD: '200',
       MOUNT_TYPE: 'GEM',
       // Pins.MaxESP3.h auto-assigns STATUS_LED_PIN and STATUS_BUZZER_PIN to
-      // the same AUX8_PIN; OnStepX's Validate.h refuses to compile if both
-      // are ON. STATUS_LED is the more useful default; users who want the
-      // buzzer instead can set STATUS_LED=OFF and STATUS_BUZZER=ON manually.
+      // the same AUX8_PIN. Current main has no Validate.h #error for that —
+      // Status.cpp arbitrates at run time by dropping the telescope LED task
+      // when the buzzer or the mount LED wants the pin — but one owner is
+      // still the sane default, and STATUS_LED is the more useful one. Users
+      // who want the buzzer set STATUS_LED=OFF and STATUS_BUZZER=ON manually.
       STATUS_BUZZER: 'OFF',
     },
   },
@@ -5514,9 +5547,9 @@ const BOARD_DEFAULTS = {
       AXIS4_DRIVER_MICROSTEPS: '8',
       AXIS4_DRIVER_IRUN: '200', AXIS4_DRIVER_IHOLD: '200',
       MOUNT_TYPE: 'GEM',
-      // Pins.MaxESP4.h hard-wires STATUS_LED_PIN=12 and STATUS_BUZZER_PIN=12;
-      // Validate.h fires AUX8-style conflict if both are ON. Default buzzer
-      // OFF for the same reason as MaxESP3.
+      // Pins.MaxESP4.h hard-wires STATUS_LED_PIN=12 and STATUS_BUZZER_PIN=12.
+      // Default the buzzer OFF for the same reason as MaxESP3: not a compile
+      // error, just one pin that should have one owner.
       STATUS_BUZZER: 'OFF',
     },
   },
@@ -5736,13 +5769,21 @@ async function importConfigFromUrl(url, { promptUser = true, label } = {}) {
   // doesn't represent (THERMISTOR1_*, LIMIT_SENSE_PIN, SERIAL_TMC_RX, etc.).
   const output = document.getElementById('configOutput');
   if (output) output.value = text;
-  setConfigSource(label || 'imported from ' + url);
+  setConfigSource(label || 'imported from ' + url, 'imported');
   showStatus?.(`Imported Config.h (${changes.length} form field${changes.length === 1 ? '' : 's'} synced, full raw content in Output).`);
   return changes;
 }
 
 // Banner above the Output textarea showing where the current content came from.
-function setConfigSource(label) {
+// Doubles as the single choke point for window.configSourceKind, which records
+// WHO owns the textarea's content: 'generated' (the form — so Compile may
+// refresh it from the form), or 'imported' / 'file' / 'manual' (something the
+// form cannot fully reproduce — send it byte-for-byte). Compile and the
+// stale-flash guard both read it, and must agree, or one of them ends up
+// hashing text the other never built. Anything unlabelled is treated as
+// not-form-owned, which is the conservative side.
+function setConfigSource(label, kind = 'manual') {
+  window.configSourceKind = kind;
   const el = document.getElementById('configOutputSource');
   if (!el) return;
   if (!label) { el.style.display = 'none'; return; }
@@ -5750,6 +5791,7 @@ function setConfigSource(label) {
   el.style.display = 'block';
 }
 window.importConfigFromUrl = importConfigFromUrl;
+window.setConfigSource = setConfigSource;
 
 // Wrapper used by the "Import from URL" button on the Output tab.
 window.importConfigFromUrlUi = async function () {
@@ -5867,11 +5909,28 @@ function setRawConfigDefine(name, value) {
   return 'inserted';
 }
 
+// The eight auxiliary features as buildFeatures() first renders them. Board
+// profiles are merged over this, so "not mentioned" reliably means "off".
+function featureResetFields() {
+  const out = {};
+  for (let n = 1; n <= 8; n++) {
+    out[`FEATURE${n}_PURPOSE`] = 'OFF';
+    out[`FEATURE${n}_NAME`] = `FEATURE${n}`;
+    out[`FEATURE${n}_TEMP`] = 'OFF';
+    out[`FEATURE${n}_PIN`] = 'OFF';
+    out[`FEATURE${n}_VALUE_DEFAULT`] = 'OFF';
+    out[`FEATURE${n}_VALUE_MEMORY`] = 'OFF';
+    out[`FEATURE${n}_ON_STATE`] = 'HIGH';
+  }
+  return out;
+}
+
 // "Apply board defaults" button handler: load a starter config for the
 // selected PINMAP. FYSETC_E4 is special-cased (live-fetch the E4 branch
 // Config.h, tick Website, re-run calculators, force OFF the fields that
-// #error against main, inject HOST_NAME); all other boards just splat the
-// static BOARD_DEFAULTS[pinmap].fields into the form and re-run the calculators.
+// #error against main, inject HOST_NAME); all other boards splat
+// BOARD_DEFAULTS[pinmap].fields — over a cleared set of auxiliary features —
+// into the form and re-run the calculators.
 window.applyBoardDefaults = async function () {
   const pinmap = document.getElementById('PINMAP')?.value;
 
@@ -5945,6 +6004,16 @@ window.applyBoardDefaults = async function () {
   const entry = BOARD_DEFAULTS[pinmap];
   if (!entry) return;
 
+  // FEATURE*_PIN is a raw GPIO number, so an auxiliary feature only ever means
+  // something on the board it was configured for — and nothing clears these
+  // when the board changes. Importing another board's Config.h first therefore
+  // leaks its features into this build: the FYSETC E4 profile ships FEATURE1/2
+  // as DEW_HEATER on GPIO2 and GPIO4, which on the Terrans V5 Pro pin map are
+  // AXIS3_STEP and AXIS1_DIR — a heater PWM fighting the RA direction line.
+  // Reset all eight on every board apply; a profile that genuinely wants a
+  // feature declares it in `fields` and wins the merge.
+  const boardFields = { ...featureResetFields(), ...entry.fields };
+
   // Axis 1/2/3 driver microsteps are owned by the Calculator tab: steps/degree
   // is derived from the calc's microsteps, so the driver must match it. Skip
   // these here (the calcAxis*() re-run below sets them) — otherwise the preview
@@ -5960,13 +6029,13 @@ window.applyBoardDefaults = async function () {
     // them, and they silently kept the page default instead.
   ]);
 
-  const existing = Object.keys(entry.fields)
+  const existing = Object.keys(boardFields)
     .filter((id) => !CALC_OWNED.has(id))
     .map((id) => {
       const el = document.getElementById(id);
       if (!el) return null;
       const current = el.value;
-      const next = entry.fields[id];
+      const next = boardFields[id];
       return current !== next ? { id, current, next } : null;
     })
     .filter(Boolean);
@@ -6624,7 +6693,7 @@ window.generateConfig = function () {
       text = syncTerransPinBlock(text, wantTerrans);
     }
     outEl.value = text;
-    setConfigSource('Form values patched into existing Config.h — other #defines preserved');
+    setConfigSource('Form values patched into existing Config.h — other #defines preserved', 'generated');
     return outEl.value;
   }
 
@@ -6633,13 +6702,13 @@ window.generateConfig = function () {
   if (window.currentMode === 'shc') result = generateSHCConfig();
   else if (window.currentMode === 'sws') result = generateSWSConfig();
   else result = _generateOnStepXConfig?.();
-  setConfigSource('Regenerated from form fields (' + (window.currentMode || 'onstepx') + ')');
+  setConfigSource('Regenerated from form fields (' + (window.currentMode || 'onstepx') + ')', 'generated');
   return result;
 };
 
 // Clear the source banner when the user manually edits the textarea.
 document.getElementById('configOutput')?.addEventListener('input', () => {
-  setConfigSource('Manually edited — will be sent as-is on Compile');
+  setConfigSource('Manually edited — will be sent as-is on Compile', 'manual');
 });
 
 // --- Preflight check --------------------------------------------------------
@@ -7224,10 +7293,19 @@ window.startCompileFlow = async function () {
   }
 
   try {
-    // Compile sends whatever is in the textarea as-is. Only auto-generate
-    // from the form if the textarea is currently empty (first-run convenience).
+    // Refresh the textarea from the form when the form owns it, which is what
+    // the stale-flash guard in flashBoard() assumes. The two used to disagree:
+    // Compile built the textarea as it stood while Flash regenerated before
+    // hashing, so field edits made after the last Generate were silently left
+    // out of the build AND the freshly built firmware was then reported as
+    // "out-of-date" — recompiling a second time was the only way through.
+    // Imported / hand-edited content still goes byte-for-byte: it holds
+    // #defines the form cannot represent, and regenerating would flatten them.
     const outEl = document.getElementById('configOutput');
-    if (!outEl.value && typeof generateConfig === 'function') generateConfig();
+    if (typeof generateConfig === 'function' &&
+        (!outEl.value || window.configSourceKind === 'generated')) {
+      generateConfig();
+    }
     const config = outEl.value;
     if (!config) throw new Error('Config.h is empty — generate it on the Output tab first.');
     const env = document.getElementById('COMPILE_ENV').value;
@@ -7366,8 +7444,12 @@ window.flashBoard = async function () {
   };
 
   // Stale-flash guard: has Config.h changed since this firmware was built?
+  // Regenerate first so form edits made after the compile are caught — but only
+  // when the form owns the textarea. Over imported or hand-edited content
+  // Compile sends the text verbatim, so regenerating here would rewrite it from
+  // the form and invent a difference against firmware that is perfectly current.
   try {
-    if (typeof generateConfig === 'function') generateConfig();
+    if (typeof generateConfig === 'function' && window.configSourceKind === 'generated') generateConfig();
     const currentConfig = document.getElementById('configOutput').value;
     const currentHash = await sha1Hex(currentConfig);
     if (currentHash !== lastBuild.configHash) {
@@ -7453,7 +7535,7 @@ window.flashBoard = async function () {
 <script src="i18n-fr-6.js?v=5"></script>
 <script src="i18n-fr-7.js?v=5"></script>
 <script src="i18n-fr-8.js?v=5"></script>
-<script src="i18n-fr-terrans.js?v=5"></script>
-<script src="i18n.js?v=5"></script>
+<script src="i18n-fr-terrans.js?v=6"></script>
+<script src="i18n.js?v=6"></script>
 </body>
 </html>

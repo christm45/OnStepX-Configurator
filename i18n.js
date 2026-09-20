@@ -32,16 +32,32 @@
     return lang === 'fr' ? (window.I18N_FR || {}) : null;
   }
 
+  /* ---- dictionary key for a chunk of DOM text ------------------------------
+     Trim the ends AND collapse every internal whitespace run to one space. The
+     markup is indented and wrapped, so a sentence that reads as one line in the
+     browser reaches us as "...put it back to\n          centre afterwards..." —
+     keying on that raw text meant any prose long enough to wrap could never be
+     matched, and those entries sat dead in the dictionaries. No key in any
+     i18n-fr*.js contains a newline or a double space, so collapsing can only
+     turn misses into hits; it never merges two distinct entries. */
+  function key(s) { return s.trim().replace(/\s+/g, ' '); }
+
   /* ---- translate a single text node in place (cache English on first touch) */
   function tText(node) {
     if (node[EN_TEXT] === undefined) node[EN_TEXT] = node.nodeValue;
     var orig = node[EN_TEXT];
     var d = dict();
     if (!d) { if (node.nodeValue !== orig) node.nodeValue = orig; return; }
-    var key = orig.trim();
-    if (!key) return;
-    var fr = d[key];
-    var next = (fr !== undefined) ? orig.replace(key, fr) : orig;
+    var k = key(orig);
+    if (!k) return;
+    var fr = d[k];
+    var next = orig;
+    if (fr !== undefined) {
+      // The key is collapsed, so it is not a literal substring of orig — put
+      // the node's own leading/trailing whitespace back around the translation
+      // instead, or neighbouring inline tags would run into the words.
+      next = /^\s*/.exec(orig)[0] + fr + /\s*$/.exec(orig)[0];
+    }
     if (node.nodeValue !== next) node.nodeValue = next;
   }
 
@@ -72,9 +88,8 @@
     var orig = el[sk];
     if (orig == null) return;
     var d = dict();
-    var key = orig.trim();
-    var fr = d ? d[key] : undefined;
-    var next = (d && fr !== undefined) ? orig.replace(key, fr) : orig;
+    var fr = d ? d[key(orig)] : undefined;
+    var next = (fr !== undefined) ? fr : orig;
     if (el.getAttribute(attr) !== next) el.setAttribute(attr, next);
   }
 
