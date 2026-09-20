@@ -133,7 +133,17 @@ async function handleCompile(request, env) {
     return json({ error: 'ref contains disallowed characters' }, 400);
   }
 
-  // Optional rate limiting
+  // workflow_dispatch input hard limit is 65535 chars. Checked BEFORE the rate
+  // limiter: this request is going to be rejected without ever reaching GitHub,
+  // so charging it against the caller's hourly build budget is simply wrong.
+  // It also used to make the limiter observable from outside — 11 oversized
+  // configs would walk the counter to its limit while dispatching nothing.
+  const configB64 = b64encodeUtf8(config);
+  if (configB64.length > 65000) {
+    return json({ error: 'config (base64) exceeds workflow_dispatch input limit' }, 413);
+  }
+
+  // Optional rate limiting — only requests that will actually start a build.
   if (env.RATE_LIMIT) {
     const ip = request.headers.get('CF-Connecting-IP') || 'anon';
     const key = `rl:${ip}`;
@@ -145,12 +155,6 @@ async function handleCompile(request, env) {
   }
 
   const requestId = crypto.randomUUID();
-  const configB64 = b64encodeUtf8(config);
-
-  // workflow_dispatch input hard limit is 65535 chars
-  if (configB64.length > 65000) {
-    return json({ error: 'config (base64) exceeds workflow_dispatch input limit' }, 413);
-  }
 
   const dispatchRes = await ghFetch(
     env,
