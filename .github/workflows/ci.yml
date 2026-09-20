@@ -19,6 +19,9 @@ jobs:
   static:
     name: static checks
     runs-on: ubuntu-latest
+    # The whole suite runs in seconds. Anything near this means something is
+    # holding the event loop open, not doing work -- fail fast, do not idle.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -44,6 +47,7 @@ jobs:
   build-service-sync:
     name: build-service mirror is current
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     # Informational: the live build repo is the source of truth, and someone
     # may legitimately land a fix there first. This tells you the mirror needs
     # pulling; it does not block the site from deploying.

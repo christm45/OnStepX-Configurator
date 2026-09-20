@@ -148,6 +148,17 @@ export async function configForBoard(window, pinmap) {
   return out.value;
 }
 
+/**
+ * Tear the page down. MUST be called, or the process hangs: the page installs
+ * a starfield animation loop, a debounced autosave and a ref-resolver timer,
+ * and jsdom keeps Node's event loop alive for all of them. The checks finish
+ * their work in milliseconds and would then sit there until the CI job timed
+ * out — looking like a slow test rather than a leak.
+ */
+export function closePage(window) {
+  try { window.close(); } catch { /* already gone */ }
+}
+
 /** Every form field's current value, for restoring between independent checks. */
 export function snapshotForm(window) {
   const snap = new Map();

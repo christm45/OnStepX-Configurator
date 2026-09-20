@@ -18,7 +18,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { ROOT, loadPage, configForBoard, staticBoards, snapshotForm, restoreForm } from './page.mjs';
+import { ROOT, loadPage, closePage, configForBoard, staticBoards, snapshotForm, restoreForm } from './page.mjs';
 
 const UPDATE = process.argv.includes('--update');
 const DIR = path.join(ROOT, 'tools', 'golden');
@@ -107,6 +107,10 @@ function firstDiffs(a, b, limit = 8) {
   return out;
 }
 
+// The work above takes well under a second. Without this teardown the page's
+// own timers hold Node open and the check looks like it hangs.
+closePage(window);
+
 if (UPDATE) {
   console.log(`\nRecorded ${boards.length} golden file(s). Review the diff before committing.`);
   process.exit(0);
@@ -117,3 +121,4 @@ if (failures) {
   process.exit(1);
 }
 console.log(`\nAll ${boards.length} board profiles match their golden file, from a clean and a dirty form.`);
+process.exit(0);
