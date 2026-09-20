@@ -8,20 +8,16 @@ BUILD_OWNER = "christm45"
 BUILD_REPO = "onstepx-build-service"
 ALLOWED_ORIGIN = "https://christm45.github.io"
 
-# Rate limiting (10 builds/hour/IP). worker.js applies it only `if
-# (env.RATE_LIMIT)`, so while this block is commented out the limiter is a
-# SILENT NO-OP: /compile is an open internet endpoint that dispatches a GitHub
-# Actions run per call, with nothing in front of it. Worth closing even though
-# a public repo gets free minutes — the queue and the account are still yours.
+# Rate limiting: 10 builds/hour/IP. worker.js applies it only `if
+# (env.RATE_LIMIT)`, so without this binding the limiter is a SILENT NO-OP and
+# /compile is an open endpoint dispatching a GitHub Actions run per call.
 #
-# Turn it on (~1 minute, needs `wrangler login` first):
-#   wrangler kv namespace create RATE_LIMIT     # v3+ syntax; older docs say kv:namespace
-#   # paste the printed id below, uncomment all three lines, then:
-#   wrangler deploy
-#
-# [[kv_namespaces]]
-# binding = "RATE_LIMIT"
-# id = "<kv-namespace-id>"
+# The binding must exist HERE as well as in the dashboard: `wrangler deploy`
+# treats this file as the whole truth and drops any binding it doesn't list,
+# so a dashboard-only binding disappears at the next deploy.
+[[kv_namespaces]]
+binding = "RATE_LIMIT"
+id = "cd340337f654418084edc4e7235a0707"
 
 # Secrets (do NOT put these here — use `wrangler secret put`):
 #
