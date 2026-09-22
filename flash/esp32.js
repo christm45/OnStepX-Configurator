@@ -112,12 +112,19 @@ export async function flash(files, log = console.log, opts = {}) {
   log('Connecting…');
   const chip = await esploader.main();
   log(`Detected: ${chip}`);
+  // Refuse a chip/bundle mismatch before touching flash: the image would never
+  // boot, and on boards that share one USB port between an ESP32 and an ESP8266
+  // (Terrans V5 Pro) it means the selector switch is on the wrong chip and we'd
+  // be wiping the firmware on the other one.
   const isEsp8266 = /ESP8266/i.test(String(chip));
-  if (isEsp8266 && !useSingle) {
-    log('⚠ ESP8266 detected but firmware bundle looks like ESP32 — flashing anyway, but this may not boot.');
-  }
-  if (!isEsp8266 && useSingle && !useMerged) {
-    log('⚠ ESP32 detected but firmware bundle is single-image (ESP8266 style) — flashing at 0x0 may not boot.');
+  const mismatch =
+    isEsp8266 && !useSingle ? 'ESP8266 detected, but this firmware was built for an ESP32' :
+    !isEsp8266 && useSingle ? `${chip} detected, but this firmware was built for an ESP8266` :
+    null;
+  if (mismatch) {
+    await transport.disconnect();
+    throw new Error(`${mismatch}. Nothing was written. If your board has a USB/chip selector switch, ` +
+      'move it to the chip this firmware is for and try again.');
   }
 
   const fileArray = useMerged
@@ -147,8 +154,15 @@ export async function flash(files, log = console.log, opts = {}) {
     },
   });
 
+  // The write is complete at this point, so a reset hiccup must not read as a
+  // failed flash. esptool-js 0.4.x only has hardReset(); after() is newer.
   log('Resetting into application…');
-  await esploader.after();
+  try {
+    if (typeof esploader.after === 'function') await esploader.after();
+    else await esploader.hardReset();
+  } catch (e) {
+    log(`⚠ Firmware written, but the automatic reset failed (${e.message || e}) — press RESET or power-cycle the board.`);
+  }
   await transport.disconnect();
   log(`Done. ${chip} is now running your firmware.`);
 }

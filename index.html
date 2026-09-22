@@ -5295,14 +5295,38 @@ window.currentMode = (() => {
   try { return localStorage.getItem(MODE_KEY) || 'onstepx'; } catch { return 'onstepx'; }
 })();
 
+// Each project owns its own Output content. A single shared textarea meant an
+// OnStepX Config.h left in it survived a switch to SWS/SHC, where Compile's
+// patch-mode generateConfig() kept it (SWS field ids never match OnStepX
+// #defines) and shipped it as SmartWebServer/Config.h — which then failed on
+// SERIAL_SWAP / SERIAL_BAUD. Stash the outgoing mode's text and restore the
+// incoming one's, so switching back to OnStepX loses nothing.
+const outputByMode = {};
+function swapOutputForMode(fromMode, toMode) {
+  const out = document.getElementById('configOutput');
+  if (!out) return;
+  const src = document.getElementById('configOutputSource');
+  outputByMode[fromMode] = {
+    value: out.value,
+    kind: window.configSourceKind,
+    label: src && src.style.display !== 'none' ? src.textContent : '',
+  };
+  const saved = outputByMode[toMode];
+  out.value = saved ? saved.value : '';
+  if (saved && saved.value) setConfigSource(saved.label, saved.kind);
+  else setConfigSource('', 'generated');
+}
+
 // Switch the whole UI between the three project modes ('onstepx' | 'shc' |
 // 'sws'): persists the choice, restyles the mode buttons, swaps title/subtitle,
 // shows/hides mode-specific tabs, rebuilds the compile board list, and re-runs
 // preflight + ref resolution. Side-effects only; no return value.
 function setMode(mode) {
   if (!['onstepx', 'shc', 'sws'].includes(mode)) return;
+  const prevMode = window.currentMode;
   window.currentMode = mode;
   try { localStorage.setItem(MODE_KEY, mode); } catch {}
+  if (prevMode !== mode) swapOutputForMode(prevMode, mode);
 
   // Mode buttons
   for (const m of ['onstepx', 'shc', 'sws']) {
@@ -6121,10 +6145,17 @@ function updateCompileBoardOptions() {
     sel.appendChild(opt);
   }
   if ([...sel.options].some((o) => o.value === previous)) sel.value = previous;
+  // The Terrans V5 Pro's web server is its on-board ESP8266; the ESP32 is the
+  // OnStepX controller. An sws_esp32 build flashed there with the selector on
+  // the ESP32 position replaces OnStepX, so preselect the right chip.
+  const terransSws = window.currentMode === 'sws' &&
+    document.getElementById('PINMAP')?.value === 'TERRANS_V5PRO';
+  if (terransSws) sel.value = 'sws_esp8266';
   // Hint text for SHC/SWS since PINMAP doesn't drive the env there
   const hint = document.getElementById('pinmap-hint');
   if (hint) {
     if (window.currentMode === 'shc') hint.textContent = 'SHC builds — pick the MCU in your hand controller';
+    else if (terransSws) hint.textContent = 'Terrans V5 Pro: SWS runs on the on-board ESP8266 — flash with the board switch on the right';
     else if (window.currentMode === 'sws') hint.textContent = 'SWS builds — pick the MCU hosting the web server';
   }
 }
@@ -7340,6 +7371,14 @@ window.startCompileFlow = async function () {
     const project = window.currentMode === 'shc' ? 'shc'
                   : window.currentMode === 'sws' ? 'sws'
                   : 'onstepx';
+    // Refuse a Config.h that belongs to a different project: it can only fail
+    // to compile, after a minutes-long wait, with errors that don't say why.
+    // AXIS1_DRIVER_MODEL is in every OnStepX Config.h and in no SWS/SHC one.
+    const looksOnStepX = /^\s*#define\s+AXIS1_DRIVER_MODEL\b/m.test(config);
+    if (project !== 'onstepx' && looksOnStepX) {
+      throw new Error(`The Output tab holds an OnStepX Config.h, not a ${project.toUpperCase()} one. ` +
+        'Clear the Output tab and click "Generate Config.h" in this mode, then compile again.');
+    }
     const plugins = project === 'onstepx' ? getSelectedPlugins() : [];
     setStatus(`Requesting compile (${project} / ${env}, ref=${ref})…`);
     const pluginsLog = plugins.length ? `, plugins: [${plugins.join(', ')}]` : '';
