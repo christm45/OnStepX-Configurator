@@ -293,7 +293,23 @@ export function validateConfig(values) {
     } else if (gpsPort !== 'PINMAP' && pinSet(values.SERIAL_GPS_RX) !== pinSet(values.SERIAL_GPS_TX)) {
       add('warn', 'SERIAL_GPS_RX',
         `Only one of SERIAL_GPS_RX / SERIAL_GPS_TX is set. OnStepX applies custom pins only when both are ` +
-        `defined, so ${gpsPort} will stay on its default pins. Set the unused one to a spare pin (e.g. 0 on the FYSETC E4).`);
+        `defined, so ${gpsPort} will stay on its default pins. Set both (FYSETC E4 I2C header: RX 21, TX 22).`);
+    }
+    const gpsPins = [values.SERIAL_GPS_RX, values.SERIAL_GPS_TX].map((p) => (p || '').trim());
+    // FYSETC E4: GPIO16/17 (the ESP32's default Serial2 pins) run only to the
+    // onboard MOT E TMC2209 (U8 STEP/DIR, E4 V1.0 schematic) — no header.
+    if (values.PINMAP === 'FYSETC_E4' && gpsPins.some((p) => p === '16' || p === '17')) {
+      add('error', 'SERIAL_GPS_RX',
+        `On the FYSETC E4, GPIO16/17 are wired only to the onboard MOT E driver and aren't on any header. ` +
+        `Put the GPS on the I2C header instead: SERIAL_GPS_RX 21 (SDA), SERIAL_GPS_TX 22 (SCL).`);
+    }
+    // ESP32 boards use GPIO21/22 as the I2C bus; a GPS remapped there can't
+    // share it with an I2C weather sensor.
+    if (PINMAP_MCU[values.PINMAP] === 'esp32' && gpsPins.some((p) => p === '21' || p === '22') &&
+        /^BM[EP]280(_0x76)?$/.test(values.WEATHER || '')) {
+      add('error', 'WEATHER',
+        `SERIAL_GPS_RX/TX use GPIO21/22, which is the I2C bus, but WEATHER=${values.WEATHER} is an I2C sensor on the ` +
+        `same pins. Set WEATHER OFF (or a _SPI variant), or move the GPS.`);
     }
   }
 

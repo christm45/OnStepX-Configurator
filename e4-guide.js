@@ -122,18 +122,18 @@
     { id: 'fane0', label: 'FAN+', type: 'output', x: 244, y: 12, w: 52, h: 40, gpio: 'GPIO13', fn: 'FAN+ output (AUX8 / FAN_E0) — 3-pin connector', desc: '3-pin FAN+ header located between HOTBED (H2) and Z-MIN. The signal pin (nearest HOTBED) is GPIO13; the 3rd pin (nearest Z-MIN) is GND. Drives a status LED/buzzer, reticle lamp, or the intervalometer optocoupler.', conn: 'Signal pin (near HOTBED) → load; GND pin (3rd, near Z-MIN) → return. Enable 5V shunt if needed.', section: 'troubleshooting' },
     { id: 'zmin', label: 'Z-MIN', type: 'input', x: 300, y: 12, w: 58, h: 40, gpio: 'GPIO15', fn: 'Z-MIN endstop / TMC UART', desc: 'Z endstop header. On the E4 this pin is jumpered to the TMC2209 PDN/UART line, but is also a spare endstop input.', conn: 'Endstop NO → GND, or the TMC2209 UART jumper.', section: 'limits' },
     { id: 'ymin', label: 'Y-MIN', type: 'input', x: 362, y: 12, w: 58, h: 40, gpio: 'GPIO35', fn: 'Y-MIN — Home Axis2', desc: 'Input-only. Default home switch for Axis2 (DEC/Alt).', conn: 'NO switch to GND (home/limit). Input only.', section: 'limits' },
-    { id: 'xmin', label: 'X-MIN', type: 'input', x: 424, y: 12, w: 58, h: 40, gpio: 'GPIO34', fn: 'X-MIN — Home Axis1 / Limit / GPS', desc: 'Input-only. Default home switch for Axis1; also LIMIT_SENSE_PIN in E4 Config.h. Can take a single-wire GPS.', conn: 'NO switch to GND (home/limit). Or GPS TX (single-wire mode).', section: 'limits' },
+    { id: 'xmin', label: 'X-MIN', type: 'input', x: 424, y: 12, w: 58, h: 40, gpio: 'GPIO34', fn: 'X-MIN — Home Axis1 / Limit / GPS', desc: 'Input-only. Default home switch for Axis1; also LIMIT_SENSE_PIN in E4 Config.h. A GPS works here only after removing its 100nF filter capacitor — use the I2C header instead.', conn: 'NO switch to GND (home/limit).', section: 'limits' },
     { id: 'extrst', label: 'EXT-RST', type: 'control', x: 566, y: 12, w: 64, h: 40, gpio: '—', fn: 'EXT-RST — external reset header', desc: 'Top-right 2-pin header for an external reset button. The E4 has NO DC barrel jack — this corner is EXT-RST. Shorting it to GND resets the ESP32.', conn: 'Momentary push-button between EXT-RST and GND.', section: 'troubleshooting' },
     /* RIGHT — ESP32 module, reset, USB, MicroSD */
     { id: 'esp32', label: 'ESP32', type: 'mcu', x: 648, y: 116, w: 182, h: 128, gpio: '—', fn: 'Dual-core Xtensa LX6 @ 240MHz', desc: 'Main microcontroller with built-in WiFi, Bluetooth, I2C, SPI, UART, ADC and DAC.', conn: 'No external wiring needed. Built-in WiFi/BT antenna.', section: 'wifi' },
     { id: 'usb', label: 'USB', type: 'comm', x: 872, y: 116, w: 46, h: 44, gpio: '—', fn: 'Firmware upload & serial monitor', desc: 'Micro USB for programming via Arduino IDE and serial comms with ASCOM/INDI.', conn: 'Connect to PC. Use a quality data cable (not charge-only).', section: 'firmware' },
     { id: 'sd', label: 'SD', type: 'comm', x: 872, y: 172, w: 46, h: 50, gpio: '—', fn: 'MicroSD card slot', desc: 'On-board microSD slot (unused by stock OnStepX).', conn: 'Insert a microSD only if a feature requires it.', section: 'firmware' },
     /* CENTRE — I2C/AUX header + 4 TMC2209 drivers */
-    { id: 'i2c', label: 'I2C|AUX', type: 'i2c', x: 500, y: 250, w: 96, h: 44, gpio: 'GPIO21/22', fn: 'I2C / AUX breakout — SCL·SDA·3V3·5V·GND', desc: 'Central pin header exposing SDA=GPIO21, SCL=GPIO22, 3.3V, 5V and GND. RTC, BME280 and the 3.3V regulator tap here.', conn: 'DS3231 RTC (0x68), BME280 (0x76/0x77) and LM1117 all share this header.', section: 'weather' },
-    { id: 'tmc1', label: 'TMC1|Ra/Azm', type: 'driver', x: 118, y: 300, w: 84, h: 66, gpio: '—', fn: 'Axis1 (Ra/Azm) stepper driver — TMC2209 UART', desc: 'Driver socket for MOT X. Use FYSETC TMC2209 v3.0/v3.1 or TMC2226 v1.1.', conn: 'Insert TMC2209, ensure PDN jumper connected.', section: 'focuser' },
-    { id: 'tmc2', label: 'TMC2|DEC', type: 'driver', x: 210, y: 300, w: 84, h: 66, gpio: '—', fn: 'Axis2 (DEC/Alt) stepper driver — TMC2209 UART', desc: 'Driver socket for MOT Y. Must have PDN jumper for current control.', conn: 'Insert TMC2209.', section: 'focuser' },
-    { id: 'tmc3', label: 'TMC3|Rot/Foc2', type: 'driver', x: 302, y: 300, w: 84, h: 66, gpio: '—', fn: 'Axis3 rotator / Axis5 focuser2 — TMC2209 UART', desc: 'Driver socket for MOT Z. Per Pins.FYSETC_E4.h this is the Z-AXIS: Axis3 (rotator) and Axis5 (focuser2) BOTH sit here on GPIO14 (STEP) / GPIO12 (DIR) — enable only one of them.', conn: 'Insert TMC2209.', section: 'focuser' },
-    { id: 'tmc4', label: 'TMC4|Foc1', type: 'driver', x: 394, y: 300, w: 84, h: 66, gpio: '—', fn: 'Axis4 (Focuser1) — TMC2209 UART', desc: 'Driver socket for MOT E. Per Pins.FYSETC_E4.h focuser1 is the E0-AXIS: GPIO16 (STEP), GPIO17 (DIR) — its own pins, no sharing.', conn: 'Insert TMC2209.', section: 'focuser' },
+    { id: 'i2c', label: 'I2C|AUX', type: 'i2c', x: 500, y: 250, w: 96, h: 44, gpio: 'GPIO21/22', fn: 'I2C header (P17) — 5V·SDA·SCL·GND', desc: '4-pin header: SDA=GPIO21, SCL=GPIO22, +5V and GND (no 3.3V pin, per the E4 V1.0 schematic). Normally for I2C devices; with none fitted it is also the no-modification GPS port (Serial2 remapped to GPIO21/22).', conn: 'DS3231 RTC (0x68) / BME280 (0x76/0x77) — or a GPS (TX → SDA, RX → SCL), not both. 3.3V-only parts need a 3.3V regulator off the 5V pin.', section: 'weather' },
+    { id: 'tmc1', label: 'TMC1|Ra/Azm', type: 'driver', x: 118, y: 300, w: 84, h: 66, gpio: '—', fn: 'Axis1 (Ra/Azm) stepper driver — TMC2209 UART', desc: 'Onboard TMC2209 (U7) driving MOT X — soldered to the board, not a plug-in module.', conn: 'Built in. Current is set over the TMC UART from Config.h.', section: 'focuser' },
+    { id: 'tmc2', label: 'TMC2|DEC', type: 'driver', x: 210, y: 300, w: 84, h: 66, gpio: '—', fn: 'Axis2 (DEC/Alt) stepper driver — TMC2209 UART', desc: 'Onboard TMC2209 (U9) driving MOT Y — soldered to the board.', conn: 'Built in. Current is set over the TMC UART from Config.h.', section: 'focuser' },
+    { id: 'tmc3', label: 'TMC3|Rot/Foc2', type: 'driver', x: 302, y: 300, w: 84, h: 66, gpio: '—', fn: 'Axis3 rotator / Axis5 focuser2 — TMC2209 UART', desc: 'Onboard TMC2209 (U6) driving MOT Z. Per Pins.FYSETC_E4.h this is the Z-AXIS: Axis3 (rotator) and Axis5 (focuser2) BOTH sit here on GPIO14 (STEP) / GPIO12 (DIR) — enable only one of them.', conn: 'Built in.', section: 'focuser' },
+    { id: 'tmc4', label: 'TMC4|Foc1', type: 'driver', x: 394, y: 300, w: 84, h: 66, gpio: '—', fn: 'Axis4 (Focuser1) — TMC2209 UART', desc: 'Onboard TMC2209 (U8) driving MOT E. Per Pins.FYSETC_E4.h focuser1 is the E0-AXIS: GPIO16 (STEP), GPIO17 (DIR) — wired straight to this chip, not brought out to any header.', conn: 'Built in.', section: 'focuser' },
     /* BOTTOM edge — 24V/GND tap, motor outputs, thermistors */
     { id: 'pled', label: '24V|GND', type: 'power', x: 36, y: 486, w: 78, h: 40, gpio: '—', fn: '24V / GND tap (Power-LED feed)', desc: 'Bottom-left 2-pin header providing 24V and GND. In the reference build it drives the Power LED through a 10kΩ resistor.', conn: 'Power LED (+) → 24V via 10kΩ, (–) → GND.', section: 'troubleshooting' },
     { id: 'stepper1', label: 'MOTX|Ra/Azm', type: 'stepper', x: 140, y: 486, w: 88, h: 40, gpio: '—', fn: 'MOT X — Ra/Azm motor output', desc: '4-pin connector for a 4-wire bipolar stepper. Coils: A+/A– and B+/B–.', conn: 'Wire the Ra/Azm stepper coils. Twisted pairs per coil.', section: 'focuser' },
@@ -166,8 +166,8 @@
       gpio: 'Z-MIN', fn: 'Z endstop / extra limit switch', desc: 'Optional Z-MIN endstop or limit microswitch (note: this pin is also the TMC UART jumper on the E4).', conn: 'COM → Z-MIN, NO → GND (active LOW).' },
     { id: 'p-homey', label: 'Home Y', sub: 'switch / Hall', type: 'swsense', target: 'ymin', edge: 'top', wire: '#3b82f6', section: 'limits',
       gpio: 'Y-MIN (GPIO35)', fn: 'Axis2 home / limit sensor', desc: 'Mechanical microswitch or Hall sensor homing the DEC/Alt axis.', conn: 'COM → Y-MIN, NO → GND (active LOW). Onboard 2kΩ pull-up.' },
-    { id: 'p-gps', label: 'GPS', sub: 'NEO-M8N', type: 'gpsmod', target: 'xmin', edge: 'top', wire: '#10b981', section: 'gps',
-      gpio: 'X-MIN (GPIO34)', fn: 'GPS module — auto time & location', desc: 'GY-GPSV3 (NEO-M8N / NEO-6M). Feeds UTC time, latitude and longitude via NMEA at 9600 baud.', conn: 'GPS TX → X-MIN (single-wire, remove filter cap) or GPIO16, VCC → 3.3V, GND → GND. 3.3V only!' },
+    { id: 'p-gps', label: 'GPS', sub: 'NEO-M8N', type: 'gpsmod', target: 'i2c', edge: 'top', wire: '#10b981', section: 'gps',
+      gpio: 'I2C header (GPIO21/22)', fn: 'GPS module — auto time & location', desc: 'GY-GPSV3 (NEO-M8N / NEO-6M). Feeds UTC time, latitude and longitude via NMEA at 9600 baud. Uses the I2C header, so no DS3231/BME280 at the same time.', conn: 'GPS TX → SDA (GPIO21), GPS RX → SCL (GPIO22, optional), GND → GND, VCC → +5V (via a 3.3V regulator if the module has none).' },
     { id: 'p-reticle', label: 'Reticle', sub: 'LED + 10kΩ', type: 'led', target: 'fane0', edge: 'top', wire: '#ef4444', section: 'troubleshooting',
       gpio: 'FAN/AUX (GPIO13)', fn: 'Illuminated reticle lamp', desc: 'Red reticle illumination LED on the FAN/AUX output (RETICLE_LED_PIN defaults to AUX8 = GPIO13, shared with the status LED and buzzer — pick one). Pins.FYSETC_E4.h specifies a 10kΩ series resistor.', conn: 'LED (+) → FAN/AUX via 10kΩ, LED (–) → GND. OnStepX PWMs it for brightness.' },
     { id: 'p-extrst', label: 'Reset btn', sub: 'EXT-RST', type: 'swsense', target: 'extrst', edge: 'top', wire: '#eab308', section: 'troubleshooting',
@@ -375,13 +375,13 @@
       ['GPIO13', 'FAN_E0', 'Status LED, buzzer, dew, intervalometer', 'LED/buzzer shared'],
       ['GPIO14', '—', 'Axis3/Axis5 STEP', 'Shared with Axis5'],
       ['GPIO15', 'Z-MIN', 'TMC UART TX', 'Jumpered to TMC PDN'],
-      ['GPIO16', '—', 'Axis4 STEP, Serial2 RX', '—'], ['GPIO17', '—', 'Axis4 DIR, Serial2 TX', '—'],
-      ['GPIO21', 'I2C SDA', 'BME280, DS3231, I2C devices', 'I2C bus'],
-      ['GPIO22', 'I2C SCL', 'BME280, DS3231, I2C devices', 'I2C bus'],
+      ['GPIO16', '—', 'Axis4 STEP', 'Onboard driver only — no header'], ['GPIO17', '—', 'Axis4 DIR', 'Onboard driver only — no header'],
+      ['GPIO21', 'I2C SDA', 'BME280, DS3231 — or GPS RX (Serial2)', 'I2C bus'],
+      ['GPIO22', 'I2C SCL', 'BME280, DS3231 — or GPS TX (Serial2)', 'I2C bus'],
       ['GPIO25', '—', 'SHARED_ENABLE', 'All axes share this'],
       ['GPIO26', '—', 'Axis1 DIR', 'RA/Azm direction'], ['GPIO27', '—', 'Axis1 STEP', 'RA/Azm step'],
       ['GPIO32', '—', 'Axis2 DIR', 'Dec/Alt direction'], ['GPIO33', '—', 'Axis2 STEP', 'Dec/Alt step'],
-      ['GPIO34', 'X-MIN', 'Home SW Axis1, limit, GPS RX', 'Input only'],
+      ['GPIO34', 'X-MIN', 'Home SW Axis1, limit', 'Input only'],
       ['GPIO35', 'Y-MIN', 'Home SW Axis2', 'Input only'],
       ['GPIO36', 'TE', 'PEC index, thermistor', 'Input only'],
       ['GPIO39', 'TB', 'Thermistor (FEATURE2 / focuser temp)', 'Input only — limit moved to X-MIN on E4'],
@@ -511,50 +511,40 @@
   C.gps = () => `
     <h2 class="e4-h2">GPS Module Implementation</h2>
     <p class="e4-desc">A GPS module provides automatic date/time and location to OnStepX. The most common module is the GY-GPSV3 (NEO-M8N or NEO-6M).
-      Connect via serial (TX/RX) or repurpose X-MIN (GPIO34) for single-wire bit-banged serial.</p>
+      On the E4 the GPS goes on the <strong>I2C header</strong>: the ESP32 routes its hardware serial port (Serial2) to GPIO21/22, so nothing on the board has to be modified.</p>
     ${card({
       title: 'GPS Module — GY-GPSV3 (NEO-M8N / NEO-6M)',
       desc: 'Provides UTC time, latitude, longitude via NMEA sentences. OnStepX parses $GPGGA and $GPRMC automatically at 1Hz.',
       warnings: [
-        { label: 'Capacitor Removal (Single-Wire Mode)', text: 'X-MIN has an SMD filter capacitor that must be lifted for reliable GPS data at 9600 baud. There are <strong>three SMD parts</strong> beside the X-MIN pins: the two outer ones are <strong>resistors — leave them</strong> (one is the pull-up the endstop needs), the <strong>centre</strong> one is the capacitor to remove. Identify it with a multimeter before touching an iron; part designators vary between board revisions, so do not go by a printed reference number.' },
-        { label: 'Voltage', text: 'GY-GPSV3 runs on 3.3V. DO NOT connect to 5V — it will damage the GPS module.' },
+        { label: 'I2C header is shared', text: 'GPIO21/22 are the I2C bus. A GPS there means <strong>no DS3231 RTC and no BME280</strong> (WEATHER OFF, no DS3231 fallback). The preflight check flags the combination.' },
+        { label: 'Voltage', text: 'The I2C header only has <strong>+5V</strong> (no 3.3V pin). Most breakout boards (GY-GPSV3, GY-NEO6MV2, BN-880) carry their own 3.3V regulator and take 5V directly. A bare 3.3V-only module needs a small 3.3V regulator (e.g. AMS1117-3.3 / LM1117-3.3) fed from that 5V pin. The GPS TX line is 3.3V logic either way, which is safe for the ESP32.' },
+        { label: 'Not GPIO16/17', text: 'GPIO16/17 are the default Serial2 pins, but on the E4 they run straight to the onboard MOT E driver — they are not on any header.' },
         { label: 'Baud Rate Mismatch', text: 'Default is 9600 8N1. Some modules ship at 38400 or 115200. Verify with a serial monitor first.' },
         { label: 'Cold Start', text: 'A cold start is ~30s with a clear sky view (u-blox spec ~27–32s). Allow a few minutes in practice through a window or under partial sky. Subsequent starts: 1–5s (hot start, if the module has a backup battery). If you are still waiting after 10 minutes, suspect the antenna or the wiring rather than the fix time.' },
       ],
       wiring: [
-        { e4: 'X-MIN (GPIO34) — single-wire', gpio: 'GPIO34', to: 'GPS TX output (GPS → ESP32, one-way)' },
-        { e4: 'GPIO16 (Serial2 RX) — UART mode', gpio: 'GPIO16', to: 'GPS TX (cleaner, no capacitor removal)' },
-        { e4: 'GPIO17 (Serial2 TX) — UART mode', gpio: 'GPIO17', to: 'GPS RX (optional, for sending commands)' },
-        { e4: '3.3V (E4 header)', gpio: '—', to: 'GPS VCC (max 50mA draw)' },
-        { e4: 'GND (E4 header)', gpio: '—', to: 'GPS GND' },
+        { e4: 'I2C header SDA', gpio: 'GPIO21', to: 'GPS TX (GPS → ESP32)' },
+        { e4: 'I2C header SCL', gpio: 'GPIO22', to: 'GPS RX (optional, for sending commands)' },
+        { e4: 'I2C header +5V', gpio: '—', to: 'GPS VCC (through a 3.3V regulator if the module has none)' },
+        { e4: 'I2C header GND', gpio: '—', to: 'GPS GND' },
       ],
       config: [
         { dir: 'TIME_LOCATION_SOURCE', val: 'GPS', note: 'Use GPS for date/time and location' },
         { dir: 'SERIAL_GPS', val: 'Serial2', note: 'Required — the E4 pinmap assigns no GPS port' },
-        { dir: 'SERIAL_GPS_RX', val: '34', note: 'X-MIN single-wire (16 for UART mode)' },
-        { dir: 'SERIAL_GPS_TX', val: '0', note: 'Unused in single-wire (17 for UART mode)' },
+        { dir: 'SERIAL_GPS_RX', val: '21', note: 'I2C header SDA ← GPS TX' },
+        { dir: 'SERIAL_GPS_TX', val: '22', note: 'I2C header SCL → GPS RX' },
+        { dir: 'WEATHER', val: 'OFF', note: 'The I2C bus is taken by the GPS' },
         { dir: 'SERIAL_GPS_BAUD', val: '9600', note: 'Must match GPS module baud rate' },
         { dir: 'TIME_LOCATION_PPS_SENSE', val: 'OFF', note: 'Set to HIGH if GPS has PPS output' },
       ],
       notes:
-        `<p style="margin:6px 0"><strong>Capacitor removal (single-wire mode on X-MIN):</strong></p>
-        <pre class="e4-pre">  X-MIN Header on E4 board (JST-XH 2-pin):
-  Pin 1: GPIO34 ──┬── R pull-up to 3.3V   ← LEAVE (outer SMD part)
-                  ├── C filter ── GND     ← REMOVE (centre SMD part only)
-                  ├── R              ← LEAVE (outer SMD part)
-                  └── GPS TX (3.3V logic level)
-  Pin 2: GND
-
-  Three SMD parts sit beside the X-MIN pins. Two are resistors,
-  the CENTRE one is the filter cap. Meter them first — removing a
-  resistor here kills the endstop pull-up.</pre>
-        ${callout('info', `<strong>Wiring methods:</strong> <b>Single-wire</b> (GPIO34, X-MIN) needs only 1 pin but requires cap removal and is bit-banged. <b>UART/Serial2</b> (GPIO16 RX, GPIO17 TX) is reliable hardware UART with no caps to remove, but conflicts with the Axis4 focuser. There is <b>no I2C GPS option</b> in OnStepX — ${code('TIME_LOCATION_SOURCE')} accepts only OFF, DS3231, SD3031, TEENSY, GPS or NTP, and GPS means a serial connection.`)}`,
+        `${callout('info', `<strong>Why the I2C header:</strong> the E4 brings no spare serial pins out. GPIO16/17 (default Serial2) go only to the onboard MOT E driver, and X-MIN has a 100nF filter capacitor that corrupts 9600-baud data unless it is removed. The I2C header lines have no filter parts, and the ESP32 can put Serial2 on any GPIO. There is <b>no I2C GPS option</b> in OnStepX — ${code('TIME_LOCATION_SOURCE')} accepts only OFF, DS3231, SD3031, TEENSY, GPS or NTP, and GPS means a serial connection — so the header is simply used as two serial pins.`)}`,
     })}
     ${card({
       title: 'Community notes (OnStep forum)',
       desc: 'Working E4 GPS settings and tips shared by users.',
       notes:
-        `<p style="margin:6px 0"><strong>Single-wire on X-MIN — exact Config.h</strong> (msg #69284):</p>
+        `<p style="margin:6px 0"><strong>Alternative when the I2C bus is in use — X-MIN</strong> (msg #69284). Requires removing X-MIN's filter capacitor (the centre of the three SMD parts beside the header; the outer two are resistors) and gives up the Axis1 home/limit input:</p>
         <pre class="e4-pre">#define TIME_LOCATION_SOURCE          GPS
 #define SERIAL_GPS                    Serial2   // or SoftSerial
 #define SERIAL_GPS_RX                 34         // X-MIN (GPIO34) ← GPS TX
@@ -563,9 +553,9 @@
 #define TIME_LOCATION_PPS_SENSE       OFF        // HIGH if your GPS has a PPS pin</pre>
         ${callout('info', `<strong>GPS + RTC together (auto-fallback):</strong> set ${code('TIME_LOCATION_SOURCE GPS')} and ${code('TIME_LOCATION_SOURCE_FALLBACK DS3231')} — OnStepX uses the GPS once it has a fix and falls back to the DS3231 clock when no satellites are visible. <span style="color:var(--e4-dim)">Source: <a href="https://onstep.groups.io/g/main/message/66963" target="_blank" rel="noopener">#66963</a>, <a href="https://onstep.groups.io/g/main/message/69284" target="_blank" rel="noopener">#69284</a></span>`)}
         <ul style="font-size:12.5px;line-height:1.75">
-          <li><strong>Z-MIN can't be a serial/GPS input</strong> on the E4. If X-MIN and Y-MIN are both used for home sensors, don't try to put GPS on Z-MIN — instead move one <em>home sensor</em> to Z-MIN to free X-MIN for the GPS. <span style="color:var(--e4-dim)">Source: <a href="https://onstep.groups.io/g/main/message/68291" target="_blank" rel="noopener">#68291</a></span></li>
-          <li><strong>Which cap to remove:</strong> there are 3 SMD parts next to the X-MIN pins — two are resistors, the <em>centre</em> one is the filter capacitor to lift for single-wire GPS. <span style="color:var(--e4-dim)">Source: <a href="https://onstep.groups.io/g/main/message/69156" target="_blank" rel="noopener">#69156</a></span></li>
-          <li><strong>Verify the module first:</strong> if the GPS works with a test sketch but not OnStepX, it's almost always a baud/pin mismatch — confirm ${code('SERIAL_GPS_BAUD 9600')} and that GPS TX goes to GPIO34. <span style="color:var(--e4-dim)">Source: <a href="https://onstep.groups.io/g/main/message/67492" target="_blank" rel="noopener">#67492</a></span></li>
+          <li><strong>Z-MIN can't be a serial/GPS input</strong> on the E4 (it goes through an optocoupler). If you use the X-MIN alternative and X-MIN and Y-MIN are both home sensors, move one <em>home sensor</em> to Z-MIN to free X-MIN for the GPS. <span style="color:var(--e4-dim)">Source: <a href="https://onstep.groups.io/g/main/message/68291" target="_blank" rel="noopener">#68291</a></span></li>
+          <li><strong>X-MIN alternative only — which cap to remove:</strong> there are 3 SMD parts next to the X-MIN pins — two are resistors, the <em>centre</em> one is the filter capacitor. <span style="color:var(--e4-dim)">Source: <a href="https://onstep.groups.io/g/main/message/69156" target="_blank" rel="noopener">#69156</a></span></li>
+          <li><strong>Verify the module first:</strong> if the GPS works with a test sketch but not OnStepX, it's almost always a baud/pin mismatch — confirm ${code('SERIAL_GPS_BAUD 9600')} and that GPS TX goes to the pin set in ${code('SERIAL_GPS_RX')}. <span style="color:var(--e4-dim)">Source: <a href="https://onstep.groups.io/g/main/message/67492" target="_blank" rel="noopener">#67492</a></span></li>
         </ul>`,
     })}`;
 
@@ -1097,7 +1087,7 @@
     const discussions = [
       { title: 'Stepper Motor Overheating — UART Current Fix', author: 'community', tag: 'stepper', link: 'https://onstep.groups.io/g/main/message/58342', desc: 'Motors run hot on 12V. Root cause: TMC2209 UART comms failure means Config.h current never reaches the driver — it runs at full VRef current.', notes: 'Fix order: (1) check Z-MIN→PDN jumper, (2) reseat the jumper, (3) reduce IRUN to ~400mA / IHOLD ~200mA, (4) update to OnStepX v10.20a+, (5) set TMC2209 VRef pot to max (~2.5V) for UART current control.' },
       { title: 'PEC Wiring KY-003 / A3144 — Step by Step', author: 'community', tag: 'pec', link: 'https://onstep.groups.io/g/main/topic/fysetc_e4_pec_wiring/102827741', desc: 'KY-003 (A3144 latch) open-collector output with the built-in 4.7kΩ pull-up on TE. Test with the Sky Planetarium flash indicator.', notes: 'KY-003 outputs 5V — power it from 3.3V or use a divider, GPIO36 is not 5V-tolerant. Wiring: TE Pin 1 (GPIO36) ← Hall OUT, TE Pin 2 ← GND. Config: PEC_SENSE HIGH, PEC_SENSE_PIN 36.' },
-      { title: 'GPS Module v2 — X-MIN Single-Wire Mode', author: 'community', tag: 'gps', link: 'https://onstep.groups.io/g/main/message/69157', desc: 'NEO-M8N on X-MIN (GPIO34) single-wire bit-banged mode. Capacitor removal required for reliable 9600-baud data.', notes: 'Remove the single centre SMD filter capacitor beside the X-MIN pins — the two outer parts are resistors, leave them. GY-GPSV3 is 3.3V only. Alternative: Serial2 (GPIO16 RX, GPIO17 TX) — no cap removal but conflicts with Axis4 focuser. Config: TIME_LOCATION_SOURCE GPS, SERIAL_GPS_BAUD 9600.' },
+      { title: 'GPS Module v2 — X-MIN Single-Wire Mode', author: 'community', tag: 'gps', link: 'https://onstep.groups.io/g/main/message/69157', desc: 'NEO-M8N on X-MIN (GPIO34) single-wire bit-banged mode. Capacitor removal required for reliable 9600-baud data.', notes: 'Remove the single centre SMD filter capacitor beside the X-MIN pins — the two outer parts are resistors, leave them. No-modification alternative: the I2C header (GPS TX → SDA/GPIO21, SERIAL_GPS Serial2, SERIAL_GPS_RX 21, SERIAL_GPS_TX 22) when no DS3231/BME280 is fitted. Config: TIME_LOCATION_SOURCE GPS, SERIAL_GPS_BAUD 9600.' },
       { title: 'Win11 CH340 USB Fix — Driver & DTR', author: 'community', tag: 'software', link: 'https://onstep.groups.io/g/main/message/62877', desc: 'CH340 USB-serial issues on Windows 11 solved by driver downgrade and DTR configuration.', notes: '(1) Uninstall current CH340 driver, (2) install CH341SER-3.7, (3) in ASCOM config select "9600-NO DTR", (4) in Device Manager → Ports → Advanced enable DisableModemHandshake.' },
       { title: 'Official FYSETC E4 Wiki — Complete Reference', author: 'Howard Dutton', tag: 'reference', link: 'https://onstep.groups.io/g/main/wiki/32747', desc: 'Complete E4 reference: pinout, safety, schematics, power recommendations (12VDC/5A), peripheral wiring and the 10µF cap upload fix.', notes: 'Remember: remove all factory shunts, install only the Z-MIN → TMC2209 PDN jumper. 12V recommended (24V dew heaters run at 4× power). Two E4 versions exist (internal ceramic vs external IPEX antenna) — both work identically.' },
     ];
@@ -1195,12 +1185,12 @@
 
       ${cat('#10b981', '🛰️ GPS Modules')}
       ${table(['Module', 'Chip', 'Voltage', 'Baud', 'PPS', 'Notes'], [
-        ['<strong>GY-GPSV3</strong>', 'NEO-M8N', '3.3V', '9600', 'Yes', 'Most recommended. Works via X-MIN or Serial2.'],
+        ['<strong>GY-GPSV3</strong>', 'NEO-M8N', '3.3V', '9600', 'Yes', 'Most recommended. On the E4: I2C header (GPIO21/22).'],
         ['<strong>NEO-6M</strong>', 'NEO-6M', '3.3V', '9600', 'Yes (pin present)', 'Older, GPS-only, less sensitive than M8N. Cold start ~30s.'],
         ['<strong>NEO-M8N</strong>', 'NEO-M8N', '3.3V', '9600', 'Yes', 'Multi-GNSS, better sensitivity.'],
         ['<strong>BN-880</strong>', 'NEO-M8N', '3.3–5V', '9600', 'Yes', 'Compass + GPS, external SMA antenna.'],
       ])}
-      ${callout('warn', '<strong>⚠ Cap removal:</strong> for single-wire GPS on X-MIN, lift only the <strong>centre</strong> SMD part beside the header — it is the filter capacitor; the two either side are resistors and must stay. Not needed at all with Serial2 (GPIO16/17).')}
+      ${callout('info', '<strong>E4 wiring:</strong> put the GPS on the I2C header (TX → SDA/GPIO21, RX → SCL/GPIO22) with <code class="e4-code">SERIAL_GPS Serial2</code> — no board modification. The header has only 5V, so a 3.3V-only module needs a small 3.3V regulator. Fall back to X-MIN (which needs its filter capacitor removed) only if a DS3231 or BME280 must stay on the I2C bus.')}
 
       ${cat('#f59e0b', '🌡️ Temperature Sensors')}
       ${table(['Sensor', 'Interface', 'E4 Pin', 'Config'], [
