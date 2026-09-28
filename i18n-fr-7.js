@@ -7,17 +7,7 @@
 window.I18N_FR = Object.assign(window.I18N_FR || {}, {
   /* ---- button labels (Apply <label> defaults) ---- */
   "Apply FYSETC E4 defaults": "Appliquer les valeurs par défaut FYSETC E4",
-  "Apply MaxESP3 defaults": "Appliquer les valeurs par défaut MaxESP3",
-  "Apply MaxESP4 defaults": "Appliquer les valeurs par défaut MaxESP4",
-  "Apply MaxPCB4 defaults": "Appliquer les valeurs par défaut MaxPCB4",
   "Apply MaxSTM3 defaults": "Appliquer les valeurs par défaut MaxSTM3",
-  "Apply MaxSTM3I defaults": "Appliquer les valeurs par défaut MaxSTM3I",
-  "Apply FYSETC S6 V1.2 defaults": "Appliquer les valeurs par défaut FYSETC S6 V1.2",
-  "Apply FYSETC S6 V2.0 defaults": "Appliquer les valeurs par défaut FYSETC S6 V2.0",
-  "Apply BTT SKR PRO V1.2 defaults": "Appliquer les valeurs par défaut BTT SKR PRO V1.2",
-  "Apply MiniPCB v1 defaults": "Appliquer les valeurs par défaut MiniPCB v1",
-  "Apply MiniPCB v2 defaults": "Appliquer les valeurs par défaut MiniPCB v2",
-  "Apply CNC3 / WeMos D1 R32 (ESP32) defaults": "Appliquer les valeurs par défaut CNC3 / WeMos D1 R32 (ESP32)",
   "Pick a PINMAP first.": "Choisissez d'abord un PINMAP.",
 
   /* ---- per-board notes ---- */

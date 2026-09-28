@@ -115,10 +115,6 @@ window.I18N_FR = Object.assign(window.I18N_FR || {}, {
     "TMC2100 — autonome uniquement (spreadCycle, 16x maxi)",
 
   /* ------------------------------------ strings built in JS via tr()/pgT() */
-  "Apply Terrans V5 Pro defaults":
-    "Appliquer les valeurs par défaut Terrans V5 Pro",
-  "Terrans V5 Pro defaults applied.":
-    "Valeurs par défaut Terrans V5 Pro appliquées.",
   "⚠ UNDER TEST — not yet verified on real hardware. ESP32 half of the Terrans Industry V5 Pro (the on-board ESP8266 runs its own SmartWebServer and is a separate, optional flash). PINMAP is emitted as OFF with the board pin map inlined in Config.h. Stock drivers are TMC2225 \"Dual V2\" modules strapped standalone, so the model is TMC2225S: microsteps are set on M0/M1 and run current is fixed in hardware (IRUN/IHOLD do nothing). Geometry defaults are the EXOS2/CG5/EQ5 class — 200 steps x 32 microsteps x 3:1 belt x 144:1 worm = 7680 steps/deg. Bluetooth is on by default, matching the stock firmware. The focuser (Axis4) slot and every auxiliary feature are OFF: the kit ships with no focuser driver fitted and has no dew-heater outputs. Set the board switch to the ESP32 position before flashing.":
     "⚠ EN COURS DE TEST — pas encore validé sur matériel réel. Partie ESP32 de la Terrans Industry V5 Pro (l'ESP8266 embarqué exécute son propre SmartWebServer et se flashe séparément, de façon facultative). PINMAP est émis à OFF, le brochage de la carte étant intégré dans Config.h. Les drivers d'origine sont des modules TMC2225 « Dual V2 » en mode autonome, d'où le modèle TMC2225S : les micropas se règlent par M0/M1 et le courant est fixé en matériel (IRUN/IHOLD n'ont aucun effet). La géométrie par défaut correspond à la classe EXOS2/CG5/EQ5 — 200 pas × 32 micropas × courroie 3:1 × vis sans fin 144:1 = 7680 pas/degré. Le Bluetooth est actif par défaut, comme le firmware d'origine. L'emplacement du moteur de mise au point (axe 4) et toutes les fonctions auxiliaires sont sur OFF : le kit est livré sans driver de focuser et ne dispose d'aucune sortie pour résistance chauffante. Mettez l'interrupteur de la carte sur la position ESP32 avant de flasher."
 });
