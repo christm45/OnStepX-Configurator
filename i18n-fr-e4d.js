@@ -602,4 +602,30 @@ window.I18N_FR = Object.assign(window.I18N_FR || {}, {
     "⚠ Lisez ceci avant d'acheter des DS18B20 pour un E4.",
   "💡 No VRef pot on the E4:":
     "💡 Pas de potentiomètre VRef sur l'E4 :",
+  "Pinmap":
+    "Brochage",
+  "Thermistors":
+    "Thermistances",
+  "Intervalometer":
+    "Intervallomètre",
+  "Heater":
+    "Chauffage",
+  "Reticle":
+    "Réticule",
+  "intervalometer":
+    "intervallomètre",
+  "status":
+    "état",
+  "switch":
+    "interrupteur",
+  "Focuser1":
+    "Focuseur1",
+  "Connectors":
+    "Connecteurs",
+  "keyword.":
+    "mot-clé.",
+  "(rotator)":
+    "(rotateur)",
+  "Download":
+    "Téléchargez",
 });

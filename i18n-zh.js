@@ -65,6 +65,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "（NodeMCU / Wemos D1）——大多数主板会自动复位。裸 ESP-01 模块：将 GPIO0 拉到 GND，然后断电重启。",
   "(STM32), or Teensy Loader (Teensy) locally.":
     "(STM32)，或在本地使用 Teensy Loader (Teensy)。",
+  "(SmartWebServer:":
+    "（SmartWebServer：",
   "(TB) and":
     "(TB) 和",
   "(TB), or a DS18B20 serial number. The E4 default Config.h already ties a thermistor to the 2nd channel.":
@@ -127,6 +129,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "（探头）",
   "(richer UI). On a non-ESP board, \"adding WiFi\" literally means bolting on an ESP module running SmartWebServer.":
     "（界面更丰富）之间做出选择。在非 ESP 主板上，「添加 WiFi」实际上就是加装一个运行 SmartWebServer 的 ESP 模块。",
+  "(rotator)":
+    "（旋转器）",
   "(rule of thumb ≈1W per inch of aperture at 12V):":
     "（经验法则：12V 下每英寸口径约 1W）：",
   "(rules out Arduino/library issues).":
@@ -858,7 +862,7 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
   "Active LOW = switch to GND triggers home":
     "低电平有效 = 开关接 GND 触发原点",
   "Active LOW for Axis2 home":
-    "轴2 原点，低电平有效",
+    "Axis2 原点，低电平有效",
   "Active LOW — short to GND = limit triggered":
     "低电平有效 — 短接到 GND = 触发限位",
   "Active LOW — short to GND = limit triggered. Already LOW in the stock E4 Config.h":
@@ -934,7 +938,7 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
   "Apply board defaults":
     "应用主板默认值",
   "Arc-second offset for Axis2":
-    "轴2 的角秒偏移",
+    "Axis2 的角秒偏移",
   "Arc-second offset from switch to true home":
     "从开关到真实原点的角秒偏移",
   "Arduino CNC Shield V3 on WeMos D1 R32 (ESP32). Deprecated per the OnStep wiki — kept for legacy builds. Recommended drivers per the wiki: LV8729 or S109 at 12V. Default below uses LV8729.":
@@ -954,7 +958,7 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
   "Auto meridian flips at startup":
     "启动时自动中天翻转",
   "Auto-filled from Axis1 worm gear":
-    "根据轴1 蜗轮自动填充",
+    "根据Axis1 蜗轮自动填充",
   "Auto-home at startup before alignment":
     "启动时在校准前自动回原点",
   "Auto-selected from your PINMAP choice":
@@ -978,21 +982,21 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
   "Axis direction convention differs between the OnStep web UI and the ASIAIR mount profile.":
     "OnStep Web 界面与 ASIAIR 支架配置文件的轴方向约定不同。",
   "Axis1":
-    "轴1",
+    "Axis1",
   "Axis1 / Axis2":
-    "轴1 / 轴2",
+    "Axis1 / Axis2",
   "Axis1 DIR":
-    "轴1 DIR",
+    "Axis1 DIR",
   "Axis1 GOTO Microsteps":
-    "轴1 GOTO 细分",
+    "Axis1 GOTO 细分",
   "Axis1 RA/Azimuth — Driver":
-    "轴1 赤经/方位 — 驱动器",
+    "Axis1 赤经/方位 — 驱动器",
   "Axis1 RA/Azimuth — Steps Per Degree Calculator":
-    "轴1 赤经/方位 — 每度步数计算器",
+    "Axis1 赤经/方位 — 每度步数计算器",
   "Axis1 RA/Azm":
-    "轴1 赤经/方位",
+    "Axis1 赤经/方位",
   "Axis1 STEP":
-    "轴1 STEP",
+    "Axis1 STEP",
   "Axis1 stepper driver":
     "Axis1 步进驱动器",
   "Axis1 — Advanced":
@@ -1151,6 +1155,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "将输出文件（固件二进制、引导程序、分区表，以及 — 对 ESP32 而言 — 预先合并的单文件镜像）打包为",
   "Burning smell or smoke near USB / jumper pins get hot":
     "USB 附近有焦味或冒烟 / 跳线针脚发烫",
+  "Buzzer":
+    "蜂鸣器",
   "Buzzer — Status buzzer (shared with the FAN output)":
     "蜂鸣器 — 状态蜂鸣器（与 FAN 输出共用）",
   "CALIBRATION REQUIRED: AXIS4_STEPS_PER_MICRON must be measured for your focuser.":
@@ -1329,6 +1335,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "连接到 OnStep 支架",
   "Connector positions mirror the real FYSETC E4 board: the":
     "接口位置与真实的 FYSETC E4 主板一致：",
+  "Connectors":
+    "接口",
   "Constraints":
     "限制条件",
   "Contents":
@@ -1493,6 +1501,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "不要把 WiFi 密码、API 密钥或其他机密信息写进 Config.h。",
   "Downgrade ESP32 board package to v2.0.11 or earlier.":
     "将 ESP32 主板包降级到 v2.0.11 或更早版本。",
+  "Download":
+    "下载",
   "Download Config.h":
     "下载 Config.h",
   "Download Firmware":
@@ -1779,6 +1789,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "调焦器 1",
   "Focuser control via hand controller":
     "通过手控器控制调焦器",
+  "Focuser1":
+    "调焦器1",
   "Focuser1 active by default on MOT-E":
     "Focuser1 默认在 MOT-E 上启用",
   "Focuser1 stepper coils to MOT E.":
@@ -1955,6 +1967,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "硬件指南",
   "Hardware limits stop ALL mount movement when triggered. The E4 Config.h overrides the default limit pin to GPIO34 instead of GPIO39.":
     "硬件限位触发时会停止支架的所有运动。E4 的 Config.h 将默认限位引脚改为 GPIO34，而不是 GPIO39。",
+  "Heater":
+    "加热器",
   "Heater power":
     "加热功率",
   "Heater sizing":
@@ -2145,6 +2159,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "交互式主板示意图与已连接硬件",
   "Interface":
     "接口",
+  "Intervalometer":
+    "间隔拍摄",
   "Intervalometer / DSLR Trigger":
     "间隔拍摄器 / 单反快门触发",
   "Intervalometer Circuit — Optocoupler Isolated":
@@ -2197,6 +2213,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "LED / 蜂鸣器",
   "LED / Buzzer (switched)":
     "LED / 蜂鸣器（开关控制）",
+  "LED/Buzzer":
+    "LED/蜂鸣器",
   "LM1117-3.3 — LM1117-3.3 / AMS1117-3.3 regulator":
     "LM1117-3.3 — LM1117-3.3 / AMS1117-3.3 稳压器",
   "L_ca (Catalan)":
@@ -2775,6 +2793,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "引脚共用：",
   "Pin#":
     "引脚号",
+  "Pinmap":
+    "引脚映射",
   "Pinmap & Overview":
     "引脚映射与概览",
   "Pins.FYSETC_E4.h defines SPARE_RX_PIN as OFF in both TMC-UART branches":
@@ -2947,6 +2967,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "从 NV 恢复指向模型",
   "Restores where the mount was pointing after a power cycle. Default OFF. Uses NV storage, not the RTC — but it writes often, so FRAM is kinder than flash-backed EEPROM":
     "断电重启后恢复支架原先的指向。默认 OFF。使用 NV 存储而非 RTC——但写入频繁，因此 FRAM 比基于闪存模拟的 EEPROM 更耐用",
+  "Reticle":
+    "分划板照明",
   "Reticle — Illuminated reticle lamp":
     "Reticle——照明分划板灯",
   "Reverse direction":
@@ -3519,6 +3541,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "热敏电阻的实现",
   "Thermistor — NTC thermistor — focuser / dew temp":
     "热敏电阻——NTC 热敏电阻——调焦器 / 除露温度",
+  "Thermistors":
+    "热敏电阻",
   "These map the computed demand onto PWM duty;":
     "它们把计算得到的需求映射为 PWM 占空比；",
   "This board profile was derived from source,":
@@ -4171,6 +4195,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "指示（编译成功后显示在编译按钮下方）会相应增大。如果你勾选了 Website 而大小几乎没变，说明有问题 — 请打开运行 URL 并阅读工作流日志。",
   "install Arduino IDE or PlatformIO → clone the source → edit Config.h → wait for the toolchain to download → build → flash.":
     "安装 Arduino IDE 或 PlatformIO → 克隆源码 → 编辑 Config.h → 等待工具链下载 → 构建 → 烧录。",
+  "intervalometer":
+    "间隔拍摄",
   "is generated to enable Website in slot 1.":
     "会被生成，以在插槽 1 中启用 Website。",
   "is not an upstream OnStepX pinmap: picking it emits":
@@ -4185,6 +4211,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "都已连接在它周围 — 电源与稳压器、4 个电机、GPS、RTC、BME280、DS18B20、热敏电阻、PEC 霍尔传感器、2 条除露加热带、单反快门、十字线照明、蜂鸣器、电源 LED、限位开关和 USB。点击任意主板接口",
   "jumper (pins are silkscreened next to the reset button) to hold BOOT0 high.":
     "跳线帽（引脚丝印在复位按钮旁边），使 BOOT0 保持高电平。",
+  "keyword.":
+    "关键字。",
   "library loaded from a CDN on first use.":
     "库（首次使用时从 CDN 加载）。",
   "line as shown in its README.":
@@ -4375,12 +4403,16 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "启动 /",
   "stated explicitly as 21/22.":
     "显式指定为 21/22。",
+  "status":
+    "状态",
   "stay put. To start totally fresh, click":
     "会保持不变。如需完全从头开始，请点击",
   "still has the placeholder. For the owner: follow":
     "仍是占位符。站点所有者：请按照",
   "stop, and":
     "停止，以及",
+  "switch":
+    "开关",
   "switch / Hall":
     "开关 / 霍尔",
   "switches to":
@@ -4430,7 +4462,7 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
   "thermistors along the bottom.":
     "热敏电阻位于底部。",
   "to":
-    "改为",
+    "到",
   "to Defaults":
     "为默认值",
   "to GND, power cycle, and release.":
