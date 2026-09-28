@@ -530,6 +530,9 @@
       ],
       config: [
         { dir: 'TIME_LOCATION_SOURCE', val: 'GPS', note: 'Use GPS for date/time and location' },
+        { dir: 'SERIAL_GPS', val: 'Serial2', note: 'Required — the E4 pinmap assigns no GPS port' },
+        { dir: 'SERIAL_GPS_RX', val: '34', note: 'X-MIN single-wire (16 for UART mode)' },
+        { dir: 'SERIAL_GPS_TX', val: '0', note: 'Unused in single-wire (17 for UART mode)' },
         { dir: 'SERIAL_GPS_BAUD', val: '9600', note: 'Must match GPS module baud rate' },
         { dir: 'TIME_LOCATION_PPS_SENSE', val: 'OFF', note: 'Set to HIGH if GPS has PPS output' },
       ],

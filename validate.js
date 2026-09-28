@@ -74,6 +74,12 @@ const PINMAPS_LED_BUZZER_SHARED_PIN = new Set([
   'MaxESP3', 'MaxESP4', 'FYSETC_E4', 'TERRANS_V5PRO',
 ]);
 
+// PINMAPs whose Pins.<Board>.h defines SERIAL_GPS itself (when the user
+// hasn't). Everything else needs SERIAL_GPS in Config.h for a GPS build.
+const PINMAPS_GPS_SERIAL_AUTO = new Set([
+  'MaxSTM3', 'MaxSTM3I', 'BTT_SKR_PRO', 'FYSETC_S6', 'FYSETC_S6_2',
+]);
+
 // PINMAPs whose Pins.<Board>.h wires AXIS1_M0/M1 and AXIS2_M0/M1 to the SAME
 // GPIOs. On a standalone (non-UART, non-SPI) driver those pins are what sets
 // the microstep mode, so the two axes physically cannot hold different
@@ -267,6 +273,30 @@ export function validateConfig(values) {
   //   #error "Configuration (Config.h): STATUS_BUZZER enabled but AUX8_PIN
   //   is already in use, choose one feature on AUX8_PIN"
   // when both are ON. Catch it locally — saves a 30-second CI round-trip.
+  // --- GPS serial port ---
+  // OnStepX src/lib/tls/gps/GPS.cpp #errors "SERIAL_GPS must be set ..." when
+  // TIME_LOCATION_SOURCE is GPS and nothing defines SERIAL_GPS. Only these
+  // pinmaps auto-assign it (Pins.MaxSTM.h, Pins.SKR_PRO.h, Pins.FYSETC_S6.h,
+  // Pins.Manticore.h); the FYSETC E4 and every ESP32 board do not.
+  if (values.TIME_LOCATION_SOURCE === 'GPS') {
+    const gpsPort = values.SERIAL_GPS || 'PINMAP';
+    const pinSet = (p) => p && p.trim() !== '' && p.trim() !== 'OFF';
+    if (gpsPort === 'PINMAP' && !PINMAPS_GPS_SERIAL_AUTO.has(values.PINMAP)) {
+      add('error', 'SERIAL_GPS',
+        `TIME_LOCATION_SOURCE=GPS, but PINMAP=${values.PINMAP} doesn't assign a GPS serial port, so ` +
+        `OnStepX won't compile ("SERIAL_GPS must be set"). Pick SERIAL_GPS in Time & Location ` +
+        `(on ESP32 boards: Serial2 with SERIAL_GPS_RX/TX set to the pins the GPS is wired to).`);
+    } else if ((gpsPort === 'SoftSerial' || gpsPort === 'HardSerial') &&
+               !(pinSet(values.SERIAL_GPS_RX) && pinSet(values.SERIAL_GPS_TX))) {
+      add('error', 'SERIAL_GPS_RX',
+        `SERIAL_GPS=${gpsPort} needs both SERIAL_GPS_RX and SERIAL_GPS_TX — OnStepX's GPS.cpp refuses to compile without them.`);
+    } else if (gpsPort !== 'PINMAP' && pinSet(values.SERIAL_GPS_RX) !== pinSet(values.SERIAL_GPS_TX)) {
+      add('warn', 'SERIAL_GPS_RX',
+        `Only one of SERIAL_GPS_RX / SERIAL_GPS_TX is set. OnStepX applies custom pins only when both are ` +
+        `defined, so ${gpsPort} will stay on its default pins. Set the unused one to a spare pin (e.g. 0 on the FYSETC E4).`);
+    }
+  }
+
   if (PINMAPS_LED_BUZZER_SHARED_PIN.has(values.PINMAP) &&
       values.STATUS_LED && values.STATUS_LED !== 'OFF' &&
       values.STATUS_BUZZER && values.STATUS_BUZZER !== 'OFF') {
