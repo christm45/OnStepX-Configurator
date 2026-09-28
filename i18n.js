@@ -4,7 +4,8 @@
    The configurator is authored in English. Rather than annotate ~6500 lines
    with data-i18n keys, this engine walks the live DOM, keys each visible text
    node / attribute on its exact trimmed English string, and swaps in the
-   French equivalent from window.I18N_FR when present. Anything missing from the
+   translation from the active language's dictionary (window.I18N_FR,
+   window.I18N_ZH, … — see LANGS) when present. Anything missing from the
    dictionary simply stays English (graceful degradation), so the page is never
    left blank or half-broken.
 
@@ -25,11 +26,23 @@
   var SKIP_TAGS = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, CANVAS: 1, CODE: 1, PRE: 1, TEXTAREA: 1, OPTION: 0 };
   var ATTRS = ['title', 'placeholder', 'aria-label'];
 
+  // Supported languages: code -> dictionary global + <html lang>. English is
+  // the source text, so it has no dictionary. To add a language, add a row
+  // here, a button in index.html's .lang-bar, and i18n-<code>*.js files that
+  // fill the named global.
+  var LANGS = {
+    en: { dict: null, html: 'en' },
+    fr: { dict: 'I18N_FR', html: 'fr' },
+    zh: { dict: 'I18N_ZH', html: 'zh-CN' }
+  };
+
   var lang = 'en';
   try { lang = localStorage.getItem(STORE_KEY) || 'en'; } catch (e) {}
+  if (!LANGS[lang]) lang = 'en';
 
   function dict() {
-    return lang === 'fr' ? (window.I18N_FR || {}) : null;
+    var g = LANGS[lang].dict;
+    return g ? (window[g] || {}) : null;
   }
 
   /* ---- dictionary key for a chunk of DOM text ------------------------------
@@ -121,9 +134,9 @@
   }
 
   function set(l) {
-    lang = (l === 'fr') ? 'fr' : 'en';
+    lang = LANGS[l] ? l : 'en';
     try { localStorage.setItem(STORE_KEY, lang); } catch (e) {}
-    document.documentElement.lang = lang;
+    document.documentElement.lang = LANGS[lang].html;
     apply(document.body);
     updateButtons();
     if (typeof window.afterI18nApply === 'function') window.afterI18nApply();
@@ -148,7 +161,7 @@
   }
 
   function init() {
-    document.documentElement.lang = lang;
+    document.documentElement.lang = LANGS[lang].html;
     apply(document.body);
     updateButtons();
     if (typeof window.afterI18nApply === 'function') window.afterI18nApply();
@@ -163,6 +176,8 @@
     apply: apply,
     set: set,
     init: init,
+    // Translate one string with the active dictionary (English passthrough).
+    t: function (s) { var d = dict(); return (d && d[s] !== undefined) ? d[s] : s; },
     get lang() { return lang; }
   };
 
