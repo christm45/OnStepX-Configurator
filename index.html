@@ -1217,6 +1217,11 @@
           with the board switch in the ESP8266 position (right). Terrans' web firmware is stock
           SmartWebServer plus a config file, so nothing board-specific is lost — but reflashing it
           resets the WiFi settings, so have the AP password to hand.</li>
+        <li><b>After reflashing OnStepX, power-cycle the whole board.</b> Flashing restarts only the
+          ESP32; the ESP8266 keeps running and re-detects the mount and focusers as OnStepX comes back.
+          SmartWebServer checks once and keeps the answer, so a check that lands mid-boot hides the axis
+          settings (or a newly enabled focuser) until the link next drops. Starting both chips together
+          avoids it.</li>
         <li>Settings stored in NV are not migrated — expect to redo date/time, site and alignment.
           <b>Power-cycle once after the first boot</b> of new firmware: that first run initialises NV,
           and until it has, the hand controller and web UI can show greyed-out controls or an axis that
