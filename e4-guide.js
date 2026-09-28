@@ -34,7 +34,7 @@
   ];
 
   const SEARCH = {
-    pinmap: 'pinmap gpio header overview specifications esp32 tmc2209 i2c sda scl enable stepper driver power usb board diagram aux te tb x-min y-min heat fan rst led reset mot shared_en',
+    pinmap: 'pinmap gpio header overview specifications esp32 tmc2209 i2c sda scl enable stepper driver power usb board diagram aux te tb x-min y-min heat fan rst led reset mot shared_en jumper diag m-tx m-rx uart gpio15 vin',
     limits: 'limit switch home endstop sensor gpio34 gpio35 gpio39 x-min y-min axis1_sense_home limit_sense limit_strict homing axis2_sense_home microswitch hall',
     gps: 'gps module neo-m8n neo-6m gy-gpsv3 time location serial capacitor baud nmea gpgga gprmc satellite',
     thermistor: 'thermistor ntc temperature te tb gpio36 gpio39 beta 3950 3435 100k voltage divider pull-up rparallel steinhart',
@@ -110,37 +110,37 @@
   };
 
   /* Board connector layout mirrors the real FYSETC E4 photo (annotated reference):
-     TOP    = green screw terminal 12V/0V/H1/H2, FAN+, Z/Y/X-MIN endstops, EXT-RST
-     RIGHT  = ESP32 module, USB, MicroSD          CENTRE = 4 TMC2209 drivers + I2C/AUX header
-     BOTTOM = MOT X/Y/Z/E motor outputs (Ra·DEC·Foc1·Foc2), TB/TE thermistors, 24V/GND tap
+     TOP    = 6-way screw terminal Vin/GND/Heater/Bed, FAN, Z/Y/X-MIN, EXT-RST
+     RIGHT  = ESP32 module, USB, MicroSD          CENTRE = 4 onboard TMC2209s + I2C/TMC-UART/UART0 block
+     BOTTOM = MOT X/Y/Z/E outputs (Ra·DEC·Foc2/Rot·Foc1), TB/TE thermistors, 3x2 Vin/GND tap
      Internal board canvas is 920 x 540, translated by (BX, BY). */
   const BOARD_ELEMENTS = [
     /* TOP edge — green screw terminal (power + heaters), FAN+, endstops, EXT-RST */
-    { id: 'power', label: 'PWR|12V·0V', type: 'power', x: 36, y: 12, w: 92, h: 40, gpio: '—', fn: 'Main power input — 12V / 0V screw terminal', desc: 'Left pair of the green screw block: 12V (+) and 0V (–). Feeds the whole board: motors, ESP32, heaters.', conn: '12–24V DC, 5A+. Observe polarity: 12V = +, 0V = GND.', section: 'troubleshooting' },
-    { id: 'heate0', label: 'H1', type: 'output', x: 132, y: 12, w: 52, h: 40, gpio: 'GPIO2', fn: 'H1 — Heater output 1 (AUX5)', desc: 'Screw terminal H1 (the printer HEAT_E0 output). A switched 12–24V power terminal driven by an onboard MOSFET — GPIO2 only gates it. Connect a dew-heater strap directly; no external MOSFET needed. GPIO2 is an ESP32 boot-strap pin, so OnStepX holds it LOW at boot.', conn: 'Dew-heater strap wires straight across the H1 2-pin terminal; the board switches the low side.', section: 'dew' },
+    { id: 'power', label: 'PWR|Vin·GND', type: 'power', x: 36, y: 12, w: 92, h: 40, gpio: '—', fn: 'Main power input — Vin / GND screw terminal', desc: 'Left pair of the 6-way screw block, marked Vin and GND. 12–24V DC (board maximum 22.5A). Feeds the drivers, both heater outputs and the fan / Z-probe supply; an onboard buck converter (TPS54202, 2A) makes 5V and an AMS1117 makes 3.3V for the ESP32.', conn: '12–24V DC, 5A+ for a typical mount. Observe polarity: Vin = +, GND = –.', section: 'troubleshooting' },
+    { id: 'heate0', label: 'H1', type: 'output', x: 132, y: 12, w: 52, h: 40, gpio: 'GPIO2', fn: 'H1 — Heater output 1 (AUX5)', desc: 'Screw terminal H1 (the printer HEAT_E0 output). A switched 12–24V power terminal driven by an onboard MOSFET — GPIO2 only gates it. Connect a dew-heater strap directly; no external MOSFET needed. GPIO2 is an ESP32 boot-strap pin; a 1.8kΩ pull-down on the board holds it LOW at boot.', conn: 'Dew-heater strap wires straight across the H1 2-pin terminal; the board switches the low side.', section: 'dew' },
     { id: 'heatbed', label: 'H2', type: 'output', x: 188, y: 12, w: 52, h: 40, gpio: 'GPIO4', fn: 'H2 — Heater output 2 (AUX6)', desc: 'Screw terminal H2 (the printer HEAT_BED output). Second switched 12–24V power terminal with its own onboard MOSFET — GPIO4 gates it. Connect a dew-heater strap directly; no external MOSFET, no boot constraint.', conn: 'Dew-heater strap wires straight across the H2 2-pin terminal; the board switches the low side.', section: 'dew' },
-    { id: 'fane0', label: 'FAN+', type: 'output', x: 244, y: 12, w: 52, h: 40, gpio: 'GPIO13', fn: 'FAN+ output (AUX8 / FAN_E0) — 3-pin connector', desc: '3-pin FAN+ header located between HOTBED (H2) and Z-MIN. The signal pin (nearest HOTBED) is GPIO13; the 3rd pin (nearest Z-MIN) is GND. Drives a status LED/buzzer, reticle lamp, or the intervalometer optocoupler.', conn: 'Signal pin (near HOTBED) → load; GND pin (3rd, near Z-MIN) → return. Enable 5V shunt if needed.', section: 'troubleshooting' },
-    { id: 'zmin', label: 'Z-MIN', type: 'input', x: 300, y: 12, w: 58, h: 40, gpio: 'GPIO15', fn: 'Z-MIN endstop / TMC UART', desc: 'Z endstop header. On the E4 this pin is jumpered to the TMC2209 PDN/UART line, but is also a spare endstop input.', conn: 'Endstop NO → GND, or the TMC2209 UART jumper.', section: 'limits' },
-    { id: 'ymin', label: 'Y-MIN', type: 'input', x: 362, y: 12, w: 58, h: 40, gpio: 'GPIO35', fn: 'Y-MIN — Home Axis2', desc: 'Input-only. Default home switch for Axis2 (DEC/Alt).', conn: 'NO switch to GND (home/limit). Input only.', section: 'limits' },
-    { id: 'xmin', label: 'X-MIN', type: 'input', x: 424, y: 12, w: 58, h: 40, gpio: 'GPIO34', fn: 'X-MIN — Home Axis1 / Limit / GPS', desc: 'Input-only. Default home switch for Axis1; also LIMIT_SENSE_PIN in E4 Config.h. A GPS works here only after removing its 100nF filter capacitor — use the I2C header instead.', conn: 'NO switch to GND (home/limit).', section: 'limits' },
+    { id: 'fane0', label: 'FAN', type: 'output', x: 244, y: 12, w: 52, h: 40, gpio: 'GPIO13', fn: 'FAN — switched 2-pin output (AUX8 / FAN_E0)', desc: '2-pin FAN connector: V-Fan (+) and a switched return (–). GPIO13 drives a small onboard MOSFET (MMBF170 — a few hundred mA at most) that pulls the return to GND; V-Fan is 5V or Vin, chosen by the 3-pin FAN jumper beside it. It is a low-side switch, not a logic signal. OnStepX uses it for the status LED, buzzer, reticle lamp or an intervalometer optocoupler — one at a time.', conn: 'Load (+) → V-Fan, load (–) → switched pin. Put the FAN jumper on 5V for LEDs, buzzers and optocouplers. A status/mount LED here needs STATUS_LED_ON_STATE HIGH (and MOUNT_LED_ON_STATE HIGH) — the MOSFET inverts OnStepX\'s default.', section: 'troubleshooting' },
+    { id: 'zmin', label: 'Z-MIN', type: 'input', x: 300, y: 12, w: 58, h: 40, gpio: 'GPIO15', fn: 'Z-MIN — opto-isolated probe input (GPIO15 = TMC UART TX)', desc: '3-pin connector (GND / SIG / V-Zmin) feeding an optocoupler, built for an inductive 3D-printer probe; V-Zmin is 5V or Vin, set by the jumper beside it. On the ESP32 side, GPIO15 is OnStepX\'s TMC UART transmit line, so this connector stays unused.', conn: 'Leave empty. GPIO15 itself is reached at the Z-min pin of the ZDIAG-EN jumper header — that is where the TMC UART wire starts.', section: 'limits' },
+    { id: 'ymin', label: 'Y-MIN', type: 'input', x: 362, y: 12, w: 58, h: 40, gpio: 'GPIO35', fn: 'Y-MIN — Home Axis2', desc: 'Input-only. Default home switch for Axis2 (DEC/Alt). On board: 10kΩ pull-up to 3.3V, 100nF filter, 100Ω series. Remove the YDIAG-EN jumper, or the Y driver\'s DIAG output drives this line.', conn: 'NO switch to GND (home/limit). Input only.', section: 'limits' },
+    { id: 'xmin', label: 'X-MIN', type: 'input', x: 424, y: 12, w: 58, h: 40, gpio: 'GPIO34', fn: 'X-MIN — Home Axis1 / Limit / GPS', desc: 'Input-only. Default home switch for Axis1; also LIMIT_SENSE_PIN in the E4 Config.h. On board: 10kΩ pull-up to 3.3V, 100nF filter, 100Ω series. Remove the XDIAG-EN jumper, or the X driver\'s DIAG output drives this line.', conn: 'NO switch to GND (home/limit).', section: 'limits' },
     { id: 'extrst', label: 'EXT-RST', type: 'control', x: 566, y: 12, w: 64, h: 40, gpio: '—', fn: 'EXT-RST — external reset header', desc: 'Top-right 2-pin header for an external reset button. The E4 has NO DC barrel jack — this corner is EXT-RST. Shorting it to GND resets the ESP32.', conn: 'Momentary push-button between EXT-RST and GND.', section: 'troubleshooting' },
     /* RIGHT — ESP32 module, reset, USB, MicroSD */
     { id: 'esp32', label: 'ESP32', type: 'mcu', x: 648, y: 116, w: 182, h: 128, gpio: '—', fn: 'Dual-core Xtensa LX6 @ 240MHz', desc: 'Main microcontroller with built-in WiFi, Bluetooth, I2C, SPI, UART, ADC and DAC.', conn: 'No external wiring needed. Built-in WiFi/BT antenna.', section: 'wifi' },
-    { id: 'usb', label: 'USB', type: 'comm', x: 872, y: 116, w: 46, h: 44, gpio: '—', fn: 'Firmware upload & serial monitor', desc: 'Micro USB for programming via Arduino IDE and serial comms with ASCOM/INDI.', conn: 'Connect to PC. Use a quality data cable (not charge-only).', section: 'firmware' },
+    { id: 'usb', label: 'USB', type: 'comm', x: 872, y: 116, w: 46, h: 44, gpio: '—', fn: 'Firmware upload & serial monitor', desc: 'USB through the onboard CH340C — flashing and serial control from ASCOM / INDI / planetarium software.', conn: 'Connect to the PC with a USB data cable (not charge-only).', section: 'firmware' },
     { id: 'sd', label: 'SD', type: 'comm', x: 872, y: 172, w: 46, h: 50, gpio: '—', fn: 'MicroSD card slot', desc: 'On-board microSD slot (unused by stock OnStepX).', conn: 'Insert a microSD only if a feature requires it.', section: 'firmware' },
     /* CENTRE — I2C/AUX header + 4 TMC2209 drivers */
-    { id: 'i2c', label: 'I2C|AUX', type: 'i2c', x: 500, y: 250, w: 96, h: 44, gpio: 'GPIO21/22', fn: 'I2C header (P17) — 5V·SDA·SCL·GND', desc: '4-pin header: SDA=GPIO21, SCL=GPIO22, +5V and GND (no 3.3V pin, per the E4 V1.0 schematic). Normally for I2C devices; with none fitted it is also the no-modification GPS port (Serial2 remapped to GPIO21/22).', conn: 'DS3231 RTC (0x68) / BME280 (0x76/0x77) — or a GPS (TX → SDA, RX → SCL), not both. 3.3V-only parts need a 3.3V regulator off the 5V pin.', section: 'weather' },
-    { id: 'tmc1', label: 'TMC1|Ra/Azm', type: 'driver', x: 118, y: 300, w: 84, h: 66, gpio: '—', fn: 'Axis1 (Ra/Azm) stepper driver — TMC2209 UART', desc: 'Onboard TMC2209 (U7) driving MOT X — soldered to the board, not a plug-in module.', conn: 'Built in. Current is set over the TMC UART from Config.h.', section: 'focuser' },
-    { id: 'tmc2', label: 'TMC2|DEC', type: 'driver', x: 210, y: 300, w: 84, h: 66, gpio: '—', fn: 'Axis2 (DEC/Alt) stepper driver — TMC2209 UART', desc: 'Onboard TMC2209 (U9) driving MOT Y — soldered to the board.', conn: 'Built in. Current is set over the TMC UART from Config.h.', section: 'focuser' },
-    { id: 'tmc3', label: 'TMC3|Rot/Foc2', type: 'driver', x: 302, y: 300, w: 84, h: 66, gpio: '—', fn: 'Axis3 rotator / Axis5 focuser2 — TMC2209 UART', desc: 'Onboard TMC2209 (U6) driving MOT Z. Per Pins.FYSETC_E4.h this is the Z-AXIS: Axis3 (rotator) and Axis5 (focuser2) BOTH sit here on GPIO14 (STEP) / GPIO12 (DIR) — enable only one of them.', conn: 'Built in.', section: 'focuser' },
-    { id: 'tmc4', label: 'TMC4|Foc1', type: 'driver', x: 394, y: 300, w: 84, h: 66, gpio: '—', fn: 'Axis4 (Focuser1) — TMC2209 UART', desc: 'Onboard TMC2209 (U8) driving MOT E. Per Pins.FYSETC_E4.h focuser1 is the E0-AXIS: GPIO16 (STEP), GPIO17 (DIR) — wired straight to this chip, not brought out to any header.', conn: 'Built in.', section: 'focuser' },
+    { id: 'i2c', label: 'I2C|UART', type: 'i2c', x: 500, y: 250, w: 96, h: 44, gpio: 'GPIO21/22', fn: 'Centre 12-pin block — I2C · TMC UART · UART0', desc: 'Three 4-pin headers side by side, each 5V / GND / two signals: I2C (SDA=GPIO21, SCL=GPIO22), TMC UART (M-RX / M-TX — the four drivers\' shared PDN_UART line) and UART0 (RXD0 / TXD0, shared with USB). No 3.3V pin. From the factory, two jumper caps bridge SDA↔M-RX and SCL↔M-TX (Marlin\'s TMC wiring) — remove both for OnStepX.', conn: 'I2C devices (DS3231, BME280) or a GPS on SDA/SCL; the TMC UART wire from GPIO15 lands on M-TX. 3.3V-only modules need a small 3.3V regulator off a 5V pin.', section: 'weather' },
+    { id: 'tmc1', label: 'TMC1|Ra/Azm', type: 'driver', x: 118, y: 300, w: 84, h: 66, gpio: '—', fn: 'Axis1 (Ra/Azm) stepper driver — TMC2209 UART', desc: 'Onboard TMC2209 (U7, UART address 1) driving MOT X — soldered to the board, not a plug-in module. Its VREF pin is not connected, so current is set only over the TMC UART.', conn: 'Built in. Current comes from AXIS1_DRIVER_IRUN / IHOLD in Config.h.', section: 'focuser' },
+    { id: 'tmc2', label: 'TMC2|DEC', type: 'driver', x: 210, y: 300, w: 84, h: 66, gpio: '—', fn: 'Axis2 (DEC/Alt) stepper driver — TMC2209 UART', desc: 'Onboard TMC2209 (U9, UART address 3) driving MOT Y — soldered to the board.', conn: 'Built in. Current comes from AXIS2_DRIVER_IRUN / IHOLD in Config.h.', section: 'focuser' },
+    { id: 'tmc3', label: 'TMC3|Rot/Foc2', type: 'driver', x: 302, y: 300, w: 84, h: 66, gpio: '—', fn: 'Axis3 rotator / Axis5 focuser2 — TMC2209 UART', desc: 'Onboard TMC2209 (U6, UART address 0) driving MOT Z. Per Pins.FYSETC_E4.h this is the Z-AXIS: Axis3 (rotator) and Axis5 (focuser2) BOTH sit here on GPIO14 (STEP) / GPIO12 (DIR) — enable only one of them.', conn: 'Built in.', section: 'focuser' },
+    { id: 'tmc4', label: 'TMC4|Foc1', type: 'driver', x: 394, y: 300, w: 84, h: 66, gpio: '—', fn: 'Axis4 (Focuser1) — TMC2209 UART', desc: 'Onboard TMC2209 (U8, UART address 2) driving MOT E. Per Pins.FYSETC_E4.h focuser1 is the E0-AXIS: GPIO16 (STEP), GPIO17 (DIR) — wired straight to this chip, not brought out to any header.', conn: 'Built in.', section: 'focuser' },
     /* BOTTOM edge — 24V/GND tap, motor outputs, thermistors */
-    { id: 'pled', label: '24V|GND', type: 'power', x: 36, y: 486, w: 78, h: 40, gpio: '—', fn: '24V / GND tap (Power-LED feed)', desc: 'Bottom-left 2-pin header providing 24V and GND. In the reference build it drives the Power LED through a 10kΩ resistor.', conn: 'Power LED (+) → 24V via 10kΩ, (–) → GND.', section: 'troubleshooting' },
-    { id: 'stepper1', label: 'MOTX|Ra/Azm', type: 'stepper', x: 140, y: 486, w: 88, h: 40, gpio: '—', fn: 'MOT X — Ra/Azm motor output', desc: '4-pin connector for a 4-wire bipolar stepper. Coils: A+/A– and B+/B–.', conn: 'Wire the Ra/Azm stepper coils. Twisted pairs per coil.', section: 'focuser' },
+    { id: 'pled', label: 'Vin|GND', type: 'power', x: 36, y: 486, w: 78, h: 40, gpio: '—', fn: 'Vin / GND tap — 3×2 pin header', desc: 'Bottom-left 3×2 header: three Vin pins and three GND pins, at the raw supply voltage. Handy for accessories that run at supply voltage, such as a power-on LED.', conn: 'Power LED (+) → Vin via 10kΩ, (–) → GND.', section: 'troubleshooting' },
+    { id: 'stepper1', label: 'MOTX|Ra/Azm', type: 'stepper', x: 140, y: 486, w: 88, h: 40, gpio: '—', fn: 'MOT X — Ra/Azm motor output', desc: 'JST-XH 4-pin connector (A2 / A1 / B1 / B2) for a 4-wire bipolar stepper.', conn: 'Wire the Ra/Azm stepper coils. Twisted pairs per coil.', section: 'focuser' },
     { id: 'stepper2', label: 'MOTY|DEC', type: 'stepper', x: 234, y: 486, w: 88, h: 40, gpio: '—', fn: 'MOT Y — DEC/Alt motor output', desc: 'Motor output for the DEC/Alt axis.', conn: 'Wire the DEC/Alt stepper coils. Match coil pairs from the datasheet.', section: 'focuser' },
     { id: 'stepper3', label: 'MOTZ|Rot/Foc2', type: 'stepper', x: 328, y: 486, w: 88, h: 40, gpio: '—', fn: 'MOT Z — rotator (Axis3) or Focuser2 (Axis5)', desc: 'Motor output on the Z-AXIS. Axis3 and Axis5 share these pins — only one may be enabled.', conn: 'Wire the rotator OR the Focuser2 stepper coils.', section: 'focuser' },
     { id: 'stepper4', label: 'MOTE|Foc1', type: 'stepper', x: 422, y: 486, w: 88, h: 40, gpio: '—', fn: 'MOT E — Focuser1 motor output (Axis4)', desc: 'Motor output for Focuser1 on the E0-AXIS.', conn: 'Wire the Focuser1 stepper coils.', section: 'focuser' },
-    { id: 'tb', label: 'TB', type: 'input', x: 540, y: 486, w: 52, h: 40, gpio: 'GPIO39', fn: 'TB — Thermistor input 2', desc: 'Input-only. 4.7k series resistor + 10µF filter cap on board.', conn: 'NTC 100k thermistor (to GND). Input only!', section: 'thermistor' },
+    { id: 'tb', label: 'TB', type: 'input', x: 540, y: 486, w: 52, h: 40, gpio: 'GPIO39', fn: 'TB — Thermistor input 2', desc: 'Input-only. 4.7kΩ pull-up to 3.3V + 10µF filter cap on board. The pinmap\'s default limit input — the E4 Config.h moves the limit to X-MIN.', conn: 'NTC 100k thermistor (to GND). Input only!', section: 'thermistor' },
     { id: 'te', label: 'TE', type: 'input', x: 596, y: 486, w: 52, h: 40, gpio: 'GPIO36', fn: 'TE — Thermistor input 1 / PEC', desc: 'Input-only. Same circuit as TB. Also usable for a PEC index (Hall) sensor.', conn: 'NTC 100k thermistor (to GND), or Hall sensor for PEC.', section: 'thermistor' },
   ];
 
@@ -157,61 +157,57 @@
   const BOARD_PERIPHERALS = [
     /* ===== TOP row 1 — power, heaters, FAN+, endstops, GPS, reticle, EXT-RST ===== */
     { id: 'p-psu', label: '12–24V PSU', sub: 'power supply', type: 'supply', target: 'power', edge: 'top', wire: '#facc15', wire2: '#ef4444', section: 'troubleshooting',
-      gpio: '12V / 0V', fn: 'Main DC power supply (12–24V)', desc: 'Bench or sealed 12–24V DC supply feeding the 12V/0V screw terminal — runs motors, ESP32, heaters and peripherals.', conn: '+ → 12V, – → 0V. 5A+ recommended; observe polarity.' },
+      gpio: 'Vin / GND', fn: 'Main DC power supply (12–24V)', desc: 'Bench or sealed 12–24V DC supply feeding the Vin/GND screw terminal — runs motors, ESP32, heaters and peripherals.', conn: '+ → Vin, – → GND. 5A+ recommended; observe polarity.' },
     { id: 'p-heat1', label: 'Dew Heater 1', sub: 'H1 strap', type: 'heater', target: 'heate0', edge: 'top', wire: '#f97316', section: 'dew',
       gpio: 'H1 (GPIO2)', fn: 'Dew heater strap 1 (onboard MOSFET)', desc: 'PWM dew-heater strap on H1. The E4 already switches this output with an onboard power MOSFET — wire the strap straight to the terminal, no external MOSFET.', conn: 'Strap across the H1 2-pin screw terminal. GPIO2 gates the onboard MOSFET; OnStepX PWMs it.' },
     { id: 'p-heat2', label: 'Dew Heater 2', sub: 'H2 strap', type: 'heater', target: 'heatbed', edge: 'top', wire: '#f97316', section: 'dew',
       gpio: 'H2 (GPIO4)', fn: 'Dew heater strap 2 (onboard MOSFET)', desc: 'Second PWM dew-heater channel on H2, switched by its own onboard power MOSFET. Wire the strap straight to the terminal.', conn: 'Strap across the H2 2-pin screw terminal. GPIO4 gates the onboard MOSFET.' },
-    { id: 'p-endz', label: 'Endstop Z', sub: 'switch', type: 'swsense', target: 'zmin', edge: 'top', wire: '#3b82f6', section: 'limits',
-      gpio: 'Z-MIN', fn: 'Z endstop / extra limit switch', desc: 'Optional Z-MIN endstop or limit microswitch (note: this pin is also the TMC UART jumper on the E4).', conn: 'COM → Z-MIN, NO → GND (active LOW).' },
     { id: 'p-homey', label: 'Home Y', sub: 'switch / Hall', type: 'swsense', target: 'ymin', edge: 'top', wire: '#3b82f6', section: 'limits',
-      gpio: 'Y-MIN (GPIO35)', fn: 'Axis2 home / limit sensor', desc: 'Mechanical microswitch or Hall sensor homing the DEC/Alt axis.', conn: 'COM → Y-MIN, NO → GND (active LOW). Onboard 2kΩ pull-up.' },
+      gpio: 'Y-MIN (GPIO35)', fn: 'Axis2 home / limit sensor', desc: 'Mechanical microswitch or Hall sensor homing the DEC/Alt axis.', conn: 'COM → Y-MIN, NO → GND (active LOW). Onboard 10kΩ pull-up.' },
     { id: 'p-gps', label: 'GPS', sub: 'NEO-M8N', type: 'gpsmod', target: 'i2c', edge: 'top', wire: '#10b981', section: 'gps',
       gpio: 'I2C header (GPIO21/22)', fn: 'GPS module — auto time & location', desc: 'GY-GPSV3 (NEO-M8N / NEO-6M). Feeds UTC time, latitude and longitude via NMEA at 9600 baud. Uses the I2C header, so no DS3231/BME280 at the same time.', conn: 'GPS TX → SDA (GPIO21), GPS RX → SCL (GPIO22, optional), GND → GND, VCC → +5V (via a 3.3V regulator if the module has none).' },
-    { id: 'p-reticle', label: 'Reticle', sub: 'LED + 10kΩ', type: 'led', target: 'fane0', edge: 'top', wire: '#ef4444', section: 'troubleshooting',
-      gpio: 'FAN/AUX (GPIO13)', fn: 'Illuminated reticle lamp', desc: 'Red reticle illumination LED on the FAN/AUX output (RETICLE_LED_PIN defaults to AUX8 = GPIO13, shared with the status LED and buzzer — pick one). Pins.FYSETC_E4.h specifies a 10kΩ series resistor.', conn: 'LED (+) → FAN/AUX via 10kΩ, LED (–) → GND. OnStepX PWMs it for brightness.' },
+    { id: 'p-reticle', label: 'Reticle', sub: 'LED + 1kΩ', type: 'led', target: 'fane0', edge: 'top', wire: '#ef4444', section: 'troubleshooting',
+      gpio: 'FAN (GPIO13)', fn: 'Illuminated reticle lamp', desc: 'Red reticle illumination LED on the FAN output (RETICLE_LED_PIN defaults to AUX8 = GPIO13, shared with the status LED and buzzer — pick one). The FAN MOSFET switches the LED\'s return, and RETICLE_LED_INVERT OFF (the default) already matches it.', conn: 'FAN jumper on 5V. LED (+) → V-Fan, LED (–) → 330Ω–1kΩ → switched FAN pin. OnStepX PWMs it for brightness.' },
     { id: 'p-extrst', label: 'Reset btn', sub: 'EXT-RST', type: 'swsense', target: 'extrst', edge: 'top', wire: '#eab308', section: 'troubleshooting',
       gpio: 'EXT-RST', fn: 'External reset button', desc: 'Optional momentary push-button on the top-right EXT-RST header (this corner is the reset header, not a DC jack). Resets the ESP32 when pressed.', conn: 'Button between EXT-RST and GND.' },
 
     /* ===== TOP row 2 — alternative uses of shared output / input pins ===== */
     { id: 'p-dslr', label: 'DSLR shutter', sub: 'intervalometer', type: 'output', target: 'fane0', edge: 'top2', wire: '#ec4899', section: 'intervalometer',
-      gpio: 'FAN+ (GPIO13)', fn: 'DSLR shutter release (via optocoupler)', desc: 'Camera shutter trigger for astrophotography, driven from the FAN+ output (GPIO13) through an optocoupler (4N35 / PC817). Use the FAN+ signal pin (nearest HOTBED) and the FAN+ GND pin (3rd pin, nearest Z-MIN).', conn: 'FAN+ signal (near HOTBED) → 1kΩ → optocoupler LED(+); optocoupler LED(–) → FAN+ GND (3rd pin, near Z-MIN); transistor side → camera shutter (2.5mm TRS).' },
+      gpio: 'FAN (GPIO13)', fn: 'DSLR shutter release (via optocoupler)', desc: 'Camera shutter trigger for astrophotography, switched by the FAN output (GPIO13 → onboard MOSFET) through an optocoupler (4N35 / PC817).', conn: 'FAN jumper on 5V. V-Fan → 1kΩ → optocoupler LED (+); optocoupler LED (–) → switched FAN pin; transistor side → camera shutter (2.5mm TRS).' },
     { id: 'p-buzzer', label: 'Buzzer', sub: 'status', type: 'led', target: 'fane0', edge: 'top2', wire: '#f472b6', section: 'troubleshooting',
-      gpio: 'FAN/AUX (GPIO13)', fn: 'Status buzzer (shared with FAN/AUX)', desc: 'Active buzzer for goto/limit alerts, on the same FAN/AUX output as the reticle/LED (pick one).', conn: 'Buzzer (+) → FAN/AUX, (–) → GND. Enable 5V shunt if needed.' },
+      gpio: 'FAN (GPIO13)', fn: 'Status buzzer (shared with the FAN output)', desc: 'Buzzer for goto/limit alerts, on the same FAN output as the reticle/LED (pick one).', conn: 'FAN jumper on 5V for a 5V buzzer. Buzzer (+) → V-Fan, (–) → switched FAN pin.' },
     { id: 'p-homex', label: 'Home/Limit X', sub: 'switch', type: 'swsense', target: 'xmin', edge: 'top2', wire: '#60a5fa', section: 'limits',
-      gpio: 'X-MIN (GPIO34)', fn: 'Axis1 home & emergency-stop limit', desc: 'Microswitch/Hall on X-MIN — default Axis1 home and the board-wide emergency-stop limit (alternative to using X-MIN for GPS).', conn: 'COM → X-MIN, NO → GND (active LOW).' },
+      gpio: 'X-MIN (GPIO34)', fn: 'Axis1 home & emergency-stop limit', desc: 'Microswitch/Hall on X-MIN — default Axis1 home and the board-wide emergency-stop limit.', conn: 'COM → X-MIN, NO → GND (active LOW).' },
 
     /* ===== RIGHT — USB host + I2C bus devices ===== */
     { id: 'p-usb', label: 'USB / PC', sub: 'ASCOM·INDI', type: 'usbpc', target: 'usb', edge: 'right', wire: '#94a3b8', section: 'firmware',
-      gpio: 'USB serial', fn: 'Host computer / firmware upload', desc: 'Micro-USB link for flashing OnStepX and serial control from ASCOM / INDI / planetarium software.', conn: 'Quality micro-USB data cable to the PC (not charge-only).' },
+      gpio: 'USB serial', fn: 'Host computer / firmware upload', desc: 'USB link for flashing OnStepX and serial control from ASCOM / INDI / planetarium software.', conn: 'USB data cable to the PC (not charge-only).' },
     { id: 'p-ds3231', label: 'DS3231', sub: '+AT24C32 RTC', type: 'module', target: 'i2c', edge: 'right', wire: '#ec4899', section: 'rtc',
-      gpio: 'I2C (0x68)', fn: 'Battery-backed real-time clock (ZS-042)', desc: 'DS3231 RTC + AT24C32 EEPROM. Keeps date/time across power cycles (CR2032 backup); fallback time source when no GPS fix.', conn: 'SCL → GPIO22, SDA → GPIO21, VCC → 3.3V/5V, GND → GND on the central I2C header.' },
+      gpio: 'I2C (0x68)', fn: 'Battery-backed real-time clock (ZS-042)', desc: 'DS3231 RTC + AT24C32 EEPROM. Keeps date/time across power cycles (CR2032 backup); fallback time source when no GPS fix.', conn: 'SCL → SCL (GPIO22), SDA → SDA (GPIO21), GND → GND on the I2C header. Power it from 3.3V via a small regulator on a 5V pin: the ZS-042 pulls SDA/SCL up to its own VCC, and the ESP32 pins are not 5V-tolerant.' },
     { id: 'p-bme280', label: 'BME280', sub: 'T / RH / P', type: 'module', target: 'i2c', edge: 'right', wire: '#ec4899', section: 'weather',
-      gpio: 'I2C (0x76/0x77)', fn: 'Weather sensor — temp / humidity / pressure', desc: 'GY-BME280 over I2C. Provides ambient data used to compute the dew point for the heaters.', conn: 'SCL → GPIO22, SDA → GPIO21, VCC → 3.3V, GND → GND. Shares the I2C header.' },
-    { id: 'p-oled', label: 'OLED', sub: '0.96″ I2C', type: 'module', target: 'i2c', edge: 'right', wire: '#a855f7', section: 'wifi',
-      gpio: 'I2C (0x3C)', fn: 'Optional status display', desc: 'Small SSD1306 OLED on the I2C bus for showing status without a PC (community add-on).', conn: 'SCL → GPIO22, SDA → GPIO21, VCC → 3.3V, GND → GND.' },
+      gpio: 'I2C (0x76/0x77)', fn: 'Weather sensor — temp / humidity / pressure', desc: 'GY-BME280 over I2C. Provides ambient data used to compute the dew point for the heaters.', conn: 'SCL → SCL, SDA → SDA, GND → GND on the I2C header. The header only has 5V: use a 5V-ready GY-BME280 (onboard regulator + level shifter) or feed a 3.3V-only board from a 3.3V regulator.' },
 
     /* ===== LEFT — power LED + OneWire bus ===== */
     { id: 'p-powerled', label: 'Power LED', sub: '+ 10kΩ', type: 'led', target: 'pled', edge: 'left', wire: '#ef4444', section: 'troubleshooting',
-      gpio: '24V / GND', fn: 'Power-on indicator LED', desc: 'Red LED showing the board is powered, fed from the bottom-left 24V/GND tap through a 10kΩ series resistor.', conn: 'LED (+) → 24V via 10kΩ, LED (–) → GND.' },
+      gpio: 'Vin / GND', fn: 'Power-on indicator LED', desc: 'Red LED showing the board is powered, fed from the bottom-left Vin/GND tap through a 10kΩ series resistor.', conn: 'LED (+) → Vin via 10kΩ, LED (–) → GND.' },
     { id: 'p-ds18b20', label: 'DS18B20', sub: '1-Wire temp', type: 'onewire', target: 'i2c', edge: 'left', wire: '#06b6d4', section: 'onewire',
-      gpio: 'AUX / spare', fn: 'OneWire digital temperature sensor', desc: 'One or more DS18B20 on a single data line (unique 64-bit address each). Uses a spare pin broken out on the I2C/AUX header.', conn: 'DATA → spare GPIO, VCC → 3.3V, GND → GND, 4.7kΩ pull-up DATA→3.3V.' },
+      gpio: 'GPIO21 (SDA)', fn: 'OneWire digital temperature sensor', desc: 'One or more DS18B20 on a single data line (unique 64-bit address each). The E4 has no OneWire pin by default (AUX7 is OFF); the only broken-out bidirectional GPIOs are SDA/SCL, so this works only with nothing else on the I2C header.', conn: 'DATA → SDA with #define ONE_WIRE_PIN 21, 4.7kΩ DATA → 3.3V, VCC → 3.3V (regulator), GND → GND.' },
 
     /* ===== BOTTOM — regulator, motors, thermistors, PEC ===== */
     { id: 'p-lm1117', label: 'LM1117-3.3', sub: '3.3V reg', type: 'supply', target: 'i2c', edge: 'bottom', wire: '#facc15', section: 'troubleshooting',
-      gpio: '3.3V', fn: 'LM1117-3.3 linear regulator', desc: 'External 3.3V regulator supplying clean 3.3V to the I2C sensors instead of loading the on-board regulator.', conn: 'IN → 5V, OUT → 3.3V of the I2C header, GND → GND.' },
+      gpio: '5V → 3.3V', fn: 'LM1117-3.3 / AMS1117-3.3 regulator', desc: 'The E4 brings out no 3.3V pin, so 3.3V-only modules (DS3231, bare BME280, GPS without its own regulator, DS18B20) get their supply from a small regulator fed by a 5V pin of the header block.', conn: 'IN → 5V, OUT → module VCC, GND → GND. Add the usual input/output capacitors.' },
     { id: 'p-ra', label: 'Ra/Azm', sub: 'MOT X', type: 'motor', target: 'stepper1', edge: 'bottom', wire: '#10b981', wire2: '#ef4444', section: 'focuser',
       gpio: 'MOT X', fn: 'Right-Ascension / Azimuth stepper', desc: '4-wire bipolar stepper for the primary axis, driven by the Axis1 TMC2209 (MOT X).', conn: 'Coils A+/A– and B+/B– to MOT X. Twisted pairs per coil.' },
     { id: 'p-dec', label: 'DEC/Alt', sub: 'MOT Y', type: 'motor', target: 'stepper2', edge: 'bottom', wire: '#3b82f6', wire2: '#ef4444', section: 'focuser',
       gpio: 'MOT Y', fn: 'Declination / Altitude stepper', desc: '4-wire bipolar stepper for the secondary axis, driven by the Axis2 TMC2209 (MOT Y).', conn: 'Coils A+/A– and B+/B– to MOT Y.' },
-    { id: 'p-foc1', label: 'Focuser1', sub: 'MOT Z', type: 'motor', target: 'stepper3', edge: 'bottom', wire: '#f97316', wire2: '#ef4444', section: 'focuser',
-      gpio: 'MOT Z', fn: 'Rotator / Focuser 2 stepper', desc: 'Stepper on the Z-AXIS socket — Axis3 (rotator) or Axis5 (focuser2), which share GPIO14/GPIO12. Enable only one.', conn: 'Rotator or Focuser2 stepper coils to MOT Z.' },
-    { id: 'p-foc2', label: 'Focuser2', sub: 'MOT E', type: 'motor', target: 'stepper4', edge: 'bottom', wire: '#facc15', wire2: '#ef4444', section: 'focuser',
-      gpio: 'MOT E', fn: 'Focuser 1 stepper', desc: 'Stepper for the first focuser, driven by the Axis4 TMC2209 on the E0-AXIS socket (GPIO16/17).', conn: 'Focuser1 stepper coils to MOT E.' },
+    { id: 'p-foc1', label: 'Foc2/Rot', sub: 'MOT Z', type: 'motor', target: 'stepper3', edge: 'bottom', wire: '#f97316', wire2: '#ef4444', section: 'focuser',
+      gpio: 'MOT Z', fn: 'Focuser 2 or rotator stepper', desc: 'Stepper on MOT Z — Axis5 (focuser2, enabled in the stock E4 Config.h) or Axis3 (rotator), which share GPIO14/GPIO12. Enable only one.', conn: 'Focuser2 or rotator stepper coils to MOT Z.' },
+    { id: 'p-foc2', label: 'Focuser1', sub: 'MOT E', type: 'motor', target: 'stepper4', edge: 'bottom', wire: '#facc15', wire2: '#ef4444', section: 'focuser',
+      gpio: 'MOT E', fn: 'Focuser 1 stepper', desc: 'Stepper for the first focuser, driven by the onboard Axis4 TMC2209 on the E0 axis (GPIO16/17).', conn: 'Focuser1 stepper coils to MOT E.' },
     { id: 'p-thermistor', label: 'Thermistor', sub: 'NTC 100k', type: 'thermo', target: 'tb', edge: 'bottom', wire: '#f59e0b', section: 'thermistor',
       gpio: 'TB (GPIO39)', fn: 'NTC thermistor — focuser / dew temp', desc: 'Glass-bead NTC 100kΩ (β3950) on TB for temp-compensation or dew-point sensing (TE is the second channel).', conn: 'NTC leg 1 → TB, leg 2 → GND. Onboard 4.7kΩ to 3.3V is the series resistor.' },
     { id: 'p-pec', label: 'PEC Hall', sub: 'index sensor', type: 'swsense', target: 'te', edge: 'bottom', wire: '#38bdf8', section: 'pec',
-      gpio: 'TE (GPIO36)', fn: 'PEC index Hall sensor', desc: 'Hall sensor (A3144 / US5881) on TE giving one pulse per worm revolution for periodic-error correction (alternative to a thermistor on TE).', conn: 'OUT → TE, VCC → 3.3V, GND → GND. Magnet on the worm/rotating part.' },
+      gpio: 'TE (GPIO36)', fn: 'PEC index Hall sensor', desc: 'Hall sensor (A3144 / US5881) on TE giving one pulse per worm revolution for periodic-error correction (alternative to a thermistor on TE).', conn: 'OUT → TE, VCC → 5V (header pin), GND → GND. A bare open-collector sensor needs no divider — TE is pulled up to 3.3V on board. Magnet on the worm/rotating part.' },
   ];
 
   const findNode = (id) => BOARD_ELEMENTS.find((e) => e.id === id) || BOARD_PERIPHERALS.find((e) => e.id === id);
@@ -348,7 +344,7 @@
       ['X-MIN (AUX3)', 'GPIO34', 'Home / Limit', '#3b82f6'], ['Y-MIN (AUX4)', 'GPIO35', 'Home Axis2', '#3b82f6'],
       ['TE (TEMP0)', 'GPIO36', 'PEC / Thermistor', '#8b5cf6'], ['TB (TEMP1)', 'GPIO39', 'Thermistor (FEATURE2)', '#8b5cf6'],
       ['HEAT_E0', 'GPIO2', 'Dew Heater 1', '#f59e0b'], ['HEAT_BED', 'GPIO4', 'Dew Heater 2', '#f59e0b'],
-      ['FAN_E0 (AUX8)', 'GPIO13', 'LED / Buzzer', '#10b981'], ['AUX7 SPARE', '—', 'OneWire / IO', '#06b6d4'],
+      ['FAN_E0 (AUX8)', 'GPIO13', 'LED / Buzzer (switched)', '#10b981'], ['ZDIAG-EN (Z-min pin)', 'GPIO15', 'TMC UART TX → M-TX', '#8b5cf6'],
       ['I2C SDA', 'GPIO21', 'BME280 / RTC', '#ec4899'], ['I2C SCL', 'GPIO22', 'BME280 / RTC', '#ec4899'],
     ];
     const grid = headerPins.map((p) =>
@@ -361,20 +357,20 @@
       ['AUX4 / Y-MIN', 'GPIO35', '35', 'Home Axis2', 'Input only — home sensor for Dec/Alt'],
       ['AUX5 / HEAT_E0', 'GPIO2', '2', 'Dew Heater 1', 'Must be low at boot; PWM dew or switch'],
       ['AUX6 / HEAT_BED', 'GPIO4', '4', 'Dew Heater 2', 'PWM dew heater or switch'],
-      ['AUX7 / SPARE_RX', '—', '—', 'OneWire bus', 'DS18B20 temp sensors (default bus)'],
-      ['AUX8 / FAN_E0', 'GPIO13', '13', 'LED/Buzzer/Dew', 'Status LED, buzzer, or dew heater'],
+      ['AUX7 / SPARE_RX', '—', '—', 'Not available', 'OFF on the E4 — define ONE_WIRE_PIN yourself (GPIO21/22 only)'],
+      ['AUX8 / FAN_E0', 'GPIO13', '13', 'LED/Buzzer', 'Drives the FAN MOSFET — status LED, buzzer, reticle or intervalometer'],
       ['TEMP0 / TE', 'GPIO36', '36', 'PEC / Thermistor', 'Input only — PEC index or temp'],
       ['TEMP1 / TB', 'GPIO39', '39', 'Thermistor', 'Input only — focuser/dew temp (FEATURE2). Limit is moved to X-MIN on the E4.'],
       ['SHARED EN', 'GPIO25', '25', 'Enable', 'Shared enable for all stepper drivers'],
-      ['TMC_TX / Z-MIN', 'GPIO15', '15', 'TMC UART TX', 'Jumper to TMC2209 PDN pin'],
+      ['TMC_TX', 'GPIO15', '15', 'TMC UART TX', 'Wire from the Z-min pin of ZDIAG-EN to M-TX on the TMC UART header'],
     ];
     const gpioRef = [
-      ['GPIO2', 'HEAT_E0', 'PWM dew heater, switch, intervalometer', 'Must be low at boot'],
-      ['GPIO4', 'HEAT_BED', 'PWM dew heater, switch, intervalometer', '—'],
+      ['GPIO2', 'HEAT_E0 (H1)', 'Dew heater via onboard MOSFET', 'Boot-strap pin, held low by a 1.8kΩ pull-down'],
+      ['GPIO4', 'HEAT_BED (H2)', 'Dew heater via onboard MOSFET', '—'],
       ['GPIO12', '—', 'Axis3/Axis5 DIR', 'Must be low at boot'],
-      ['GPIO13', 'FAN_E0', 'Status LED, buzzer, dew, intervalometer', 'LED/buzzer shared'],
+      ['GPIO13', 'FAN', 'Status LED, buzzer, reticle, intervalometer', 'Switched low-side output, not a logic pin'],
       ['GPIO14', '—', 'Axis3/Axis5 STEP', 'Shared with Axis5'],
-      ['GPIO15', 'Z-MIN', 'TMC UART TX', 'Jumpered to TMC PDN'],
+      ['GPIO15', 'ZDIAG-EN (Z-min pin)', 'TMC UART TX', 'The Z-MIN connector is opto-isolated — not usable'],
       ['GPIO16', '—', 'Axis4 STEP', 'Onboard driver only — no header'], ['GPIO17', '—', 'Axis4 DIR', 'Onboard driver only — no header'],
       ['GPIO21', 'I2C SDA', 'BME280, DS3231 — or GPS RX (Serial2)', 'I2C bus'],
       ['GPIO22', 'I2C SCL', 'BME280, DS3231 — or GPS TX (Serial2)', 'I2C bus'],
@@ -390,14 +386,14 @@
       <h2 class="e4-h2">Pinmap &amp; Overview</h2>
       <p class="e4-intro">The FYSETC E4 is an ESP32-based 3D-printer controller repurposed for telescope control with OnStepX.
         It has 4× TMC2209 UART stepper drivers, built-in WiFi/BT, dew-heater outputs, thermistor inputs and I2C — all from a single 12–24V supply.</p>
-      ${callout('warn', '<strong>Critical:</strong> Remove ALL factory shunts. Jumper <strong>Z-MIN (GPIO15)</strong> → TMC2209 PDN/UART pin.')}
+      ${callout('warn', '<strong>Critical — jumpers and the TMC UART wire.</strong> The E4 ships set up for Marlin. Remove the two jumper caps that bridge the I2C and TMC UART headers (<strong>SDA↔M-RX, SCL↔M-TX</strong>) and the three <strong>xDIAG-EN</strong> caps. Then fit one wire from the <strong>Z-min pin of the ZDIAG-EN header (GPIO15)</strong> to <strong>M-TX</strong> on the TMC UART header — that is how OnStepX sets the driver currents. Leave the FAN and Z-probe voltage jumpers; put the FAN one on 5V if you use the status LED or buzzer.')}
       <div class="e4-card">
         <h3>Interactive Board Diagram &amp; Mounted Hardware</h3>
-        <p class="e4-card-desc">Connector positions mirror the real FYSETC E4 board: the green <strong>12V·0V·H1·H2</strong> terminal and
+        <p class="e4-card-desc">Connector positions mirror the real FYSETC E4 board: the <strong>Vin·GND·Heater·Bed</strong> screw terminal and
           <strong>Z/Y/X-MIN</strong> endstops along the top, <strong>ESP32 · USB · SD</strong> on the right, the 4 <strong>TMC2209</strong> drivers and
-          central <strong>I2C/AUX</strong> header in the middle, and <strong>MOT X/Y/Z/E</strong> motor outputs with <strong>TB/TE</strong> thermistors along the bottom.
+          central <strong>I2C / TMC UART / UART0</strong> header block in the middle, and <strong>MOT X/Y/Z/E</strong> motor outputs with <strong>TB/TE</strong> thermistors along the bottom.
           <strong>Every add-on OnStepX supports on the E4</strong> is wired in around it — power supply &amp; regulator, 4 motors, GPS, RTC, BME280,
-          OLED, DS18B20, thermistor, PEC Hall, 2 dew heaters, DSLR shutter, reticle, buzzer, power LED, endstops and USB.
+          DS18B20, thermistor, PEC Hall, 2 dew heaters, DSLR shutter, reticle, buzzer, power LED, endstops and USB.
           Click any board connector <em>or</em> peripheral for details, GPIO mapping and wiring guidance.</p>
         <div class="e4-board-legend">
           <span><i style="background:#facc15"></i>Power / regulator</span>
@@ -418,12 +414,12 @@
       <div class="e4-card">
         <h3>Quick Start — First Time Setup</h3>
         <ol style="line-height:2.1;font-size:13px">
-          <li><strong>Remove all factory shunts</strong> from the E4 board</li>
-          <li><strong>Jumper Z-MIN (GPIO15)</strong> → TMC2209 PDN/UART pin</li>
+          <li><strong>Remove the factory jumper caps</strong>: SDA↔M-RX, SCL↔M-TX and the three xDIAG-EN caps</li>
+          <li><strong>Wire GPIO15 → M-TX</strong>: Z-min pin of ZDIAG-EN to M-TX on the TMC UART header</li>
           <li><strong>Install libraries</strong> in Arduino IDE: Makuna RTC, Adafruit BME280, Adafruit Sensor, TMC2209</li>
           <li><strong>Select board:</strong> ESP32 Dev Module, 240MHz, Huge App partition</li>
           <li><strong>Flash OnStepX</strong> (E4 branch) — erase all flash the first time</li>
-          <li><strong>Wire motors</strong> to screw terminals (4-wire bipolar steppers)</li>
+          <li><strong>Plug in the motors</strong> on the JST-XH MOT connectors (4-wire bipolar steppers)</li>
           <li><strong>Connect to "OnStepX" WiFi</strong> → <strong>http://192.168.0.1</strong></li>
         </ol>
       </div>
@@ -433,8 +429,9 @@
       <div class="e4-card">
         <h3>Specifications</h3>
         ${table(['Parameter', 'Detail'], [
-          ['MCU', 'ESP32 dual-core Xtensa LX6 @ 240MHz'], ['Drivers', '4× TMC2209 (UART 460800 baud)'],
-          ['Power', '12–24V DC single input'], ['WiFi/BT', 'Built-in ESP32'],
+          ['MCU', 'ESP32-WROOM-32E / 32UE (external antenna) @ 240MHz, 16MB flash'], ['Drivers', '4× TMC2209 soldered on board, UART at 460800 baud (addresses X=1, Y=3, Z=0, E=2), VREF unconnected — current is UART-only'],
+          ['Power', '12–24V DC on Vin (board max 22.5A); heater + bed outputs 15A max; onboard 5V buck (2A) and 3.3V LDO'], ['WiFi/BT', 'Built-in ESP32'],
+          ['Connectors', 'JST-XH for motors, endstops, thermistors and fan; screw terminals for power and heaters; 12-pin I2C / TMC UART / UART0 block (5V and GND only, no 3.3V)'],
           ['I2C', 'GPIO21 (SDA), GPIO22 (SCL)'], ['Max Axes', '2 mount + 1 rotator + 2 focusers (shared pins)'],
           ['Firmware', 'OnStepX E4 branch (v10.24c+)'], ['Wiki', '<a href="https://wiki.fysetc.com/docs/E4" target="_blank" rel="noopener">FYSETC E4 Wiki</a>'],
         ])}
@@ -449,14 +446,14 @@
   C.limits = () => `
     <h2 class="e4-h2">Limit Switch Implementation</h2>
     <p class="e4-desc">OnStepX supports home sensors (end-stops) and limit switches on each axis. The E4 has dedicated pins for
-      Axis1 home (X-MIN / GPIO34) and Axis2 home (Y-MIN / GPIO35). GPIO34 is input-only (no internal pull-up) — the E4 has a 2kΩ pull-up on the X-MIN connector.</p>
+      Axis1 home (X-MIN / GPIO34) and Axis2 home (Y-MIN / GPIO35). GPIO34 is input-only (no internal pull-up) — the E4 has a 10kΩ pull-up to 3.3V, a 100nF filter capacitor and a 100Ω series resistor on each of X-MIN and Y-MIN. Remove the XDIAG-EN / YDIAG-EN jumper caps, or the drivers\' DIAG outputs drive these inputs.</p>
     ${card({
       title: 'Home Switches — Mechanical Microswitch',
       desc: 'Standard mechanical microswitches (e.g. Omron D2F, D2MV) provide reliable homing. Normally-open (NO) to GND is recommended for failsafe operation.',
       warnings: [
         { label: 'Debounce is optional', text: 'Mechanical switches bounce for 5–20ms, but OnStepX debounces home/limit inputs in firmware and the E4\'s built-in pull-up holds the line — bare switches work as-is. Only if a long switch cable picks up RFI/EMI and causes false triggers, add a stronger 1–2kΩ pull-up to 3.3V (per the OnStep E4 wiki) or a small RC (10kΩ + 0.1µF).' },
         { label: 'NO vs NC', text: 'Use Normally-Open (NO) connecting to GND when activated. Configure AXISn_SENSE_HOME LOW. NC is possible but less failsafe (broken wire = false trigger).' },
-        { label: 'Input Only Pins', text: 'GPIO34/GPIO35 are input-only on ESP32 — no internal pull-up/down. The E4 has discrete 2kΩ pull-ups on both X-MIN and Y-MIN connectors.' },
+        { label: 'Input Only Pins', text: 'GPIO34/GPIO35 are input-only on ESP32 — no internal pull-up/down. The E4 has discrete 10kΩ pull-ups to 3.3V on both X-MIN and Y-MIN.' },
       ],
       wiring: [
         { e4: 'X-MIN (AUX3) Pin 1', gpio: 'GPIO34', to: 'Microswitch COM terminal' },
@@ -478,9 +475,8 @@
               │             └── C 0.1µF ── GND
               │
               └── Switch ── GND  (NO, closes when home reached)</pre>
-        <p style="margin-top:6px;font-size:12px;color:var(--e4-dim)"><strong>Alternative: Hall effect sensor</strong> — pick a 3.3V-capable part (<strong>US1881</strong>, US5881, SS441 all run from 3.3V). The popular <strong>A3144 / KY-003 needs 4.5V minimum</strong>, so it must be powered from 5V and its output divided down (1kΩ series + 2kΩ to GND) before it touches a GPIO.
-        Open-collector OUT → X-MIN, VCC → 3.3V, GND → GND. Configure ${code('AXIS1_SENSE_HOME HIGH')} (sensor pulls LOW on magnet).
-        The E4's 2kΩ pull-up on X-MIN serves as the required pull-up. Place the magnet on the rotating part, the sensor on the stationary part.</p>`,
+        <p style="margin-top:6px;font-size:12px;color:var(--e4-dim)"><strong>Alternative: Hall effect sensor</strong> — A3144, US1881, US5881 and SS441A all need 3.5–4.5V or more, and the E4 has no 3.3V pin anyway, so power them from a <strong>5V</strong> pin of the header block. Their outputs are open-collector: the E4's 10kΩ pull-up to 3.3V is the pull-up, so a bare sensor needs <strong>no divider</strong>. A KY-003-style module adds its own pull-up to 5V — that one does need a divider (1kΩ series + 2kΩ to GND).
+        OUT → X-MIN, VCC → 5V, GND → GND. Configure ${code('AXIS1_SENSE_HOME HIGH')} (sensor pulls LOW on magnet). Place the magnet on the rotating part, the sensor on the stationary part.</p>`,
     })}
     ${card({
       title: 'Limit Switches',
@@ -493,10 +489,10 @@
       wiring: [
         { e4: 'X-MIN (GPIO34) — default', gpio: 'GPIO34', to: 'Limit switch NO → GND (shared with Axis1 home)' },
         { e4: 'TB (GPIO39) — alternative', gpio: 'GPIO39', to: 'Dedicated limit switch input (original pinmap)' },
-        { e4: '3.3V (via 2kΩ pull-up on E4)', gpio: '—', to: 'Internal pull-up on X-MIN/Y-MIN connectors' },
+        { e4: '3.3V (via 10kΩ pull-up on E4)', gpio: '—', to: 'On-board pull-up on X-MIN/Y-MIN' },
       ],
       config: [
-        { dir: 'LIMIT_SENSE', val: 'LOW', note: 'Active LOW — short to GND = limit triggered. Ships OFF, so limits do nothing until you set this' },
+        { dir: 'LIMIT_SENSE', val: 'LOW', note: 'Active LOW — short to GND = limit triggered. Already LOW in the stock E4 Config.h' },
         { dir: 'LIMIT_SENSE_PIN', val: '34', note: 'Already set to 34 in the stock E4 Config.h, overriding the pinmap default of 39 (TB)' },
         { dir: 'LIMIT_STRICT', val: 'OFF', note: 'Stock value. OFF = limits off until an unpark goto or sync; ON = armed at startup' },
         { dir: 'AXIS1_SENSE_LIMIT_MIN', val: 'LIMIT_SENSE', note: 'Uses shared LIMIT_SENSE' },
@@ -627,7 +623,7 @@
           <li><strong>ESP32 ADC accuracy is mediocre for thermistors</strong> — several users saw large reading errors. Verify each sensor in ice water (0°C) and at body temperature (~37°C); if it's off, adjust BETA or switch to a DS18B20. <span style="color:var(--e4-dim)">Source: <a href="https://onstep.groups.io/g/main/message/67146" target="_blank" rel="noopener">#67146</a>, <a href="https://onstep.groups.io/g/main/message/63079" target="_blank" rel="noopener">#63079</a></span></li>
           <li><strong>Second channel = THERMISTOR2.</strong> ${code('FEATUREn_TEMP')} accepts ${code('OFF')}, ${code('THERMISTOR')} (TE), ${code('THERMISTOR2')} (TB), or a DS18B20 serial number. The E4 default Config.h already ties a thermistor to the 2nd channel. <span style="color:var(--e4-dim)">Source: <a href="https://onstep.groups.io/g/main/message/63078" target="_blank" rel="noopener">#63078</a></span></li>
           <li><strong>Commercial dew rings use a 10kΩ NTC.</strong> The Celestron Dew Heater Ring thermistor is 10kΩ, not 100kΩ — set ${code('RNOM 10000')}. A 10k NTC raises the divider voltage, so do NOT also add the 10k RPARALLEL mod. The 4.7kΩ in the E4 config is simply the onboard series resistor. <span style="color:var(--e4-dim)">Source: <a href="https://onstep.groups.io/g/main/message/61779" target="_blank" rel="noopener">#61779</a>, <a href="https://onstep.groups.io/g/main/message/61164" target="_blank" rel="noopener">#61164</a></span></li>
-          <li><strong>DS18B20 is the reliable alternative</strong> (±0.5°C typical, ±0.25° over a narrow band), but the E4 has no dedicated OneWire pin — you borrow a spare GPIO (the OneWire section suggests AUX7; some users take one off the SD-card header instead), and reading each device's 64-bit serial number is the fiddly part. <span style="color:var(--e4-dim)">Source: <a href="https://onstep.groups.io/g/main/message/63079" target="_blank" rel="noopener">#63079</a></span></li>
+          <li><strong>DS18B20 is the reliable alternative</strong> (±0.5°C typical, ±0.25° over a narrow band), but the E4 has no OneWire pin — AUX7 is OFF, and the only broken-out bidirectional GPIOs are SDA/SCL on the I2C header, so it rules out I2C devices and a GPS there. Reading each device's 64-bit serial number is the other fiddly part. <span style="color:var(--e4-dim)">Source: <a href="https://onstep.groups.io/g/main/message/63079" target="_blank" rel="noopener">#63079</a></span></li>
         </ul>
         ${callout('info', 'Correction circuitry to improve ESP32 thermistor readings is documented in the official <a href="https://onstep.groups.io/g/main/wiki/32747" target="_blank" rel="noopener">FYSETC E4 wiki</a> (dew-heater section).')}`,
     })}`;
@@ -643,12 +639,12 @@
         { label: 'Match heater voltage to your supply', text: 'The terminal outputs your full input voltage. Run a 12V strap on a 12V supply. If the board runs at 24V, use 24V-rated tape or cap the duty via FEATUREn_VALUE_LIMIT — 24V into 12V tape is ~4× the rated power.' },
         { label: 'Fuse the supply', text: 'The E4 shares one 12–24V input across the motors and both heaters. Fuse the main supply appropriately so a shorted strap blows the fuse, not the board.' },
         { label: 'Heater power rating', text: '~1W per inch of aperture: an 8" SCT ≈ 8W tape. At 12V, 8W = 0.67A — well within the output\'s rating.' },
-        { label: 'Strip factory shunts', text: 'Per the OnStep E4 wiki, remove all factory Marlin/3D-printer shunts before use and ignore the board\'s Marlin heater wiring notes — OnStepX drives these pins directly.' },
+        { label: 'Factory jumpers', text: 'Remove the Marlin jumper caps (SDA↔M-RX, SCL↔M-TX, xDIAG-EN) before use and ignore the board\'s Marlin heater wiring notes — OnStepX drives these pins directly.' },
       ],
       wiring: [
         { e4: 'H1 terminal (HEAT_E0)', gpio: 'GPIO2', to: 'Dew-heater strap 1 — both wires to the 2-pin terminal' },
         { e4: 'H2 terminal (HEAT_BED)', gpio: 'GPIO4', to: 'Dew-heater strap 2 — both wires to the 2-pin terminal' },
-        { e4: '12V / 0V input', gpio: '—', to: 'Single 12–24V supply also feeds the heater outputs' },
+        { e4: 'Vin / GND input', gpio: '—', to: 'Single 12–24V supply also feeds the heater outputs' },
       ],
       config: [
         { dir: 'FEATURE1_PURPOSE', val: 'DEW_HEATER', note: 'Enable Dew Heater 1' },
@@ -732,16 +728,16 @@
         { label: 'TRS Plug Wiring Varies', text: 'Canon and Nikon use the same 2.5mm TRS plug but with Tip/Ring swapped. Check the table below before soldering.' },
       ],
       wiring: [
-        { e4: 'GPIO13 (FAN_E0/AUX8)', gpio: 'GPIO13', to: '1kΩ → PC817/4N35 LED anode(+)' },
-        { e4: 'GPIO4 (HEAT_BED/AUX6)', gpio: 'GPIO4', to: 'Alt pin — no boot restriction' },
-        { e4: 'E4 GND', gpio: '—', to: 'PC817/4N35 LED cathode(-)' },
+        { e4: 'FAN V-Fan pin (FAN jumper on 5V)', gpio: '—', to: '1kΩ → PC817/4N35 LED anode (+)' },
+        { e4: 'FAN switched pin', gpio: 'GPIO13 via MOSFET', to: 'PC817/4N35 LED cathode (–)' },
+        { e4: 'Alternative: H2 terminal (HEAT_BED)', gpio: 'GPIO4 via MOSFET', to: 'Same, at supply voltage — use 2.2kΩ at 12V, 4.7kΩ at 24V' },
         { e4: 'PC817 collector', gpio: '—', to: '2.5mm TRS Tip (shutter signal)' },
         { e4: 'PC817 emitter', gpio: '—', to: '2.5mm TRS Sleeve (camera GND)' },
       ],
       config: [
         { dir: 'FEATURE3_PURPOSE', val: 'INTERVALOMETER', note: 'Assign Feature3 as camera trigger' },
         { dir: 'FEATURE3_NAME', val: '"Camera"', note: 'Label in SWS/App interface' },
-        { dir: 'FEATURE3_PIN', val: '13', note: 'GPIO13 (FAN_E0) — safe at boot' },
+        { dir: 'FEATURE3_PIN', val: '13', note: 'GPIO13 (FAN) — set STATUS_LED and STATUS_BUZZER OFF, they share this output' },
         { dir: 'FEATURE3_ON_STATE', val: 'HIGH', note: 'GPIO goes HIGH to fire shutter' },
       ],
       notes:
@@ -760,14 +756,14 @@
       desc: 'A Hall sensor detects a magnet on the worm wheel. Each rotation triggers one pulse, synchronising the PEC buffer.',
       warnings: [
         { label: 'GEM/FORK Only', text: 'PEC is completely ignored in ALTAZM mode.' },
-        { label: 'Sensor Selection', text: 'A3144 / KY-003: <strong>unipolar switch</strong> — the south pole turns it on, removing the magnet turns it off, so magnet polarity matters. US5881: also unipolar. US1881 is the true <strong>bipolar latch</strong> (one pole sets, the other resets) and is the only one of the four that natively runs at 3.3V.' },
-        { label: 'Voltage Level', text: 'KY-003 modules output 5V logic. GPIO36 is NOT 5V-tolerant. Use a divider — 1kΩ in series from the sensor output, 2kΩ from the GPIO node to GND, giving 5V × 2/3 ≈ 3.3V. Getting the two resistors the wrong way round gives ~1.7V, which the ESP32 will not read as a reliable HIGH.' },
+        { label: 'Sensor Selection', text: 'A3144 / KY-003: <strong>unipolar switch</strong> — the south pole turns it on, removing the magnet turns it off, so magnet polarity matters. US5881: also unipolar. US1881 is a <strong>bipolar latch</strong> (one pole sets, the other resets). All of them need 3.5V or more — run them from a 5V pin.' },
+        { label: 'Voltage Level', text: 'A bare sensor has an open-collector output, so TE\'s on-board 4.7kΩ pull-up to 3.3V keeps it safe — no divider. A KY-003 module adds its own pull-up to 5V, and GPIO36 is NOT 5V-tolerant: use a divider — 1kΩ in series from the module output, 2kΩ from the GPIO node to GND (5V × 2/3 ≈ 3.3V). Swapping the two resistors gives ~1.7V, which the ESP32 will not read as a reliable HIGH.' },
         { label: 'Input Only', text: 'GPIO36 is input-only. The E4 has a 4.7kΩ series resistor on TE (to 3.3V) which serves as the pull-up for open-collector sensors.' },
       ],
       wiring: [
         { e4: 'TE (TEMP0) — JST-XH Pin 1', gpio: 'GPIO36', to: 'Hall sensor OUT (open-collector or digital)' },
         { e4: 'TE (TEMP0) — JST-XH Pin 2', gpio: 'GND', to: 'Hall sensor GND' },
-        { e4: 'E4 3.3V header pin', gpio: '—', to: 'Hall VCC (3.3V) OR divider input for 5V sensors' },
+        { e4: '5V pin (12-pin header block)', gpio: '—', to: 'Hall VCC — the E4 has no 3.3V pin' },
       ],
       config: [
         { dir: 'PEC_SENSE', val: 'HIGH', note: 'Rising edge = index pulse detected' },
@@ -776,8 +772,9 @@
         { dir: 'AXIS1_STEPS_PER_DEGREE', val: '<em>your gearing</em>', note: 'Must match your mount — use the configurator\'s Calculator tab' },
       ],
       notes:
-        `<pre class="e4-pre">  Option A: 3.3V sensor (A3144 bare)
-  A3144 VCC ── E4 3.3V   |  GND ── E4 GND   |  OUT ── E4 TE (GPIO36)
+        `<pre class="e4-pre">  Option A: bare sensor (A3144 / US5881 / US1881, open collector)
+  VCC ── E4 5V   |  GND ── E4 GND   |  OUT ── E4 TE (GPIO36)
+  (TE is pulled up to 3.3V on the board — no divider needed)
 
   Option B: 5V module (KY-003) with divider  →  5V × 2/(1+2) ≈ 3.3V
   KY-003 OUT ── R1 1kΩ ──┬── GPIO36
@@ -795,7 +792,7 @@
   C.onewire = () => `
     <h2 class="e4-h2">OneWire / DS18B20 Sensors</h2>
     <p class="e4-desc">The OneWire bus allows multiple DS18B20 temperature sensors on a single wire. Up to 8 devices supported.</p>
-    ${callout('warn', `<strong>⚠ Read this before buying DS18B20s for an E4.</strong> The pinmap sets ${code('ONE_WIRE_PIN')} → ${code('AUX7_PIN')} → ${code('SPARE_RX_PIN')}, and <strong>Pins.FYSETC_E4.h defines SPARE_RX_PIN as OFF in both TMC-UART branches</strong>. With the normal E4 setup (4× TMC2209 on UART) there is therefore <strong>no OneWire pin at all</strong> unless you override it yourself. Add an explicit ${code('#define ONE_WIRE_PIN <em>n</em>')} in ${code('Extended.config.h')}, choosing a genuinely free GPIO — and remember GPIO34/35/36/39 are input-only and cannot drive a bidirectional OneWire bus. This is why some users take the line off the SD-card header instead.`)}
+    ${callout('warn', `<strong>⚠ Read this before buying DS18B20s for an E4.</strong> The pinmap sets ${code('ONE_WIRE_PIN')} → ${code('AUX7_PIN')} → ${code('SPARE_RX_PIN')}, and <strong>Pins.FYSETC_E4.h defines SPARE_RX_PIN as OFF in both TMC-UART branches</strong>. With the normal E4 setup (4× TMC2209 on UART) there is therefore <strong>no OneWire pin at all</strong> unless you override it yourself. Add an explicit ${code('#define ONE_WIRE_PIN <em>n</em>')} in ${code('Extended.config.h')}, choosing a genuinely free GPIO — and remember GPIO34/35/36/39 are input-only and cannot drive a bidirectional OneWire bus. The only broken-out bidirectional GPIOs are <strong>GPIO21 / GPIO22</strong> on the I2C header, so OneWire rules out I2C devices and a GPS there — the TE/TB thermistor inputs are usually the easier route.`)}
     ${card({
       title: 'DS18B20 Temperature Sensors',
       desc: 'Digital temperature sensors (±0.5°C). Used for focuser temp compensation, dew-heater feedback or ambient monitoring.',
@@ -806,11 +803,11 @@
       ],
       wiring: [
         { e4: 'Your chosen ONE_WIRE_PIN', gpio: 'output-capable GPIO', to: 'DS18B20 DATA (with 4.7kΩ to 3.3V)' },
-        { e4: '3.3V', gpio: '—', to: 'DS18B20 VCC' },
+        { e4: '3.3V (regulator off a 5V pin)', gpio: '—', to: 'DS18B20 VCC' },
         { e4: 'GND', gpio: '—', to: 'DS18B20 GND' },
       ],
       config: [
-        { dir: 'ONE_WIRE_PIN', val: '<em>a free GPIO</em>', note: 'MUST be set explicitly on the E4 — see the warning above. Put it in Extended.config.h, e.g. #define ONE_WIRE_PIN 13' },
+        { dir: 'ONE_WIRE_PIN', val: '<em>a free GPIO</em>', note: 'MUST be set explicitly on the E4 — see the warning above. Put it in Extended.config.h, e.g. #define ONE_WIRE_PIN 21 (I2C header SDA, with nothing else on it)' },
         { dir: 'FOCUSER_TEMPERATURE', val: 'DS1820', note: 'Or the specific sensor\'s 64-bit serial' },
         { dir: 'FEATURE1_TEMP', val: 'DS1820', note: 'Use the bare DS1820 keyword + DEBUG VERBOSE to LIST serial numbers; then replace it with the serial of the sensor you want' },
       ],
@@ -826,15 +823,15 @@
       desc: 'Bosch BME280 3-in-1 environmental sensor. I2C address 0x76 (SDO→GND) or 0x77 (SDO→VCC). Requires Adafruit libraries.',
       warnings: [
         { label: 'I2C Address', text: 'E4 Config.h defaults to BME280_0x76. If your breakout pulls SDO to VCC, use BME280_0x77 (or BME280 for auto-detect).' },
-        { label: 'Wiring', text: 'Connect to the I2C header (4-pin JST-XH). SDA/GPIO21 → SDA, SCL/GPIO22 → SCL.' },
+        { label: 'Wiring', text: 'Connect to the I2C header (4-pin 2.54mm header in the centre block: 5V, GND, SDA, SCL — no 3.3V). Remove the factory SDA↔M-RX / SCL↔M-TX caps first. A purple 3.3V-only GY-BME280 needs a 3.3V regulator; 5V-ready modules (regulator + level shifter) can use the 5V pin.' },
         { label: 'Libraries', text: 'Adafruit BME280 v2.2.2 + Adafruit Sensor v1.1.7 (Arduino Library Manager).' },
         { label: 'Module Types', text: 'GY-BME280, Adafruit BME280 or generic modules all work. Avoid BMP280 (no humidity).' },
       ],
       wiring: [
-        { e4: 'I2C SDA (GPIO21) — Pin 1', gpio: 'GPIO21', to: 'BME280 SDA' },
-        { e4: 'I2C SCL (GPIO22) — Pin 2', gpio: 'GPIO22', to: 'BME280 SCL' },
-        { e4: '3.3V — Pin 3', gpio: '—', to: 'BME280 VCC (3.3V, max 3mA)' },
-        { e4: 'GND — Pin 4', gpio: '—', to: 'BME280 GND' },
+        { e4: 'I2C header SDA', gpio: 'GPIO21', to: 'BME280 SDA' },
+        { e4: 'I2C header SCL', gpio: 'GPIO22', to: 'BME280 SCL' },
+        { e4: 'I2C header 5V (via 3.3V regulator for 3.3V-only boards)', gpio: '—', to: 'BME280 VCC' },
+        { e4: 'I2C header GND', gpio: '—', to: 'BME280 GND' },
       ],
       config: [
         { dir: 'WEATHER', val: 'BME280_0x76', note: 'Enable BME280 at 0x76 (SDO→GND)' },
@@ -865,7 +862,7 @@
       wiring: [
         { e4: 'I2C SDA (GPIO21)', gpio: 'GPIO21', to: 'DS3231 SDA' },
         { e4: 'I2C SCL (GPIO22)', gpio: 'GPIO22', to: 'DS3231 SCL' },
-        { e4: '3.3V', gpio: '—', to: 'DS3231 VCC' },
+        { e4: '3.3V (regulator off the header 5V)', gpio: '—', to: 'DS3231 VCC — the ZS-042 pulls SDA/SCL up to its VCC, so keep it at 3.3V' },
         { e4: 'GND', gpio: '—', to: 'DS3231 GND' },
       ],
       config: [
@@ -879,11 +876,11 @@
 
   C.focuser = () => `
     <h2 class="e4-h2">Motorized Focuser</h2>
-    <p class="e4-desc">OnStepX supports up to 6 focusers (Axis4–Axis9). The E4 has two: <strong>Axis4</strong> on the <strong>MOT-E / E0-AXIS</strong> socket with its own GPIO16 (STEP) / GPIO17 (DIR),
-      and <strong>Axis5</strong> on the <strong>MOT-Z / Z-AXIS</strong> socket, sharing GPIO14/GPIO12 with Axis3 (rotator).</p>
+    <p class="e4-desc">OnStepX supports up to 6 focusers (Axis4–Axis9). The E4 has two: <strong>Axis4</strong> on the <strong>MOT-E / E0-AXIS</strong> connector with its own GPIO16 (STEP) / GPIO17 (DIR),
+      and <strong>Axis5</strong> on the <strong>MOT-Z / Z-AXIS</strong> connector, sharing GPIO14/GPIO12 with Axis3 (rotator). The stock E4 Config.h enables both focusers (Axis3 OFF).</p>
     ${card({
       title: 'Motorized Focuser (Axis4)',
-      desc: 'Axis4 is the MOT-E (E0-AXIS) socket and uses dedicated pins (GPIO16 STEP, GPIO17 DIR) — no pin-sharing conflicts. Enabled as TMC2209 in the stock E4 Config.h.',
+      desc: 'Axis4 is the MOT-E (E0-AXIS) output and uses dedicated pins (GPIO16 STEP, GPIO17 DIR) — no pin-sharing conflicts. Enabled as TMC2209 in the stock E4 Config.h.',
       warnings: [
         { label: 'TMC2209 Default', text: 'Default Config.h enables TMC2209 for Axis4. For a different driver, change AXIS4_DRIVER_MODEL.' },
         { label: 'Steps/Micron', text: 'CALIBRATION REQUIRED: AXIS4_STEPS_PER_MICRON must be measured for your focuser.' },
@@ -898,7 +895,7 @@
     })}
     ${card({
       title: 'Second Focuser (Axis5)',
-      desc: 'Axis5 shares STEP/DIR pins with Axis3 (rotator). Only one can be active at a time. Same TMC2209 defaults.',
+      desc: 'Axis5 shares STEP/DIR pins with Axis3 (rotator). Only one can be active at a time. Enabled as TMC2209 in the stock E4 Config.h.',
       config: [
         { dir: 'AXIS5_DRIVER_MODEL', val: 'TMC2209', note: 'Default driver' },
         { dir: 'AXIS5_STEPS_PER_MICRON', val: '0.25', note: 'Calibrate for your focuser' },
@@ -908,7 +905,7 @@
       ],
       notes: callout('warn', '<strong>Pin sharing:</strong> Axis5 uses GPIO14 (STEP) and GPIO12 (DIR) — the SAME pins as Axis3 (rotator). Enable only ONE: if AXIS5_DRIVER_MODEL is set, set AXIS3_DRIVER_MODEL to OFF and vice versa.'),
     })}
-    ${callout('warn', `<strong>⚠ Focuser 1 goes on MOT-E, not MOT-Z.</strong> Confirmed against ${code('Pins.FYSETC_E4.h')}: focuser1 is the <strong>E0-AXIS</strong> — ${code('AXIS4_STEP_PIN 16')}, ${code('AXIS4_DIR_PIN 17')}, its own dedicated pins. The <strong>Z-AXIS</strong> socket (MOT-Z) carries ${code('AXIS3')} (rotator) <em>and</em> ${code('AXIS5')} (focuser2), both on ${code('STEP 14')} / ${code('DIR 12')} — which is why only one of those two can ever be enabled. If a focuser motor has no holding torque, this swap is the usual reason.`)}
+    ${callout('warn', `<strong>⚠ Focuser 1 goes on MOT-E, not MOT-Z.</strong> Confirmed against ${code('Pins.FYSETC_E4.h')}: focuser1 is the <strong>E0-AXIS</strong> — ${code('AXIS4_STEP_PIN 16')}, ${code('AXIS4_DIR_PIN 17')}, its own dedicated pins. The <strong>Z-AXIS</strong> output (MOT-Z) carries ${code('AXIS3')} (rotator) <em>and</em> ${code('AXIS5')} (focuser2), both on ${code('STEP 14')} / ${code('DIR 12')} — which is why only one of those two can ever be enabled. If a focuser motor has no holding torque, this swap is the usual reason.`)}
     ${callout('info', `<strong>Community note — "focuser has no torque / does not move".</strong> Almost always a pin conflict rather than a wiring fault: Axis3 and Axis5 share STEP/DIR, so if both (or the wrong one) are enabled they fight. Set ${code('AXIS4_DRIVER_MODEL')} for Focuser 1 and hold ${code('AXIS3_DRIVER_MODEL')} / ${code('AXIS5_DRIVER_MODEL')} at OFF until Focuser 1 works, then add the second axis. <span style="color:var(--e4-dim)">Source: <a href="https://onstep.groups.io/g/main/message/67968" target="_blank" rel="noopener">#67968</a></span>`)}`;
 
   C.rotator = () => `
@@ -918,7 +915,7 @@
       title: 'Rotator (Axis3)',
       desc: 'Supports both rotator (field orientation) and Alt-Az de-rotation. Steps per degree is typically much lower than mount axes.',
       config: [
-        { dir: 'AXIS3_DRIVER_MODEL', val: 'TMC2209', note: 'Already TMC2209 in the stock E4 Config.h — set it OFF if you want Axis5/focuser2 on that socket instead' },
+        { dir: 'AXIS3_DRIVER_MODEL', val: 'TMC2209', note: 'OFF in the stock E4 Config.h, which gives MOT-Z to Axis5 (focuser2). Set AXIS5_DRIVER_MODEL OFF first' },
         { dir: 'AXIS3_STEPS_PER_DEGREE', val: '64.0', note: 'Typical for a direct-drive rotator' },
         { dir: 'AXIS3_SLEW_RATE_BASE_DESIRED', val: '1.0', note: 'deg/s' },
         { dir: 'AXIS3_DRIVER_REVERSE', val: 'OFF', note: 'Reverse direction if needed' },
@@ -1037,8 +1034,8 @@
         { problem: 'Motors click/jerk at standstill or stutter during slews (often in time with the web UI)', cause: 'The E4\'s own 2.4GHz WiFi interferes with the steppers, and one ESP32 shares motion + web server + radio, so position-page updates briefly starve the motion task.', solutions: ['Lower WiFi TX power to ~2dB and use a 20MHz channel width (not 40MHz) — see the WiFi section.', 'Twist the motor cables and shield the enclosure (foil + tape); prefer the external-antenna board in a metal box.', 'Measure the 3.3V rail during a slew; if it sags, reduce motor current until brownouts stop.', 'Source: discussions #68360, #68365, #68438, #68563.'] },
       ] },
       { category: 'Stepper Motors & Drivers', color: '#ef4444', items: [
-        { problem: 'Stepper motors run very hot (overheating)', cause: 'TMC2209 UART communication failure — Config.h current settings never reach the driver, which falls back to full current.', solutions: ['CHECK THE Z-MIN → TMC2209 PDN JUMPER. This is the #1 cause — it must be securely connected.', 'Reseat or replace the jumper wire.', 'Reduce IRUN/IHOLD in Config.h (start at ~30-50% of motor rated current).', 'Update to OnStepX v10.20a+ (TMC2209 GCONF register fix).'] },
-        { problem: 'Driver status shows "Unknown" or "Comms Failure"', cause: 'TMC UART comms lost — wrong driver brand, missing PDN jumper or poor connection.', solutions: ['Use ONLY FYSETC TMC2209 v3.0/v3.1 or TMC2226 v1.1. Other brands have different UART pin assignments.', 'For BigTreeTech TMC2209: bridge/solder the two PDN pins on top, or jumper TX→RX, to enable UART mode.', 'Check the Z-MIN → PDN jumper is secure.', 'Verify the driver is fully seated with correct orientation.'] },
+        { problem: 'Stepper motors run very hot (overheating)', cause: 'The TMC UART is not reaching the drivers, so the Config.h currents never arrive. The E4\'s TMC2209s have their VREF pin unconnected, so without UART the current is uncontrolled.', solutions: ['CHECK THE GPIO15 → M-TX WIRE (Z-min pin of ZDIAG-EN → M-TX on the TMC UART header). This is the #1 cause — it must be securely connected.', 'Make sure the factory SDA↔M-RX / SCL↔M-TX caps and the ZDIAG-EN cap are removed.', 'Reduce IRUN/IHOLD in Config.h (start at ~30-50% of motor rated current).', 'Update to OnStepX v10.20a+ (TMC2209 GCONF register fix).'] },
+        { problem: 'Driver status shows "Unknown" or "Comms Failure"', cause: 'With USB serial on, the E4 pinmap runs the TMC UART transmit-only: SERIAL_TMC_RX is a dummy pin (GPIO0), so driver status cannot be read back. The drivers are soldered on — there is no module brand or seating to check.', solutions: ['Judge the UART by its effect: change AXISn_DRIVER_IRUN and check that holding torque and motor temperature follow.', 'Check the GPIO15 → M-TX wire and that the factory SDA↔M-RX / SCL↔M-TX caps are off.', 'Full read-back needs the TMC UART on UART0 (jumper M-RX↔RXD0, M-TX↔TXD0) with SERIAL_A_BAUD_DEFAULT OFF — which also takes USB serial away, so remove those caps to flash.'] },
         { problem: 'Motors stall at full slew speed (often only one axis, or after going to finer microsteps)', cause: 'GOTO step rate × microsteps exceeds what the ESP32/driver/motor can deliver; too-fine GOTO microstepping or too-high target speed loses torque.', solutions: ['Use a COARSE goto microstep: AXISn_DRIVER_MICROSTEPS_GOTO 4 (or 8), with 32 for tracking. Fine goto microstepping (e.g. 4→ stalls) is a common cause.', 'Lower AXISn_SLEW_RATE_BASE_DESIRED until slews are reliable, then raise gradually.', 'Raise IRUN toward the motor rating (within thermal limits); confirm UART current actually applied (driver status page).', 'At 24V, motors slew faster but also run hotter — retune current. Source: discussions #65477, #68950.'] },
       ] },
       { category: 'ASCOM & Serial', color: '#8b5cf6', items: [
@@ -1046,7 +1043,7 @@
       ] },
       { category: 'Mount Operation & Goto', color: '#10b981', items: [
         { problem: 'Goto fails with "Out of limit" — manual moves work', cause: 'ALIGN_AUTO_HOME or MFLIP_SKIP_HOME issues; mount tries to visit home before goto.', solutions: ['Set ALIGN_AUTO_HOME to OFF if you have no home switches.', 'Set MFLIP_SKIP_HOME to ON for gotos without visiting home.', 'Verify axis limits are correct for your mount.'] },
-        { problem: 'PEC Hall sensor not detected', cause: 'Hall sensor outputs 5V but GPIO36 expects 3.3V; or incorrect wiring polarity to TE.', solutions: ['Use a voltage divider to drop 5V→3.3V, or power the sensor from 3.3V.', 'For US5881 (unipolar): flip the magnet if no detection.', 'Set PEC_SENSE to HIGH for Hall sensors.', 'The TE connector has a built-in 4.7k pull-up — correct for open-collector sensors.'] },
+        { problem: 'PEC Hall sensor not detected', cause: 'Hall sensor outputs 5V but GPIO36 expects 3.3V; or incorrect wiring polarity to TE.', solutions: ['Power the sensor from 5V (the E4 has no 3.3V pin). A bare open-collector sensor needs no divider; a KY-003 module (own 5V pull-up) needs 1kΩ series + 2kΩ to GND.', 'For US5881 (unipolar): flip the magnet if no detection.', 'Set PEC_SENSE to HIGH for Hall sensors.', 'The TE connector has a built-in 4.7k pull-up — correct for open-collector sensors.'] },
         { problem: 'Settings (UTC offset, park position) are not saved across a power cycle', cause: 'Values were not committed to non-volatile storage before power-off, or the NV is stale/corrupt.', solutions: ['After changing settings, give the board a few seconds before cutting power so NV writes complete.', 'Add a DS3231 RTC so time/location persist regardless.', 'If park/coords stay corrupt, re-flash with "Erase All Flash" to wipe stale NV, then reconfigure. Source: discussion #58501.'] },
       ] },
       { category: 'Imaging Clients & Alignment (ASIAIR / NINA)', color: '#22d3ee', items: [
@@ -1055,13 +1052,13 @@
         { problem: 'Meridian flip never completes — mount just slews to home and stops (or does nothing)', cause: 'Flip/home configuration; on GEM the mount visits home, and on fork the default slew logic can trigger an unwanted flip near park.', solutions: ['Verify meridian-limit and MFLIP settings; for GEM, set MFLIP_SKIP_HOME appropriately.', 'Update to a recent OnStepX — fork-mount slewing was reworked in newer releases.', 'As a workaround, manually slew several degrees past the meridian to the east, then issue the goto. Source: discussions #53807, #58501.'] },
       ] },
       { category: 'Hardware & Safety', color: '#f97316', items: [
-        { problem: 'Board doesn\'t work at all — no LED, no USB, nothing', cause: 'Factory shunts still installed. The board ships with jumpers for 3D-printer mode that conflict with OnStepX.', solutions: ['REMOVE ALL factory shunts — every jumper.', 'Install ONLY the single Z-MIN (GPIO15) → TMC2209 PDN jumper wire.', 'Verify power (12-24V DC) is connected and the power LED lights.'] },
+        { problem: 'Board doesn\'t work at all — no LED, no USB, nothing', cause: 'Factory Marlin jumper caps still installed — they tie the I2C lines to the TMC UART bus and the drivers\' DIAG outputs to the endstop inputs.', solutions: ['Remove the SDA↔M-RX and SCL↔M-TX caps and the three xDIAG-EN caps.', 'Fit only the GPIO15 → M-TX wire (Z-min pin of ZDIAG-EN → M-TX).', 'Verify 12–24V DC on Vin/GND and that the power LED lights.'] },
         { problem: 'Burning smell or smoke near USB / jumper pins get hot', cause: 'Jumpering pins near the USB connector while 12-24V is applied creates a direct short.', solutions: ['NEVER jumper the two pins closest to the USB connector while main power is connected.', 'Always disconnect main power before changing jumpers.', 'If you see smoke: disconnect all power immediately and inspect for damage.'] },
         { problem: '24V supply makes motors / dew heaters run hot', cause: 'The E4 dew-heater outputs are designed for 12V; 24V also raises driver heat.', solutions: ['Stick with 12V unless you have a specific reason for 24V.', 'At 24V, 12V heaters run at ~4× power (P=V²/R) and may burn out.', 'At 24V, reduce AXISn_DRIVER_IRUN to compensate.'] },
-        { problem: 'Board flashes OK but won\'t boot — logs "LEDC not initialized" then nothing', cause: 'Often a "compatible" E4 clone or a marginal board; the firmware uploads and verifies but the ESP32 hangs at start-up.', solutions: ['Re-flash with "Erase All Flash" enabled, using ESP32 board package v2.0.17.', 'Confirm all factory shunts are removed and only the Z-MIN→PDN jumper is fitted.', 'If it still hangs, suspect the clone hardware — test with a genuine FYSETC E4. Source: discussion #68362.'] },
+        { problem: 'Board flashes OK but won\'t boot — logs "LEDC not initialized" then nothing', cause: 'Often a "compatible" E4 clone or a marginal board; the firmware uploads and verifies but the ESP32 hangs at start-up.', solutions: ['Re-flash with "Erase All Flash" enabled, using ESP32 board package v2.0.17.', 'Confirm the factory jumper caps are removed and only the GPIO15 → M-TX wire is fitted.', 'If it still hangs, suspect the clone hardware — test with a genuine FYSETC E4. Source: discussion #68362.'] },
         { problem: 'External-antenna board: weak WiFi or damaged radio', cause: 'Powering the board with the u.FL antenna disconnected can damage the ESP32 RF amplifier; on-board-antenna boards simply have short range.', solutions: ['NEVER power up an external-antenna board without its antenna attached.', 'For range: use WIFI_STATION mode + a better router antenna or a WiFi extender, or the external-antenna E4 variant.', 'Source: discussions #68361, #68795.'] },
         { problem: 'One axis (often DEC) runs weak/jerky when connected to USB', cause: 'The board is being partly powered through the USB 5V line; under load that rail sags and a motor misbehaves.', solutions: ['Always run the board from the 12–24V input (5A+); USB is for data/flashing only.', 'Use a cut-down USB-2 data cable with the 5V wire LEFT DISCONNECTED, so the board is only powered by the 12V supply and is truly off when 12V is removed.', 'Connect the cable shield at one end only. Source: discussions #66142, #67866.'] },
-        { problem: 'BME280 and/or DS3231 not detected — no weather data, time never restored', cause: 'The I2C bus is not communicating at all. On the E4 this is nearly always wiring, power or pull-ups rather than Config.h — the only I2C settings the firmware has are WEATHER and TIME_LOCATION_SOURCE; SDA/SCL come from the pinmap (GPIO21/22) and cannot be set wrongly.', solutions: ['FIRST: flash a plain I2C scanner sketch (Wire.begin(21,22), scan 0x03-0x77). Nothing found = hardware. 0x76/0x77/0x68 found = it is the address or chip type in Config.h.', 'Check the pull-ups: SDA and SCL each need ~4.7kΩ to 3.3V. Most breakouts have them — if you removed them, the bus is dead. Put them back.', 'Check the supply: the E4 I2C header pin is 5V, not 3.3V. Power the modules from 3.3V, and prefer the external LM1117 tap — the onboard 3.3V regulator is already loaded by the ESP32 + WiFi and can brown out with two modules on it.', 'Address mismatch: most purple GY-BME280 boards are 0x76 (SDO→GND) so you need WEATHER BME280_0x76. Plain BME280 means 0x77 and fails silently.', 'Wrong chip: many boards sold as "BME280" are actually BMP280 (no humidity, different chip ID). Use BMP280 / BMP280_0x76 instead.', 'Keep the wires short — over ~20cm of unshielded wire next to the stepper drivers, I2C drops out.'] },
+        { problem: 'BME280 and/or DS3231 not detected — no weather data, time never restored', cause: 'The I2C bus is not communicating at all. On the E4 this is nearly always wiring, power or pull-ups rather than Config.h — the only I2C settings the firmware has are WEATHER and TIME_LOCATION_SOURCE; SDA/SCL come from the pinmap (GPIO21/22) and cannot be set wrongly.', solutions: ['FIRST: remove the factory SDA↔M-RX / SCL↔M-TX jumper caps — with them fitted, the I2C lines are wired to the TMC UART bus.', 'Flash a plain I2C scanner sketch (Wire.begin(21,22), scan 0x03-0x77). Nothing found = hardware. 0x76/0x77/0x68 found = it is the address or chip type in Config.h.', 'Check the pull-ups: SDA and SCL each need ~4.7kΩ to 3.3V. Most breakouts have them — if you removed them, the bus is dead. Put them back.', 'Check the supply: the E4 I2C header pin is 5V, not 3.3V. Power the modules from 3.3V, and prefer the external LM1117 tap — the onboard 3.3V regulator is already loaded by the ESP32 + WiFi and can brown out with two modules on it.', 'Address mismatch: most purple GY-BME280 boards are 0x76 (SDO→GND) so you need WEATHER BME280_0x76. Plain BME280 means 0x77 and fails silently.', 'Wrong chip: many boards sold as "BME280" are actually BMP280 (no humidity, different chip ID). Use BMP280 / BMP280_0x76 instead.', 'Keep the wires short — over ~20cm of unshielded wire next to the stepper drivers, I2C drops out.'] },
         { problem: 'I2C device (BME280 / DS3231) wired to 5V', cause: 'The ESP32 I2C pins are 3.3V; feeding 5V logic eventually destroys the inputs and can kill the board.', solutions: ['Use the 3.3V variant of the module, or drop the 5V rail: a plain red LED in series gives ~3.1–3.4V (it drops ~1.6–1.9V) and the <1mA draw is fine.', 'Remove the power-on LED from DS3231 modules to cut idle current.', 'Source: discussions #66613, #66616.'] },
       ] },
     ];
@@ -1085,11 +1082,11 @@
   /* ---- firmware + community discussions ---- */
   C.firmware = () => {
     const discussions = [
-      { title: 'Stepper Motor Overheating — UART Current Fix', author: 'community', tag: 'stepper', link: 'https://onstep.groups.io/g/main/message/58342', desc: 'Motors run hot on 12V. Root cause: TMC2209 UART comms failure means Config.h current never reaches the driver — it runs at full VRef current.', notes: 'Fix order: (1) check Z-MIN→PDN jumper, (2) reseat the jumper, (3) reduce IRUN to ~400mA / IHOLD ~200mA, (4) update to OnStepX v10.20a+, (5) set TMC2209 VRef pot to max (~2.5V) for UART current control.' },
-      { title: 'PEC Wiring KY-003 / A3144 — Step by Step', author: 'community', tag: 'pec', link: 'https://onstep.groups.io/g/main/topic/fysetc_e4_pec_wiring/102827741', desc: 'KY-003 (A3144 latch) open-collector output with the built-in 4.7kΩ pull-up on TE. Test with the Sky Planetarium flash indicator.', notes: 'KY-003 outputs 5V — power it from 3.3V or use a divider, GPIO36 is not 5V-tolerant. Wiring: TE Pin 1 (GPIO36) ← Hall OUT, TE Pin 2 ← GND. Config: PEC_SENSE HIGH, PEC_SENSE_PIN 36.' },
+      { title: 'Stepper Motor Overheating — UART Current Fix', author: 'community', tag: 'stepper', link: 'https://onstep.groups.io/g/main/message/58342', desc: 'Motors run hot on 12V. Root cause: TMC2209 UART comms failure means Config.h current never reaches the driver, and with VREF unconnected the current is uncontrolled.', notes: 'Fix order: (1) check the GPIO15 → M-TX wire, (2) confirm the factory SDA↔M-RX / SCL↔M-TX caps are off, (3) reduce IRUN to ~400mA / IHOLD ~200mA, (4) update to OnStepX v10.20a+. The E4 drivers have no VRef pot (VREF is not connected) — UART is the only current control.' },
+      { title: 'PEC Wiring KY-003 / A3144 — Step by Step', author: 'community', tag: 'pec', link: 'https://onstep.groups.io/g/main/topic/fysetc_e4_pec_wiring/102827741', desc: 'KY-003 (A3144 latch) open-collector output with the built-in 4.7kΩ pull-up on TE. Test with the Sky Planetarium flash indicator.', notes: 'KY-003 needs 4.5V+, so power it from 5V; its own pull-up then puts 5V on the output, so use a divider (1kΩ + 2kΩ) — GPIO36 is not 5V-tolerant. Wiring: TE Pin 1 (GPIO36) ← Hall OUT, TE Pin 2 ← GND. Config: PEC_SENSE HIGH, PEC_SENSE_PIN 36.' },
       { title: 'GPS Module v2 — X-MIN Single-Wire Mode', author: 'community', tag: 'gps', link: 'https://onstep.groups.io/g/main/message/69157', desc: 'NEO-M8N on X-MIN (GPIO34) single-wire bit-banged mode. Capacitor removal required for reliable 9600-baud data.', notes: 'Remove the single centre SMD filter capacitor beside the X-MIN pins — the two outer parts are resistors, leave them. No-modification alternative: the I2C header (GPS TX → SDA/GPIO21, SERIAL_GPS Serial2, SERIAL_GPS_RX 21, SERIAL_GPS_TX 22) when no DS3231/BME280 is fitted. Config: TIME_LOCATION_SOURCE GPS, SERIAL_GPS_BAUD 9600.' },
       { title: 'Win11 CH340 USB Fix — Driver & DTR', author: 'community', tag: 'software', link: 'https://onstep.groups.io/g/main/message/62877', desc: 'CH340 USB-serial issues on Windows 11 solved by driver downgrade and DTR configuration.', notes: '(1) Uninstall current CH340 driver, (2) install CH341SER-3.7, (3) in ASCOM config select "9600-NO DTR", (4) in Device Manager → Ports → Advanced enable DisableModemHandshake.' },
-      { title: 'Official FYSETC E4 Wiki — Complete Reference', author: 'Howard Dutton', tag: 'reference', link: 'https://onstep.groups.io/g/main/wiki/32747', desc: 'Complete E4 reference: pinout, safety, schematics, power recommendations (12VDC/5A), peripheral wiring and the 10µF cap upload fix.', notes: 'Remember: remove all factory shunts, install only the Z-MIN → TMC2209 PDN jumper. 12V recommended (24V dew heaters run at 4× power). Two E4 versions exist (internal ceramic vs external IPEX antenna) — both work identically.' },
+      { title: 'Official FYSETC E4 Wiki — Complete Reference', author: 'Howard Dutton', tag: 'reference', link: 'https://onstep.groups.io/g/main/wiki/32747', desc: 'Complete E4 reference: pinout, safety, schematics, power recommendations (12VDC/5A), peripheral wiring and the 10µF cap upload fix.', notes: 'Remember: remove the factory jumper caps (SDA↔M-RX, SCL↔M-TX, xDIAG-EN) and fit only the GPIO15 → M-TX wire. 12V recommended (24V dew heaters run at 4× power). Two E4 versions exist (internal ceramic vs external IPEX antenna) — both work identically.' },
     ];
     const discHtml = discussions.map((d) => `
       <details class="e4-disc">
@@ -1101,7 +1098,7 @@
     return `
       <h2 class="e4-h2">Firmware Upload &amp; Default Config</h2>
       ${callout('info', 'Easiest option: build &amp; flash right here with this configurator\'s <a data-gototab="compile" style="color:#60a5fa;font-weight:600;cursor:pointer;text-decoration:underline">Compile &amp; Flash</a> tab — it compiles online and flashes over USB in your browser. The manual Arduino IDE method is below.')}
-      ${callout('info', `<strong>Community recipe — systematic first light</strong> (the fastest way to isolate problems on a new board): <ol style="margin-top:6px;line-height:1.8"><li>Strip everything: only <strong>12V</strong> + USB connected, <strong>no steppers</strong>, all factory shunts off, Z-MIN→PDN jumper on.</li><li>Build &amp; flash a clean firmware from this configurator's <a data-gototab="compile" style="color:#60a5fa;font-weight:600;cursor:pointer;text-decoration:underline">Compile &amp; Flash</a> tab (rules out Arduino/library issues).</li><li>Power off, connect <strong>one</strong> motor to <strong>MOT-X (RA)</strong>; set the PSU current limit to ≥3A.</li><li>Power on, connect to the "OnStepX" WiFi → 192.168.0.1, and test that one axis before adding the rest.</li></ol><span style="color:var(--e4-dim)">Source: <a href="https://onstep.groups.io/g/main/message/66848" target="_blank" rel="noopener">#66848</a></span>`)}
+      ${callout('info', `<strong>Community recipe — systematic first light</strong> (the fastest way to isolate problems on a new board): <ol style="margin-top:6px;line-height:1.8"><li>Strip everything: only <strong>12V</strong> + USB connected, <strong>no steppers</strong>, factory jumper caps off, GPIO15 → M-TX wire fitted.</li><li>Build &amp; flash a clean firmware from this configurator's <a data-gototab="compile" style="color:#60a5fa;font-weight:600;cursor:pointer;text-decoration:underline">Compile &amp; Flash</a> tab (rules out Arduino/library issues).</li><li>Power off, connect <strong>one</strong> motor to <strong>MOT-X (RA)</strong>; set the PSU current limit to ≥3A.</li><li>Power on, connect to the "OnStepX" WiFi → 192.168.0.1, and test that one axis before adding the rest.</li></ol><span style="color:var(--e4-dim)">Source: <a href="https://onstep.groups.io/g/main/message/66848" target="_blank" rel="noopener">#66848</a></span>`)}
       <div class="e4-card"><h3>1. Install Arduino IDE &amp; ESP32 Platform</h3>
         <ul style="font-size:13px;line-height:1.9">
           <li>Install <a href="https://www.arduino.cc/en/software" target="_blank" rel="noopener">Arduino IDE</a></li>
@@ -1119,7 +1116,7 @@
         <ul style="font-size:13px;line-height:1.9">
           <li>Download <a href="https://github.com/hjd1964/OnStepX" target="_blank" rel="noopener">OnStepX</a> — check the branch list for an E4-specific branch, otherwise take the current release. (Simpler: the <a data-gototab="compile" style="color:#60a5fa;font-weight:600;cursor:pointer;text-decoration:underline">Compile &amp; Flash</a> tab fetches the right source for you.)</li>
           <li>Extract to a folder named ${code('OnStepX')}, open ${code('OnStepX.ino')}</li>
-          <li>Remove ALL factory shunts; connect Z-MIN → TMC PDN jumper</li>
+          <li>Remove the factory jumper caps (SDA↔M-RX, SCL↔M-TX, xDIAG-EN); wire the Z-min pin of ZDIAG-EN (GPIO15) to M-TX</li>
           <li>Do NOT attach stepper motors while flashing</li>
         </ul></div>
       <div class="e4-card"><h3>4. Arduino IDE Settings</h3>
@@ -1132,11 +1129,13 @@
           [code('SERIAL_RADIO'), code('WIFI_ACCESS_POINT'), 'Built-in WiFi AP mode'],
           [code('AXIS1_DRIVER_MODEL'), code('TMC2209'), 'Axis1 stepper driver'],
           [code('AXIS2_DRIVER_MODEL'), code('TMC2209'), 'Axis2 stepper driver'],
-          [code('AXIS1_STEPS_PER_DEGREE'), code('18346.6667'), 'Steps/° for Axis1 — a placeholder, you MUST set this for your gearing (Calculator tab)'],
+          [code('AXIS1_STEPS_PER_DEGREE'), code('12800'), 'Steps/° for Axis1 (Axis2 too) — a placeholder, you MUST set this for your gearing (Calculator tab)'],
           [code('LIMIT_SENSE_PIN'), code('34'), 'Overrides the pinmap default of 39, moving limit sense to X-MIN'],
-          [code('AXIS3_DRIVER_MODEL'), code('TMC2209'), 'Rotator active by default on MOT-Z'],
+          [code('AXIS3_DRIVER_MODEL'), code('OFF'), 'Rotator off — MOT-Z goes to Focuser2'],
           [code('AXIS4_DRIVER_MODEL'), code('TMC2209'), 'Focuser1 active by default on MOT-E'],
-          [code('AXIS5_DRIVER_MODEL'), code('OFF'), 'Focuser2 off — it would clash with Axis3'],
+          [code('AXIS5_DRIVER_MODEL'), code('TMC2209'), 'Focuser2 active by default on MOT-Z'],
+          [code('LIMIT_SENSE'), code('LOW'), 'Limit on X-MIN armed (switch to GND stops motion)'],
+          [code('STATUS_LED') + ' / ' + code('STATUS_BUZZER'), code('ON') + ' / ' + code('2000'), 'Both on GPIO13. Current OnStepX refuses both at once (this configurator\'s build service turns them OFF); on the FAN MOSFET the LED also needs STATUS_LED_ON_STATE HIGH'],
           [code('WEATHER'), code('BME280_0x76'), 'BME280 at 0x76'],
           [code('MOUNT_TYPE'), code('GEM'), 'Mount type (change to ALTAZM as needed)'],
           [code('TIME_LOCATION_SOURCE'), code('DS3231'), 'RTC for timekeeping'],
@@ -1159,27 +1158,27 @@
 
       ${cat('#ef4444', '🔌 Stepper Motors')}
       ${table(['Use', 'Model', 'Specs', 'Wiring'], [
-        ['Mount RA/Azm', '<strong>NEMA17</strong> (17HS19-2004S1)', '200 steps/rev, 1.0–1.7A', 'MOT-X screw terminals'],
-        ['Mount Dec/Alt', '<strong>NEMA17</strong>', '200 steps/rev, 1.0–1.7A', 'MOT-Y screw terminals'],
+        ['Mount RA/Azm', '<strong>NEMA17</strong> (17HS19-2004S1)', '200 steps/rev, 1.0–1.7A', 'MOT-X (JST-XH 4-pin)'],
+        ['Mount Dec/Alt', '<strong>NEMA17</strong>', '200 steps/rev, 1.0–1.7A', 'MOT-Y (JST-XH 4-pin)'],
         ['Focuser 1', '<strong>NEMA8/11</strong> (8HS15-0604S)', '200 steps/rev, 0.4–0.8A', '<strong>MOT-E</strong> (Axis4 / E0-AXIS, GPIO16+17)'],
-        ['Rotator', '<strong>28BYJ-48</strong> (mod to bipolar) / NEMA11', '~2048 full steps/rev at the output shaft (32 steps/rev motor × 1/64 gearbox), ~0.1–0.3A', 'Axis3 — shares a driver socket with Axis5, see the Focuser section'],
+        ['Rotator', '<strong>28BYJ-48</strong> (mod to bipolar) / NEMA11', '~2048 full steps/rev at the output shaft (32 steps/rev motor × 1/64 gearbox), ~0.1–0.3A', 'Axis3 — shares MOT-Z with Axis5, see the Focuser section'],
       ])}
-      ${callout('warn', `<strong>💡 Motor VRef — read the caveat:</strong> with working UART, current is set by ${code('AXISn_DRIVER_IRUN')} / ${code('_IHOLD')} in Config.h and the pot is not what limits it. The common advice is to turn VRef up so it never caps the UART setting. <strong>But this is exactly what makes a UART failure destructive:</strong> if the Z-MIN→PDN jumper is missing or loose, the driver ignores Config.h and falls back to the pot — at max, that is full current into the motor, which is the #1 cause of the "motors run scorching hot" reports. Confirm the driver status page shows live UART comms <em>before</em> winding the pots up, and start conservative.`)}
+      ${callout('warn', `<strong>💡 No VRef pot on the E4:</strong> the four TMC2209s are soldered on with their VREF pin unconnected, so motor current is set only by ${code('AXISn_DRIVER_IRUN')} / ${code('_IHOLD')} over the TMC UART. If the GPIO15 → M-TX wire is missing or loose, the drivers never get those values and the current is uncontrolled — the usual cause of "motors run scorching hot". On first power-up, touch-check the motors and confirm that changing IRUN changes holding torque.`)}
 
       ${cat('#3b82f6', '🛤️ Home & Limit Switches')}
       ${table(['Type', 'Model', 'Output', 'Notes'], [
         ['Mechanical', '<strong>SS-5GL2</strong> / D2F-L', 'NO to GND', 'Cheapest. Works as-is (firmware debounce + built-in pull-up); add a 1–2kΩ pull-up or RC only if a long cable picks up noise.'],
-        ['Hall (unipolar)', '<strong>A3144</strong> / KY-003', 'Open-collector, LOW on south pole', 'Needs 4.5V+ — power at 5V and divide the output down.'],
-        ['Hall (unipolar)', '<strong>US5881</strong>', 'Open-collector, LOW on south pole', 'Only one pole triggers — flip magnet if no detection.'],
-        ['Hall (3.3V)', '<strong>US1881</strong> / OH090U', 'Open-collector', 'Works at 3.3V — no divider needed.'],
+        ['Hall (unipolar)', '<strong>A3144</strong> / KY-003', 'Open-collector, LOW on south pole', 'Needs 4.5V+ — power at 5V. Bare A3144: no divider. KY-003 module: divider (its pull-up goes to 5V).'],
+        ['Hall (unipolar)', '<strong>US5881</strong>', 'Open-collector, LOW on south pole', 'Needs 3.5V+ — power at 5V, no divider. Only one pole triggers — flip the magnet if nothing is detected.'],
+        ['Hall (latch)', '<strong>US1881</strong>', 'Open-collector', 'Needs 3.5V+ — power at 5V, no divider.'],
       ])}
 
       ${cat('#8b5cf6', '🧲 PEC Index Sensors')}
       ${table(['Sensor', 'Type', 'Power', 'Level Shift'], [
-        ['<strong>A3144</strong>', 'Bipolar Hall latch', '<strong>4.5–24V — not a 3.3V part</strong>', 'Run it at 5V + divider (1kΩ series, 2kΩ to GND)'],
-        ['<strong>KY-003</strong>', 'A3144 on PCB', '4.5–5V (it carries an A3144)', 'Divider: 1kΩ series + 2kΩ to GND ≈ 3.3V'],
-        ['<strong>US5881</strong>', 'Unipolar Hall', '3.5–24V', 'None if powered from 3.3V; divider only if run at 5V'],
-        ['<strong>US1881</strong>', 'Bipolar Hall latch', '3.3–24V', 'Not needed — the 3.3V-native choice'],
+        ['<strong>A3144</strong>', 'Unipolar Hall switch', '<strong>4.5–24V — not a 3.3V part</strong>', 'None — open collector, TE is pulled up to 3.3V on board. Power at 5V'],
+        ['<strong>KY-003</strong>', 'A3144 on PCB', '4.5–5V (it carries an A3144)', 'Divider: 1kΩ series + 2kΩ to GND ≈ 3.3V (the module pulls up to 5V)'],
+        ['<strong>US5881</strong>', 'Unipolar Hall', '3.5–24V', 'None — open collector. Power at 5V'],
+        ['<strong>US1881</strong>', 'Bipolar Hall latch', '3.5–24V', 'None — open collector. Power at 5V'],
       ])}
       ${callout('warn', '<strong>⚠ Magnet:</strong> use a small neodymium magnet (3×2mm disc) epoxied to the worm wheel. For unipolar (US5881) only the south pole triggers — mark the pole.')}
 
@@ -1195,7 +1194,7 @@
       ${cat('#f59e0b', '🌡️ Temperature Sensors')}
       ${table(['Sensor', 'Interface', 'E4 Pin', 'Config'], [
         ['<strong>NTC 100kΩ</strong> (3950β)', 'Analog (divider)', 'TE (GPIO36) / TB (GPIO39)', code('FOCUSER_TEMPERATURE THERMISTOR')],
-        ['<strong>DS18B20</strong> (probe)', 'OneWire', 'AUX7 + 4.7kΩ pull-up', code('FOCUSER_TEMPERATURE DS18B20')],
+        ['<strong>DS18B20</strong> (probe)', 'OneWire', 'GPIO21 on the I2C header (only if it is free) + 4.7kΩ pull-up', code('FOCUSER_TEMPERATURE DS1820')],
         ['<strong>BME280</strong>', 'I2C', 'I2C header (21/22)', code('WEATHER BME280_0x76')],
       ])}
 
@@ -1210,7 +1209,7 @@
       ${cat('#ec4899', '📷 Intervalometer / DSLR')}
       ${table(['Component', 'Part', 'Purpose'], [
         ['Optocoupler', '<strong>PC817</strong> / 4N35', 'Galvanic isolation — mandatory, never connect GPIO directly.'],
-        ['Current limit R', '1kΩ 1/4W', 'In series with optocoupler LED from GPIO13.'],
+        ['Current limit R', '1kΩ 1/4W', 'In series with the optocoupler LED on the FAN output (FAN jumper on 5V).'],
         ['TRS jack', '2.5mm or 3.5mm stereo', 'Camera connection. 2.5mm for Canon.'],
       ])}
 
@@ -1224,9 +1223,10 @@
       ${cat('#94a3b8', '⚡ USB / Serial / Power')}
       ${table(['Item', 'Part', 'Notes'], [
         ['USB bridge', '<strong>CH340C</strong> (built-in)', 'Win10/11 may need CH341SER-3.7. Use 9600-NO DTR in ASCOM.'],
-        ['Power supply', '12VDC, 5A', 'Lands on the <strong>12V / 0V screw terminal</strong> — the E4 has no barrel jack, so a plug-and-socket PSU needs a screw-terminal pigtail. 5A min with peripherals. Watch polarity: 12V = +, 0V = GND.'],
+        ['Power supply', '12VDC, 5A', 'Lands on the <strong>Vin / GND screw terminal</strong> — the E4 has no barrel jack, so a plug-and-socket PSU needs a screw-terminal pigtail. 5A min with peripherals. Watch polarity: Vin = +, GND = –.'],
         ['Upload-fix cap', '10µF 16V electrolytic', 'Across EN and GND on the ESP32 module if uploads fail.'],
-        ['Jumper wire', 'F-F Dupont 10cm', 'Z-MIN → TMC2209 PDN. Required for UART.'],
+        ['Jumper wire', 'F-F Dupont 10cm', 'Z-min pin of ZDIAG-EN (GPIO15) → M-TX on the TMC UART header. Required for driver current control.'],
+        ['3.3V regulator', 'AMS1117-3.3 / LM1117-3.3 module', 'Fed from a 5V header pin — the E4 has no 3.3V pin for 3.3V-only I2C modules, GPS or DS18B20.'],
       ])}`;
   };
 
