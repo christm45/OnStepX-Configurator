@@ -5,7 +5,7 @@
    with data-i18n keys, this engine walks the live DOM, keys each visible text
    node / attribute on its exact trimmed English string, and swaps in the
    translation from the active language's dictionary (window.I18N_FR,
-   window.I18N_ZH, … — see LANGS) when present. Anything missing from the
+   window.I18N_ZH, window.I18N_RO, … — see LANGS) when present. Anything missing from the
    dictionary simply stays English (graceful degradation), so the page is never
    left blank or half-broken.
 
@@ -33,7 +33,8 @@
   var LANGS = {
     en: { dict: null, html: 'en' },
     fr: { dict: 'I18N_FR', html: 'fr' },
-    zh: { dict: 'I18N_ZH', html: 'zh-CN' }
+    zh: { dict: 'I18N_ZH', html: 'zh-CN' },
+    ro: { dict: 'I18N_RO', html: 'ro' }
   };
 
   var lang = 'en';
