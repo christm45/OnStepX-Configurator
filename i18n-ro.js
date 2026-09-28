@@ -4775,4 +4775,10 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "🧰 Carcasă Fysetc E4",
   "🧲 PEC Index Sensors":
     "🧲 Senzori de index PEC",
+  "\"Bundle OnStepX plugins\"":
+    "„Includeți pluginurile OnStepX”",
+  "Calibrate for your focuser":
+    "Calibrați pentru focuser-ul dumneavoastră",
+  "Adafruit BME280 v2.2.2 + Adafruit Sensor v1.1.7 (Arduino Library Manager).":
+    "Adafruit BME280 v2.2.2 + Adafruit Sensor v1.1.7 (Arduino Library Manager / managerul de biblioteci).",
 });
