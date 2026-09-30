@@ -2542,6 +2542,11 @@
       <span class="field-hint">true = SWS broadcasts its own WiFi network ("ONSTEP" by default)</span><span class="config-comment">// Wifi Access Point Enabled.</span>
     </div>
     <div class="field-row">
+      <label class="field-label">AP_SSID <span class="hint-tag hint-adjust">Adjust</span></label>
+      <input type="text" id="SWS_AP_SSID" value="" maxlength="31" placeholder="HOST_NAME">
+      <span class="field-hint">Network name clients see (≤31 chars). Empty = follows HOST_NAME above (upstream default).</span><span class="config-comment">// Wifi Access Point SSID.</span>
+    </div>
+    <div class="field-row">
       <label class="field-label">AP_PASSWORD <span class="hint-tag hint-adjust">Adjust</span></label>
       <input type="text" id="SWS_AP_PASSWORD" value="password" maxlength="63">
       <span class="field-hint">Min 8 chars (WPA2). Empty string = open network.</span><span class="config-comment">// Wifi Access Point password.</span>
@@ -2577,6 +2582,11 @@
         <option value="true">true</option>
       </select>
       <span class="field-hint">true = SWS connects to your home/observatory router</span><span class="config-comment">// Wifi Station Enabled.</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">STA_SSID <span class="hint-tag hint-adjust">Adjust</span></label>
+      <input type="text" id="SWS_STA_SSID" value="" maxlength="32">
+      <span class="field-hint">Name of your existing WiFi network (≤32 chars). Required when STA_ENABLED is true. Applied on first boot / after NV_WIPE — afterwards change it in the SWS web UI.</span><span class="config-comment">// Wifi Station SSID to connect to.</span>
     </div>
     <div class="field-row">
       <label class="field-label">STA_PASSWORD <span class="hint-tag hint-adjust">Adjust</span></label>
@@ -2678,6 +2688,14 @@
         <option value="ON">ON</option>
       </select>
       <span class="field-hint">OnStepX servo monitor panel (any axis)</span><span class="config-comment">// ON to display the servo monitor for OnStepX (any axis.)</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">DISPLAY_STALLGUARD_MONITOR <span class="hint-tag hint-infreq">Infreq</span></label>
+      <select id="SWS_DISPLAY_STALLGUARD_MONITOR">
+        <option value="OFF" selected>OFF</option>
+        <option value="ON">ON</option>
+      </select>
+      <span class="field-hint">OnStepX StallGuard monitor panel (any axis, needs TMC drivers)</span><span class="config-comment">// ON to display the StallGuard monitor for OnStepX (any axis.)</span>
     </div>
   </div>
 </div>
@@ -6704,6 +6722,10 @@ function generateSWSConfig() {
   lines.push('');
   lines.push('// ---- Access Point (SWS hosts its own WiFi) ----');
   lines.push(`#define AP_ENABLED                     ${v('SWS_AP_ENABLED', 'true')}`);
+  // Empty AP_SSID falls back to the HOST_NAME token (exactly the upstream
+  // default: AP_SSID is HOST_NAME in WifiManager.defaults.h).
+  const apSsidRaw = v('SWS_AP_SSID', '').replace(/"/g, '');
+  lines.push(`#define AP_SSID                        ${apSsidRaw ? `"${apSsidRaw}"` : 'HOST_NAME'}`);
   lines.push(`#define AP_PASSWORD           ${q('SWS_AP_PASSWORD', 'password')}`);
   lines.push(`#define AP_CHANNEL                     ${v('SWS_AP_CHANNEL', '7')}`);
   lines.push(`#define AP_IP_ADDR                     ${ipArr('SWS_AP_IP_ADDR', '192.168.0.1')}`);
@@ -6712,6 +6734,7 @@ function generateSWSConfig() {
   lines.push('');
   lines.push('// ---- Station Mode (SWS joins your existing WiFi) ----');
   lines.push(`#define STA_ENABLED                    ${v('SWS_STA_ENABLED', 'false')}`);
+  lines.push(`#define STA_SSID                       ${q('SWS_STA_SSID', '')}`);
   lines.push(`#define STA_PASSWORD          ${q('SWS_STA_PASSWORD', 'password')}`);
   lines.push(`#define STA_DHCP_ENABLED               ${v('SWS_STA_DHCP_ENABLED', 'true')}`);
   lines.push(`#define STA_IP_ADDR                    ${ipArr('SWS_STA_IP_ADDR', '192.168.0.1')}`);
@@ -6727,6 +6750,7 @@ function generateSWSConfig() {
   lines.push(`#define DISPLAY_RESET_CONTROLS         ${v('SWS_DISPLAY_RESET_CONTROLS', 'ON')}`);
   lines.push(`#define DISPLAY_COORDINATE_ORIGIN     ${v('SWS_DISPLAY_COORDINATE_ORIGIN', 'OFF')}`);
   lines.push(`#define DISPLAY_SERVO_MONITOR         ${v('SWS_DISPLAY_SERVO_MONITOR', 'OFF')}`);
+  lines.push(`#define DISPLAY_STALLGUARD_MONITOR      ${v('SWS_DISPLAY_STALLGUARD_MONITOR', 'OFF')}`);
   lines.push('');
   lines.push(`#define ENC_AUTO_SYNC_DEFAULT          ${v('SWS_ENC_AUTO_SYNC_DEFAULT', 'ON')}`);
   lines.push(`#define ENC_AUTO_SYNC_MEMORY          ${v('SWS_ENC_AUTO_SYNC_MEMORY', 'OFF')}`);
@@ -6744,7 +6768,6 @@ function generateSWSConfig() {
   lines.push(`#define AXIS2_ENCODER_DIFF_LIMIT_TO   ${v('SWS_AXIS2_ENCODER_DIFF_LIMIT_TO', '300')}`);
   lines.push(`#define AXIS2_ENCODER_DIFF_LIMIT_FROM ${v('SWS_AXIS2_ENCODER_DIFF_LIMIT_FROM', 'OFF')}`);
   lines.push('');
-  lines.push('#define FileVersionConfig 6');
   lines.push('#include "Extended.config.h"');
   const text = lines.join('\n');
   const out = document.getElementById('configOutput');
@@ -6928,9 +6951,11 @@ function snapshotForSwsValidation() {
     SWS_NV_WIPE: get('SWS_NV_WIPE'),
     SWS_PASSWORD_DEFAULT: get('SWS_PASSWORD_DEFAULT'),
     SWS_AP_ENABLED: get('SWS_AP_ENABLED'),
+    SWS_AP_SSID: get('SWS_AP_SSID'),
     SWS_AP_PASSWORD: get('SWS_AP_PASSWORD'),
     SWS_AP_CHANNEL: get('SWS_AP_CHANNEL'),
     SWS_STA_ENABLED: get('SWS_STA_ENABLED'),
+    SWS_STA_SSID: get('SWS_STA_SSID'),
     SWS_STA_PASSWORD: get('SWS_STA_PASSWORD'),
     SWS_STA_DHCP_ENABLED: get('SWS_STA_DHCP_ENABLED'),
     SWS_MAC: get('SWS_MAC'),
@@ -6955,11 +6980,28 @@ function validateSwsConfig(s) {
   if (s.SWS_HOST_NAME && s.SWS_HOST_NAME.length > 16) {
     issues.push({ level: 'warn', id: 'SWS_HOST_NAME', message: 'HOST_NAME is longer than 16 characters; SWS truncates.' });
   }
+  // Upstream SWS src/Validate.h hard-errors on ESP32 when AP and Station are
+  // both enabled ("AP and Station modes cannot be enabled at the same time
+  // with ESP32") — catch it here before Compile instead of in the build log.
+  // (Checked outside WIFI mode on purpose: upstream's #error is unconditional
+  // on OPERATIONAL_MODE too.)
+  if (s.SWS_AP_ENABLED === 'true' && s.SWS_STA_ENABLED === 'true' && s.COMPILE_ENV === 'sws_esp32') {
+    issues.push({ level: 'error', id: 'SWS_STA_ENABLED', message: 'AP_ENABLED and STA_ENABLED are both true — upstream SWS forbids this on ESP32 (Validate.h #error). Turn one of them off. (sws_esp8266 targets may run both.)' });
+  }
   // Network credentials sanity (only meaningful in WIFI mode)
   const isWifi = s.SWS_OPERATIONAL_MODE === 'WIFI';
   if (isWifi) {
     if (s.SWS_AP_ENABLED === 'false' && s.SWS_STA_ENABLED === 'false') {
       issues.push({ level: 'error', id: 'SWS_AP_ENABLED', message: 'Both AP_ENABLED and STA_ENABLED are false — SWS will boot with no network. Enable at least one.' });
+    }
+    if (s.SWS_STA_ENABLED === 'true' && !(s.SWS_STA_SSID && s.SWS_STA_SSID.trim())) {
+      issues.push({ level: 'error', id: 'SWS_STA_SSID', message: 'STA_ENABLED is true but STA_SSID is empty — SWS would try to join a network with no name. Enter your router SSID (32 chars max).' });
+    }
+    if (s.SWS_STA_SSID && s.SWS_STA_SSID.length > 32) {
+      issues.push({ level: 'error', id: 'SWS_STA_SSID', message: 'STA_SSID is longer than 32 characters; SWS truncates it (char ssid[33]).' });
+    }
+    if (s.SWS_AP_SSID && s.SWS_AP_SSID.length > 31) {
+      issues.push({ level: 'error', id: 'SWS_AP_SSID', message: 'AP_SSID is longer than 31 characters; SWS truncates it (char ssid[32]). Shorten it, or leave it empty to follow HOST_NAME.' });
     }
     if (s.SWS_AP_ENABLED === 'true' && s.SWS_AP_PASSWORD && s.SWS_AP_PASSWORD.length > 0 && s.SWS_AP_PASSWORD.length < 8) {
       issues.push({ level: 'warn', id: 'SWS_AP_PASSWORD', message: 'AP_PASSWORD must be ≥ 8 chars (WPA2) or empty (open network).' });
@@ -7177,6 +7219,25 @@ function autoFixForCompileEnv() {
   }
 }
 
+// Hard upstream SWS constraint: on ESP32, AP and Station cannot both be on
+// (src/Validate.h #errors the build otherwise). Auto-correct on field change
+// so the user can't reach Compile with an unbuildable combination. ESP8266
+// targets may run both, so they are left alone.
+function autoFixSwsApSta(changedId) {
+  if (window.currentMode !== 'sws') return;
+  if (document.getElementById('COMPILE_ENV')?.value !== 'sws_esp32') return;
+  const ap = document.getElementById('SWS_AP_ENABLED');
+  const sta = document.getElementById('SWS_STA_ENABLED');
+  if (!ap || !sta) return;
+  if (ap.value === 'true' && sta.value === 'true') {
+    const other = changedId === 'SWS_AP_ENABLED' ? sta : ap;
+    other.value = 'false';
+    showStatus?.(`Auto-set ${other === ap ? 'AP_ENABLED' : 'STA_ENABLED'}=false — SWS forbids AP+Station together on ESP32.`, 'warn');
+  }
+}
+
+document.getElementById('SWS_AP_ENABLED')?.addEventListener('change', () => autoFixSwsApSta('SWS_AP_ENABLED'));
+document.getElementById('SWS_STA_ENABLED')?.addEventListener('change', () => autoFixSwsApSta('SWS_STA_ENABLED'));
 document.getElementById('PINMAP')?.addEventListener('change', () => {
   syncEnvFromPinmap(); refreshBoardDefaultsButton(); autoPinRefForPinmap(); autoFixForCompileEnv(); runPreflight();
 });
