@@ -1754,6 +1754,12 @@
       </select>
       <span class="field-hint">Must match the GPS module (most ship at 9600)</span><span class="config-comment">// n. Baud rate of the GPS module.</span>
     </div>
+    <div style="margin:6px 0; color:var(--label); font-size:0.9em;">
+      <b>GPS not showing time/location?</b> At boot OnStepX waits 1 s for any data on the GPS serial port (no fix needed).
+      If it hears nothing, the log says &ldquo;GPS serial RX interface is quiet&rdquo; and it does not retry until the next reboot:
+      check GPS TX &rarr; RX pin, the baud rate and any jumpers. Otherwise it keeps polling, and date/time/location are set a few
+      minutes after the first fix (2 min stabilisation). Set DEBUG to ON and read the <code>MSG: TLS</code> / <code>WRN: TLS</code> lines on USB serial.
+    </div>
   </div>
   <div class="section">
     <div class="section-title">Status</div>
@@ -2891,6 +2897,17 @@
       <div style="margin-top:6px; color:var(--label);">
         <b>End result:</b> main OnStepX source + E4's Config.h + Website plugin &mdash; the same layout as
         <code style="font-size:0.85em;">OnStepX-main_E4/</code> on disk.
+      </div>
+      <div style="margin-top:6px; color:var(--label);">
+        <b>First flash over older firmware (E4 branch, Marlin, a previous build)?</b> Tick
+        <i>Erase entire flash before writing</i> on the flash step. <code>main</code> uses a new NV storage layout and
+        can stop with &ldquo;Init NV/EEPROM error&rdquo; on a board that still holds the old one.
+      </div>
+      <div style="margin-top:6px; color:var(--label);">
+        <b>NINA / ASCOM over USB says &ldquo;OnStep wasn't found&rdquo; and the WiFi disappears?</b> The E4's USB chip
+        toggles DTR when the driver opens the port, which resets the ESP32. In the OnStep ASCOM driver choose
+        <i>9600 - NO DTR</i>; if it still resets, enable <i>DisableModemHandshake</i> in the COM port's Advanced settings
+        (Device Manager). The IP connection is not affected.
       </div>
       <div style="margin-top:6px; color:var(--warn);">
         <b>Escape hatch:</b> if you specifically want Howard's E4-branch source (older OnStepX snapshot
