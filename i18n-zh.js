@@ -4855,4 +4855,18 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "正常使用时请保持 OFF。排查问题时按要求设为 ON（错误和警告）或 VERBOSE（全部信息）：OnStepX 随后会通过 USB 串口以 9600 波特率输出启动信息。",
   "Still an Init NV/EEPROM error on main after erasing? Use E4 as the Source ref for now, then set DEBUG to ON (Controller tab), rebuild, and read the Nv lines on the USB serial monitor at 9600 baud.":
     "擦除后 main 仍然出现 Init NV/EEPROM error？请暂时将 Source ref 设为 E4，然后在 Controller 选项卡中把 DEBUG 设为 ON，重新编译，并在 9600 波特率的 USB 串口监视器中查看 Nv 开头的行。",
+  "Serial monitor":
+    "串口监视器",
+  "Connect":
+    "连接",
+  "Reset board":
+    "重启主板",
+  "Clear":
+    "清除",
+  "Copy":
+    "复制",
+  "Save .txt":
+    "保存 .txt",
+  "Shows what the board prints on its USB port, for example the OnStepX startup messages when DEBUG is ON or VERBOSE (Controller tab). Close NINA, ASCOM and any other program using the port first.":
+    "显示主板通过 USB 端口输出的内容，例如在 DEBUG 设为 ON 或 VERBOSE（Controller 选项卡）时 OnStepX 的启动信息。请先关闭 NINA、ASCOM 以及其他占用该端口的程序。",
 });

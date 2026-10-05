@@ -632,4 +632,18 @@ window.I18N_FR = Object.assign(window.I18N_FR || {}, {
     "Laissez sur OFF en usage normal. Passez sur ON (erreurs et avertissements) ou VERBOSE (tout) quand on vous le demande pour un dépannage : OnStepX affiche alors ses messages de démarrage sur le port série USB à 9600 bauds.",
   "Still an Init NV/EEPROM error on main after erasing? Use E4 as the Source ref for now, then set DEBUG to ON (Controller tab), rebuild, and read the Nv lines on the USB serial monitor at 9600 baud.":
     "Toujours une Init NV/EEPROM error sur main après l'effacement ? Utilisez E4 comme Source ref pour l'instant, puis réglez DEBUG sur ON (onglet Controller), recompilez et lisez les lignes Nv dans le moniteur série USB à 9600 bauds.",
+  "Serial monitor":
+    "Moniteur série",
+  "Connect":
+    "Connecter",
+  "Reset board":
+    "Redémarrer la carte",
+  "Clear":
+    "Effacer",
+  "Copy":
+    "Copier",
+  "Save .txt":
+    "Enregistrer .txt",
+  "Shows what the board prints on its USB port, for example the OnStepX startup messages when DEBUG is ON or VERBOSE (Controller tab). Close NINA, ASCOM and any other program using the port first.":
+    "Affiche ce que la carte envoie sur son port USB, par exemple les messages de démarrage d'OnStepX quand DEBUG est sur ON ou VERBOSE (onglet Controller). Fermez d'abord NINA, ASCOM et tout autre programme qui utilise le port.",
 });

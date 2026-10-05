@@ -4785,4 +4785,18 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "Lăsați pe OFF pentru utilizarea normală. Setați ON (erori și avertismente) sau VERBOSE (totul) atunci când vi se cere pentru depanare: OnStepX afișează atunci mesajele de pornire pe portul serial USB la 9600 baud.",
   "Still an Init NV/EEPROM error on main after erasing? Use E4 as the Source ref for now, then set DEBUG to ON (Controller tab), rebuild, and read the Nv lines on the USB serial monitor at 9600 baud.":
     "Încă o eroare Init NV/EEPROM pe main după ștergere? Folosiți deocamdată E4 ca Source ref, apoi setați DEBUG pe ON (fila Controller), recompilați și citiți liniile Nv în monitorul serial USB la 9600 baud.",
+  "Serial monitor":
+    "Monitor serial",
+  "Connect":
+    "Conectare",
+  "Reset board":
+    "Repornire placă",
+  "Clear":
+    "Șterge",
+  "Copy":
+    "Copiază",
+  "Save .txt":
+    "Salvează .txt",
+  "Shows what the board prints on its USB port, for example the OnStepX startup messages when DEBUG is ON or VERBOSE (Controller tab). Close NINA, ASCOM and any other program using the port first.":
+    "Afișează ce trimite placa pe portul USB, de exemplu mesajele de pornire OnStepX când DEBUG este ON sau VERBOSE (fila Controller). Închideți mai întâi NINA, ASCOM și orice alt program care folosește portul.",
 });

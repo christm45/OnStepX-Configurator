@@ -3016,6 +3016,28 @@
     <div id="flashProgress" class="prog-wrap"><div class="prog-bar" id="flashProgBar"></div><span class="prog-label" id="flashProgLabel"></span></div>
     <div id="flashSupport" style="margin-top:8px;color:var(--warn);font-size:0.8em;"></div>
     <pre id="flashLog" style="margin-top:10px;padding:10px;background:#000;color:var(--green);border:1px solid var(--border);border-radius:0;max-height:250px;overflow:auto;font-family:Consolas,monospace;font-size:0.8em;white-space:pre-wrap;display:none;"></pre>
+    <div id="serialMonitor" style="margin-top:18px;padding-top:12px;border-top:1px solid var(--border);">
+      <div style="font-weight:bold;color:var(--green);margin-bottom:4px;">Serial monitor</div>
+      <div style="color:var(--label);font-size:0.85em;margin-bottom:8px;">
+        Shows what the board prints on its USB port, for example the OnStepX startup messages when DEBUG is ON or VERBOSE (Controller tab). Close NINA, ASCOM and any other program using the port first.
+      </div>
+      <div class="btn-row" style="align-items:center;gap:8px;flex-wrap:wrap;">
+        <select id="monitorBaud" style="width:auto;">
+          <option value="9600" selected>9600</option>
+          <option value="19200">19200</option>
+          <option value="57600">57600</option>
+          <option value="115200">115200</option>
+          <option value="230400">230400</option>
+        </select>
+        <button class="btn btn-generate" id="monitorConnectBtn" onclick="monitorToggle()">Connect</button>
+        <button class="btn btn-copy" id="monitorResetBtn" onclick="monitorReset()" disabled>Reset board</button>
+        <button class="btn btn-copy" onclick="monitorClear()">Clear</button>
+        <button class="btn btn-copy" onclick="monitorCopy()">Copy</button>
+        <button class="btn btn-download" onclick="monitorSave()">Save .txt</button>
+      </div>
+      <div id="monitorStatus" style="margin-top:6px;color:var(--label);font-size:0.8em;"></div>
+      <div id="monitorLog" style="margin-top:8px;padding:10px;background:#000;color:var(--green);border:1px solid var(--border);border-radius:0;height:260px;overflow:auto;font-family:Consolas,monospace;font-size:0.8em;white-space:pre-wrap;display:none;"></div>
+    </div>
   </div>
 </div>
 
@@ -5407,6 +5429,7 @@ import { validateConfig, findSecrets } from './validate.js';
 import * as esp32Flasher from './flash/esp32.js';
 import * as stm32Flasher from './flash/stm32.js';
 import * as teensyFlasher from './flash/teensy.js';
+import { createMonitor, monitorSupported } from './flash/monitor.js';
 
 // Latest compile result ({runId, env, files, configHash})
 let lastBuild = null;
@@ -7653,6 +7676,84 @@ window.downloadFirmware = function () {
   // Prefer the app firmware.bin; .hex for Teensy; otherwise grab whatever exists.
   if (files['firmware.bin']) downloadBlob('firmware.bin', files['firmware.bin']);
   else if (files['firmware.hex']) downloadBlob('firmware.hex', files['firmware.hex'], 'text/plain');
+};
+
+// --- Serial monitor (Compile & Flash tab) -------------------------------------
+// Live view of the board's USB serial output (OnStepX DEBUG messages). Lines are
+// appended as <div>s so WRN:/ERR: can be coloured; the log is capped so a chatty
+// board cannot grow the page without bound.
+const MONITOR_MAX_LINES = 5000;
+const monitorLines = [];
+let monitorBox = null;
+function monitorStatusText(msg, warn) {
+  const el = document.getElementById('monitorStatus');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.style.color = warn ? 'var(--warn)' : 'var(--label)';
+}
+function monitorAppend(text) {
+  const log = document.getElementById('monitorLog');
+  if (!log) return;
+  log.style.display = 'block';
+  monitorLines.push(text);
+  const row = document.createElement('div');
+  row.textContent = text;
+  if (/^\s*(ERR|ERROR)\b/i.test(text)) row.style.color = '#ff6b6b';
+  else if (/^\s*WRN\b/i.test(text)) row.style.color = '#ffb347';
+  const stick = log.scrollTop + log.clientHeight >= log.scrollHeight - 8;
+  log.appendChild(row);
+  if (monitorLines.length > MONITOR_MAX_LINES) {
+    monitorLines.shift();
+    if (log.firstChild) log.removeChild(log.firstChild);
+  }
+  if (stick) log.scrollTop = log.scrollHeight;
+}
+function monitorSetOpen(open) {
+  const b = document.getElementById('monitorConnectBtn');
+  if (b) b.textContent = open ? pgT('Disconnect', 'Déconnecter', '断开', 'Deconectare') : pgT('Connect', 'Connecter', '连接', 'Conectare');
+  const r = document.getElementById('monitorResetBtn');
+  if (r) r.disabled = !open;
+  const baud = document.getElementById('monitorBaud');
+  if (baud) baud.disabled = open;
+  monitorStatusText(open ? pgT('Connected. Waiting for data…', 'Connecté. En attente de données…', '已连接，等待数据…', 'Conectat. Se așteaptă date…') : '');
+}
+window.monitorToggle = async function () {
+  if (!monitorBox) {
+    monitorBox = createMonitor({
+      onLine: monitorAppend,
+      onStatus: monitorSetOpen,
+      onError: (m) => monitorStatusText(m, true),
+    });
+  }
+  if (monitorBox.isOpen()) { await monitorBox.disconnect(); return; }
+  if (!monitorSupported()) {
+    monitorStatusText(pgT(
+      'Web Serial is not available in this browser. Use Chrome or Edge on a desktop computer.',
+      "Web Serial n'est pas disponible dans ce navigateur. Utilisez Chrome ou Edge sur un ordinateur.",
+      '此浏览器不支持 Web Serial。请在电脑上使用 Chrome 或 Edge。',
+      'Web Serial nu este disponibil în acest browser. Folosiți Chrome sau Edge pe un computer.'), true);
+    return;
+  }
+  monitorStatusText('');
+  await monitorBox.connect(document.getElementById('monitorBaud').value);
+};
+window.monitorReset = async function () { if (monitorBox) await monitorBox.reset(); };
+window.monitorClear = function () {
+  monitorLines.length = 0;
+  const log = document.getElementById('monitorLog');
+  if (log) log.textContent = '';
+};
+window.monitorCopy = async function () {
+  const text = monitorLines.join('\n');
+  try {
+    await navigator.clipboard.writeText(text);
+    monitorStatusText(pgT('Copied.', 'Copié.', '已复制。', 'Copiat.'));
+  } catch (e) {
+    monitorStatusText(pgT('Copy failed. Use Save .txt instead.', 'Copie impossible. Utilisez Save .txt.', '复制失败，请改用 Save .txt。', 'Copierea a eșuat. Folosiți Save .txt.'), true);
+  }
+};
+window.monitorSave = function () {
+  downloadBlob('serial-log.txt', new TextEncoder().encode(monitorLines.join('\n') + '\n'), 'text/plain');
 };
 
 // "Flash to Board" button handler: write the last build's firmware to the
