@@ -49,6 +49,9 @@
 // NON-VOLATILE MEMORY ---------------------------------------- see https://onstep.groups.io/g/main/wiki/Configuration_Controller#NV
 #define NV_DRIVER                         NV_DEFAULT // NV_DEF, Use platforms default non-volatile device to remember runtime settings.  Option
 
+// DEBUG -------------------------------------------------------------------------------------------------------------------------
+#define DEBUG                             OFF      // OFF,    Use ON for background error messages only, use VERBOSE for all.            Infreq
+
 // =================================================================================================================================
 // MOUNT ===========================================================================================================================
 
