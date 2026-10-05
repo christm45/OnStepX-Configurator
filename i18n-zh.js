@@ -4851,4 +4851,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "🧰 Fysetc E4 外壳",
   "🧲 PEC Index Sensors":
     "🧲 PEC 索引传感器",
+  "Leave OFF for normal use. Turn ON (errors and warnings) or VERBOSE (everything) when asked to troubleshoot: OnStepX then prints startup messages on the USB serial port at 9600 baud.":
+    "正常使用时请保持 OFF。排查问题时按要求设为 ON（错误和警告）或 VERBOSE（全部信息）：OnStepX 随后会通过 USB 串口以 9600 波特率输出启动信息。",
+  "Still an Init NV/EEPROM error on main after erasing? Use E4 as the Source ref for now, then set DEBUG to ON (Controller tab), rebuild, and read the Nv lines on the USB serial monitor at 9600 baud.":
+    "擦除后 main 仍然出现 Init NV/EEPROM error？请暂时将 Source ref 设为 E4，然后在 Controller 选项卡中把 DEBUG 设为 ON，重新编译，并在 9600 波特率的 USB 串口监视器中查看 Nv 开头的行。",
 });

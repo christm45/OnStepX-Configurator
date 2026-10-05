@@ -4781,4 +4781,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "Calibrați pentru focuser-ul dumneavoastră",
   "Adafruit BME280 v2.2.2 + Adafruit Sensor v1.1.7 (Arduino Library Manager).":
     "Adafruit BME280 v2.2.2 + Adafruit Sensor v1.1.7 (Arduino Library Manager / managerul de biblioteci).",
+  "Leave OFF for normal use. Turn ON (errors and warnings) or VERBOSE (everything) when asked to troubleshoot: OnStepX then prints startup messages on the USB serial port at 9600 baud.":
+    "Lăsați pe OFF pentru utilizarea normală. Setați ON (erori și avertismente) sau VERBOSE (totul) atunci când vi se cere pentru depanare: OnStepX afișează atunci mesajele de pornire pe portul serial USB la 9600 baud.",
+  "Still an Init NV/EEPROM error on main after erasing? Use E4 as the Source ref for now, then set DEBUG to ON (Controller tab), rebuild, and read the Nv lines on the USB serial monitor at 9600 baud.":
+    "Încă o eroare Init NV/EEPROM pe main după ștergere? Folosiți deocamdată E4 ca Source ref, apoi setați DEBUG pe ON (fila Controller), recompilați și citiți liniile Nv în monitorul serial USB la 9600 baud.",
 });

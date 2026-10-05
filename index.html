@@ -1373,6 +1373,15 @@
       </select>
       <span class="field-hint">Where OnStepX stores runtime settings. Leave on NV_DEFAULT unless your board has a documented external EEPROM/FRAM (e.g. MaxESP4i ⇒ NV_MB85RC64).</span><span class="config-comment">// Use platforms default non-volatile device to remember runtime settings.</span>
     </div>
+    <div class="field-row">
+      <label class="field-label">DEBUG <span class="hint-tag hint-infreq">Infreq</span></label>
+      <select id="DEBUG">
+        <option value="OFF" selected>OFF</option>
+        <option value="ON">ON</option>
+        <option value="VERBOSE">VERBOSE</option>
+      </select>
+      <span class="field-hint">Leave OFF for normal use. Turn ON (errors and warnings) or VERBOSE (everything) when asked to troubleshoot: OnStepX then prints startup messages on the USB serial port at 9600 baud.</span><span class="config-comment">// Use ON for background error messages only, use VERBOSE for all</span>
+    </div>
   </div>
 </div>
 
@@ -2902,6 +2911,9 @@
         <b>First flash over older firmware (E4 branch, Marlin, a previous build)?</b> Tick
         <i>Erase entire flash before writing</i> on the flash step. <code>main</code> uses a new NV storage layout and
         can stop with &ldquo;Init NV/EEPROM error&rdquo; on a board that still holds the old one.
+      </div>
+      <div style="margin-top:6px; color:var(--label);">
+        Still an Init NV/EEPROM error on main after erasing? Use E4 as the Source ref for now, then set DEBUG to ON (Controller tab), rebuild, and read the Nv lines on the USB serial monitor at 9600 baud.
       </div>
       <div style="margin-top:6px; color:var(--label);">
         <b>NINA / ASCOM over USB says &ldquo;OnStep wasn't found&rdquo; and the WiFi disappears?</b> The E4's USB chip
@@ -4662,6 +4674,9 @@ function generateConfig() {
   L('');
   L('// NON-VOLATILE MEMORY ---------------------------------------- see https://onstep.groups.io/g/main/wiki/Configuration_Controller#NV');
   L(pad('NV_DRIVER', v('NV_DRIVER'), 'NV_DEF,', 'Use platforms default non-volatile device to remember runtime settings.  Option'));
+  L('');
+  L('// DEBUG -------------------------------------------------------------------------------------------------------------------------');
+  L(pad('DEBUG', v('DEBUG'), 'OFF,', 'Use ON for background error messages only, use VERBOSE for all.            Infreq'));
   L('');
   L('// =================================================================================================================================');
   L('// MOUNT ===========================================================================================================================');
