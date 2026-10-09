@@ -4637,6 +4637,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "⏰ RTC și cronometrare",
   "⚙️ HTD3M Pulley 220T Dobson 254":
     "⚙️ Scripete HTD3M 220T Dobson 254",
+  "⚙️ 125:1 Triple-Belt Gearbox (GitHub)":
+    "⚙️ Reductor 125:1 cu triplă curea (GitHub)",
   "⚠ ADC Non-Linearity:":
     "⚠ Neliniaritatea ADC:",
   "⚠ AUX7 is not available:":

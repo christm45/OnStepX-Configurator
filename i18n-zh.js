@@ -4711,6 +4711,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "⏰ RTC 与计时",
   "⚙️ HTD3M Pulley 220T Dobson 254":
     "⚙️ HTD3M 皮带轮 220T Dobson 254",
+  "⚙️ 125:1 Triple-Belt Gearbox (GitHub)":
+    "⚙️ 125:1 三级皮带减速箱 (GitHub)",
   "⚠ ADC Non-Linearity:":
     "⚠ ADC 非线性：",
   "⚠ AUX7 is not available:":

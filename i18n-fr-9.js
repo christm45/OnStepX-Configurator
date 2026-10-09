@@ -106,6 +106,8 @@ window.I18N_FR = Object.assign(window.I18N_FR || {}, {
     "μs/pas à la moitié de la vitesse de pointage",
   "⚙️ HTD3M Pulley 220T Dobson 254":
     "⚙️ Poulie HTD3M 220T Dobson 254",
+  "⚙️ 125:1 Triple-Belt Gearbox (GitHub)":
+    "⚙️ Réducteur 125:1 triple courroie (GitHub)",
   "⚠ PASSWORD_DEFAULT is still \"password\" — change it before deploying.":
     "⚠ PASSWORD_DEFAULT vaut toujours « password » — modifiez-le avant le déploiement.",
   "⚠ Preflight: 0 errors, 1 warning":
