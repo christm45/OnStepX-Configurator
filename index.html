@@ -4939,6 +4939,18 @@ function generateConfig() {
   L('// ---------------------------------------------------------------------------------------------------------------------------------');
   L('#define FileVersionConfig 6');
   L('#include "Extended.config.h"');
+  // Extended.config.h re-#defines DEBUG (OFF) and SERIAL_DEBUG_BAUD (230400)
+  // unconditionally, after the DEBUG line above, so the Controller-tab choice
+  // would be silently lost. Re-apply it after the include; keep the debug
+  // baud equal to SERIAL_A_BAUD_DEFAULT (9600) since both share the USB UART.
+  if (v('DEBUG') && v('DEBUG') !== 'OFF') {
+    L('');
+    L('// Re-apply DEBUG after Extended.config.h (which would otherwise reset it to OFF)');
+    L('#undef DEBUG');
+    L('#define DEBUG ' + v('DEBUG'));
+    L('#undef SERIAL_DEBUG_BAUD');
+    L('#define SERIAL_DEBUG_BAUD 9600');
+  }
 
   document.getElementById('configOutput').value = c;
   showStatus('Config.h generated successfully!');
