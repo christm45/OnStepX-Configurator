@@ -1177,6 +1177,32 @@
       <span class="field-hint" id="applyBoardDefaultsHint" data-no-i18n>Fill in driver model, microsteps, current, etc. for the selected PINMAP</span>
     </div>
 
+    <!-- FYSETC E4 driver assignment. Shown only when PINMAP=FYSETC_E4. Lets a
+         user whose X or Y driver is dead run an axis on a spare driver; any
+         non-default choice makes Config.h carry the E4 pin map (PINMAP OFF). -->
+    <div id="e4SwapBox" style="display:none; margin:10px 0 2px; padding:10px 12px; background:rgba(60,140,200,0.10); border-left:3px solid var(--green); font-size:0.85em;">
+      <div style="font-weight:bold; margin-bottom:6px;">FYSETC E4 &mdash; motor driver assignment</div>
+      <div style="color:var(--label); margin-bottom:8px;">
+        The E4's drivers are soldered on. If one has failed, run that axis on a spare driver instead
+        (move the motor plug to match). Default is Axis1 = X, Axis2 = Y. Any other choice makes the
+        generated Config.h use <code>PINMAP OFF</code> with the E4 pin map written inline; the drivers
+        left over go to the focuser/rotator axes (Axis4 first, then Axis3/5).
+      </div>
+      <div class="field-row">
+        <label class="field-label">Axis1 (RA/Azm) driver</label>
+        <select id="E4_AXIS1_DRIVER" data-no-i18n>
+          <option value="X" selected>X (default)</option><option value="Y">Y</option><option value="Z">Z</option><option value="E0">E0</option>
+        </select>
+      </div>
+      <div class="field-row">
+        <label class="field-label">Axis2 (Dec/Alt) driver</label>
+        <select id="E4_AXIS2_DRIVER" data-no-i18n>
+          <option value="Y" selected>Y (default)</option><option value="X">X</option><option value="Z">Z</option><option value="E0">E0</option>
+        </select>
+      </div>
+      <div id="e4SwapSummary" style="color:var(--label); margin-top:4px;"></div>
+    </div>
+
     <!-- Context box for the Terrans Industry V5 Pro. Shown only when
          PINMAP=TERRANS_V5PRO. Toggled by autoPinRefForPinmap(). -->
     <div id="terransBox" style="display:none; margin:10px 0 2px; padding:10px 12px; background:rgba(200,140,60,0.12); border-left:3px solid var(--warn); border-radius:0; font-size:0.85em;">
@@ -4599,6 +4625,150 @@ function terransV5ProPinBlock() {
   return out.join('\n');
 }
 
+// ---------------------------------------------------------------------------
+// FYSETC E4 driver assignment.
+//
+// Pins.FYSETC_E4.h hard-#defines every AXISn_STEP/DIR pin, and it is pulled in
+// AFTER Config.h, so a Config.h override would only draw a redefinition warning
+// and lose. Same escape hatch as the Terrans board: PINMAP OFF plus the pin
+// map inline. Only used when the user picks a non-default driver for Axis1/2;
+// otherwise PINMAP stays FYSETC_E4 and nothing here is emitted.
+//
+// The four onboard drivers (step, dir, TMC UART address) as wired on the E4:
+// ---------------------------------------------------------------------------
+const E4_PIN_BLOCK_BEGIN = '// >>> FYSETC_E4 PIN MAP BEGIN (generated — do not hand-edit)';
+const E4_PIN_BLOCK_END   = '// <<< FYSETC_E4 PIN MAP END';
+const E4_DRIVERS = { X: { step: 27, dir: 26, addr: 1 }, Y: { step: 33, dir: 32, addr: 3 },
+                     Z: { step: 14, dir: 12, addr: 0 }, E0: { step: 16, dir: 17, addr: 2 } };
+
+// Resolve which physical driver each axis uses. Axis1/2 come from the form;
+// the free drivers go to Axis4 (focuser1) first, then Axis3/Axis5 (which share).
+function e4DriverAssignment() {
+  const pick = (id, dflt) => {
+    const x = document.getElementById(id)?.value;
+    return E4_DRIVERS[x] ? x : dflt;
+  };
+  const a1 = pick('E4_AXIS1_DRIVER', 'X');
+  let a2 = pick('E4_AXIS2_DRIVER', 'Y');
+  if (a2 === a1) a2 = ['Y', 'X', 'Z', 'E0'].find((d) => d !== a1);
+  const free = ['E0', 'Z', 'X', 'Y'].filter((d) => d !== a1 && d !== a2);
+  return { a1, a2, a4: free[0], a3: free[1] };
+}
+
+function e4SwapActive() {
+  if (document.getElementById('PINMAP')?.value !== 'FYSETC_E4') return false;
+  const { a1, a2 } = e4DriverAssignment();
+  return a1 !== 'X' || a2 !== 'Y';
+}
+
+function e4PinBlock() {
+  const out = [];
+  const L = (t) => out.push(t);
+  const def = (name, val, comment) => {
+    const line = '#define ' + name + ' '.repeat(Math.max(1, 24 - name.length)) + String(val);
+    L(comment ? line.padEnd(48) + '// ' + comment : line);
+  };
+  const val = (id) => document.getElementById(id)?.value || 'OFF';
+  const { a1, a2, a3, a4 } = e4DriverAssignment();
+  const UART_MODELS = ['TMC2208', 'TMC2209', 'TMC2225', 'TMC2226'];
+  const uart = [1, 2, 3, 4].some((n) => UART_MODELS.includes(val('AXIS' + n + '_DRIVER_MODEL')));
+  const serialAOff = val('SERIAL_A_BAUD_DEFAULT') === 'OFF';
+
+  L(E4_PIN_BLOCK_BEGIN);
+  L('// ---------------------------------------------------------------------------------------------------------------------------------');
+  L('// FYSETC E4 PIN MAP with a user driver assignment (PINMAP is OFF above; stands in for src/pinmaps/Pins.FYSETC_E4.h)');
+  L('// Axis1 = driver ' + a1 + ', Axis2 = driver ' + a2 + ', Axis4 = driver ' + a4 + ', Axis3/Axis5 = driver ' + a3 + '.');
+  L('// Generated by the OnStepX Configurator — re-generate rather than hand-edit if you change serial baud or driver models.');
+  L('// ---------------------------------------------------------------------------------------------------------------------------------');
+  L('');
+  if (!serialAOff) def('SERIAL_A', 'Serial');
+  L('');
+  def('SPARE_RX_PIN', 'OFF');
+  if (uart) {
+    L('// TMC UART drivers share one hardware serial port; the address follows the physical driver.');
+    L('#define SERIAL_TMC_HARDWARE_UART');
+    def('SERIAL_TMC', 'Serial1');
+    def('SERIAL_TMC_BAUD', 460800);
+    if (serialAOff) {
+      def('SERIAL_TMC_RX', 3);
+      def('SERIAL_TMC_TX', 1);
+    } else {
+      L('#ifndef SERIAL_TMC_RX');
+      L('  #define SERIAL_TMC_RX         0');
+      L('#endif');
+      def('SERIAL_TMC_TX', 15);
+    }
+    const ad = (d) => E4_DRIVERS[d].addr;
+    L('#define SERIAL_TMC_ADDRESS_MAP(x) (((x)==0)?' + ad(a1) + ' : (((x)==1)?' + ad(a2) +
+      ' : (((x)==2)?' + ad(a3) + ' : ((x)==3)?' + ad(a4) + ' : ' + ad(a3) + ')))');
+    L('');
+  }
+  L('// Multi-purpose pins');
+  def('AUX3_PIN', 34, '[input only 34] Home SW for Axis1 (X_MIN)');
+  def('AUX4_PIN', 35, '[input only 35] Home SW for Axis2 (Y_MIN)');
+  def('AUX5_PIN', 2, '[must be low at boot 2] Dew heater, etc. (HEAT_E0)');
+  def('AUX6_PIN', 4, 'Dew heater, etc. (HEAT_BED)');
+  def('AUX7_PIN', 'SPARE_RX_PIN', 'Option for 1-Wire, etc.');
+  def('AUX8_PIN', 13, 'Status LED or Buzzer, Dew heater, etc. (FAN_E0)');
+  L('');
+  def('TEMP0_PIN', 36, '[input only 36] PEC (TE)');
+  def('TEMP1_PIN', 39, '[input only 39] Limit (TB)');
+  for (const [name, dflt] of [['FOCUSER_TEMPERATURE_PIN', 'TEMP0_PIN'], ['FEATURE1_TEMPERATURE_PIN', 'TEMP0_PIN'],
+                              ['FEATURE2_TEMPERATURE_PIN', 'TEMP1_PIN'], ['ONE_WIRE_PIN', 'AUX7_PIN'],
+                              ['PEC_SENSE_PIN', 36], ['STATUS_LED_PIN', 'AUX8_PIN'],
+                              ['RETICLE_LED_PIN', 'STATUS_LED_PIN'], ['STATUS_BUZZER_PIN', 'AUX8_PIN'],
+                              ['PPS_SENSE_PIN', 'OFF'], ['LIMIT_SENSE_PIN', 39]]) {
+    L('#ifndef ' + name);
+    L('  #define ' + name.padEnd(22) + dflt);
+    L('#endif');
+  }
+  def('MOUNT_LED_PIN', 'STATUS_LED_PIN');
+  L('');
+  def('SHARED_ENABLE_PIN', 25, 'Hint that the enable pins are shared');
+  const axis = (n, label, driver, extra) => {
+    L('');
+    L('// ' + label + ' (driver ' + driver + ')');
+    def('AXIS' + n + '_ENABLE_PIN', 'SHARED');
+    for (let m = 0; m < 4; m++) def('AXIS' + n + '_M' + m + '_PIN', 'OFF');
+    def('AXIS' + n + '_STEP_PIN', E4_DRIVERS[driver].step);
+    def('AXIS' + n + '_DIR_PIN', E4_DRIVERS[driver].dir);
+    for (const [suffix, dflt] of (extra || [])) {
+      L('#ifndef AXIS' + n + '_' + suffix);
+      L('  #define AXIS' + n + '_' + suffix.padEnd(16) + dflt);
+      L('#endif');
+    }
+  };
+  axis(1, 'Axis1 RA/Azm step/dir driver', a1, [['SENSE_HOME_PIN', 'AUX3_PIN'], ['SERVO_PH1_PIN', 'OFF'],
+    ['SERVO_PH2_PIN', 'OFF'], ['ENCODER_A_PIN', 'OFF'], ['ENCODER_B_PIN', 'OFF']]);
+  axis(2, 'Axis2 Dec/Alt step/dir driver', a2, [['SENSE_HOME_PIN', 'AUX4_PIN'], ['SERVO_PH1_PIN', 'OFF'],
+    ['SERVO_PH2_PIN', 'OFF'], ['ENCODER_A_PIN', 'OFF'], ['ENCODER_B_PIN', 'OFF']]);
+  axis(3, 'Axis3 rotator', a3);
+  axis(4, 'Axis4 focuser1', a4);
+  axis(5, 'Axis5 focuser2 (shares the Axis3 driver)', a3);
+  L('');
+  L('// ST4 interface');
+  for (const n of ['ST4_RA_W_PIN', 'ST4_DEC_S_PIN', 'ST4_DEC_N_PIN', 'ST4_RA_E_PIN']) def(n, 'OFF');
+  L(E4_PIN_BLOCK_END);
+  return out.join('\n');
+}
+
+// Add, refresh or strip the generated E4 pin block in an existing Config.h
+// (patch mode), mirroring syncTerransPinBlock, and keep PINMAP in step with it.
+function syncE4PinBlock(text, wantBlock) {
+  const s = text.indexOf(E4_PIN_BLOCK_BEGIN);
+  const e = text.indexOf(E4_PIN_BLOCK_END);
+  if (s !== -1 && e > s) {
+    const head = text.slice(0, s).replace(/\s*$/, '');
+    const tail = text.slice(e + E4_PIN_BLOCK_END.length).replace(/^\n+/, '');
+    return wantBlock ? head + '\n\n' + e4PinBlock() + '\n\n' + tail : head + '\n\n' + tail;
+  }
+  if (!wantBlock) return text;
+  const incRe = /^[ \t]*#include[ \t]+"Extended\.config\.h".*$/m;
+  const block = e4PinBlock();
+  if (incRe.test(text)) return text.replace(incRe, (m) => '\n' + block + '\n\n' + m);
+  return text.replace(/\s*$/, '') + '\n\n' + block + '\n';
+}
+
 // === GENERATE CONFIG ===
 // Build the full OnStepX Config.h text from every Controller/Mount/Axis/Aux
 // form field and write it into the #configOutput textarea (the source of truth
@@ -4664,12 +4834,17 @@ function generateConfig() {
   // PINMAP=OFF and the board's pin map is appended to this file verbatim (see
   // terransV5ProPinBlock()); every other field on the form behaves normally.
   const isTerrans = v('PINMAP') === 'TERRANS_V5PRO';
-  L(pad('PINMAP', isTerrans ? 'OFF' : v('PINMAP'), 'OFF,', 'Choose from: MiniPCB, MiniPCB2, MaxPCB4, MaxESP3, MaxESP4, MaxSTM3,     <-Req\'d'));
+  const isE4Swap = e4SwapActive(); // E4 with a non-default driver assignment: pins ride inline too
+  L(pad('PINMAP', (isTerrans || isE4Swap) ? 'OFF' : v('PINMAP'), 'OFF,', 'Choose from: MiniPCB, MiniPCB2, MaxPCB4, MaxESP3, MaxESP4, MaxSTM3,     <-Req\'d'));
   L('                                          //         MaxSTM3I, FYSETC_E4, BTT_SKR_PRO, CNC3 (WeMos R32, deprecated), etc.');
   L('                                          //         Other boards and more info. in ~/src/Constants.h');
   if (isTerrans) {
     L('                                          //         OFF here = user pin defs in Config.h. This build targets the');
     L('                                          //         Terrans Industry V5 Pro; its pin map is at the end of this file.');
+  }
+  if (isE4Swap) {
+    L('                                          //         OFF here = user pin defs in Config.h. FYSETC E4 with a custom');
+    L('                                          //         driver assignment; its pin map is at the end of this file.');
   }
   L('');
   L('// SERIAL PORT COMMAND CHANNELS --------------------- see https://onstep.groups.io/g/main/wiki/Configuration_Controller#SERIAL_PORTS');
@@ -4936,6 +5111,7 @@ function generateConfig() {
   // Emitted last so it lands where src/pinmaps/Models.h would have pulled the
   // board file in, and so every macro it references is already defined above.
   if (isTerrans) { L(''); L(terransV5ProPinBlock()); }
+  if (isE4Swap) { L(''); L(e4PinBlock()); }
   L('');
   L('// ---------------------------------------------------------------------------------------------------------------------------------');
   L('#define FileVersionConfig 6');
@@ -6878,6 +7054,7 @@ function patchFormFieldsIntoConfig(rawText) {
     // from Constants.h or OFF. The board's pins ride along in the generated pin
     // block instead (syncTerransPinBlock, called by the generateConfig override).
     if (name === 'PINMAP' && newValue === 'TERRANS_V5PRO') newValue = 'OFF';
+    if (name === 'PINMAP' && e4SwapActive()) newValue = 'OFF'; // E4 custom driver assignment
     // Preserve quoted strings
     const hadQuotes = currentValue.startsWith('"');
     if (hadQuotes && !newValue.startsWith('"')) newValue = `"${newValue}"`;
@@ -6914,6 +7091,7 @@ window.generateConfig = function () {
     if (window.currentMode !== 'shc' && window.currentMode !== 'sws') {
       const wantTerrans = document.getElementById('PINMAP')?.value === 'TERRANS_V5PRO';
       text = syncTerransPinBlock(text, wantTerrans);
+      text = syncE4PinBlock(text, e4SwapActive());
       text = syncGpsSerialBlock(text);
     }
     outEl.value = text;
@@ -7280,6 +7458,18 @@ function autoPinRefForPinmap() {
   // build has been confirmed working on real V5 Pro hardware.
   const terransBox = document.getElementById('terransBox');
   if (terransBox) terransBox.style.display = pinmap === 'TERRANS_V5PRO' ? 'block' : 'none';
+  const e4SwapBox = document.getElementById('e4SwapBox');
+  if (e4SwapBox) e4SwapBox.style.display = pinmap === 'FYSETC_E4' ? 'block' : 'none';
+  const sum = document.getElementById('e4SwapSummary');
+  if (sum) {
+    const d = e4DriverAssignment();
+    sum.textContent = (document.getElementById('E4_AXIS1_DRIVER')?.value === document.getElementById('E4_AXIS2_DRIVER')?.value)
+      ? 'Axis1 and Axis2 cannot share a driver; Axis2 was moved to ' + d.a2 + '.'
+      : 'Axis4 (focuser1) → driver ' + d.a4 + ', Axis3/Axis5 → driver ' + d.a3 + '. Regenerate Config.h after changing.';
+  }
+}
+for (const id of ['E4_AXIS1_DRIVER', 'E4_AXIS2_DRIVER']) {
+  document.getElementById(id)?.addEventListener('change', () => autoPinRefForPinmap());
 }
 
 // Hard OnStepX constraint: Teensy 4.0/4.1 need STEP_WAVE_FORM=SQUARE.
