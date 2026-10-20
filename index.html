@@ -6137,6 +6137,9 @@ window.applyBoardDefaults = async function () {
   // bundles the website plugin. Mirrors Howard's "copy E4 Config.h
   // into main + enable website" recipe.
   if (pinmap === 'FYSETC_E4') {
+    // The E4 import overwrites the DEBUG form field with the branch's OFF and
+    // pins the raw text, so remember the user's Controller-tab choice first.
+    const debugChoice = document.getElementById('DEBUG')?.value || 'OFF';
     try {
       const changes = await importConfigFromUrl(
         'https://raw.githubusercontent.com/hjd1964/OnStepX/E4/Config.h',
@@ -6173,6 +6176,13 @@ window.applyBoardDefaults = async function () {
         if (el) { el.value = 'OFF'; el.dispatchEvent(new Event('change', { bubbles: true })); }
       }
       const offPatched = forceRawConfigOff(E4_FORCE_OFF);
+      // Restore the DEBUG choice made before the import (form field + raw text).
+      const dbgEl = document.getElementById('DEBUG');
+      if (dbgEl) dbgEl.value = debugChoice;
+      if (debugChoice !== 'OFF') {
+        setRawConfigDefine('DEBUG', debugChoice);
+        setRawConfigDefine('SERIAL_DEBUG_BAUD', '9600');
+      }
       // The E4-branch Config.h ships no HOST_NAME line, so the WiFi AP would
       // otherwise broadcast the firmware's built-in default name. HOST_NAME
       // drives the AP SSID on OnStepX (`#define AP_SSID HOST_NAME`), so inject
