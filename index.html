@@ -4807,6 +4807,37 @@ function syncGpsSerialBlock(text) {
   return lines.join('\n');
 }
 
+// Extended.config.h re-#defines DEBUG (OFF) and SERIAL_DEBUG_BAUD (230400)
+// unconditionally, after Config.h's own DEBUG line, so the Controller-tab
+// choice would be silently lost. These lines re-apply it after the include;
+// the debug baud stays equal to SERIAL_A_BAUD_DEFAULT (9600) since both share
+// the USB UART. Empty when DEBUG is OFF.
+const DEBUG_REAPPLY_MARKER = '// Re-apply DEBUG after Extended.config.h (which would otherwise reset it to OFF)';
+function debugReapplyLines() {
+  const d = v('DEBUG');
+  if (!d || d === 'OFF') return [];
+  return [DEBUG_REAPPLY_MARKER, '#undef DEBUG', '#define DEBUG ' + d,
+          '#undef SERIAL_DEBUG_BAUD', '#define SERIAL_DEBUG_BAUD 9600'];
+}
+
+// Patch-mode counterpart of debugReapplyLines(): an imported Config.h (the
+// FYSETC E4 reference has no DEBUG line at all) never carries the block, and
+// patchFormFieldsIntoConfig only rewrites lines that already exist. Drop any
+// DEBUG / SERIAL_DEBUG_BAUD lines after the Extended include and append the
+// current ones there. No include means nothing to override, so leave it alone.
+function syncDebugReapplyBlock(text) {
+  const lines = text.split('\n');
+  const inc = lines.findIndex((l) => /^[ \t]*#include[ \t]+"Extended\.config\.h"/.test(l));
+  if (inc < 0) return text;
+  const tail = lines.slice(inc + 1).filter((l) => l.trim() !== DEBUG_REAPPLY_MARKER &&
+    !/^\s*#(undef|define)\s+(DEBUG|SERIAL_DEBUG_BAUD)\b/.test(l));
+  while (tail.length && !tail[tail.length - 1].trim()) tail.pop();
+  const add = debugReapplyLines();
+  const out = lines.slice(0, inc + 1).concat(tail);
+  if (add.length) out.push('', ...add);
+  return out.join('\n') + '\n';
+}
+
 function generateConfig() {
   let c = '';
   const L = (s) => { c += s + '\n'; };
@@ -5116,18 +5147,8 @@ function generateConfig() {
   L('// ---------------------------------------------------------------------------------------------------------------------------------');
   L('#define FileVersionConfig 6');
   L('#include "Extended.config.h"');
-  // Extended.config.h re-#defines DEBUG (OFF) and SERIAL_DEBUG_BAUD (230400)
-  // unconditionally, after the DEBUG line above, so the Controller-tab choice
-  // would be silently lost. Re-apply it after the include; keep the debug
-  // baud equal to SERIAL_A_BAUD_DEFAULT (9600) since both share the USB UART.
-  if (v('DEBUG') && v('DEBUG') !== 'OFF') {
-    L('');
-    L('// Re-apply DEBUG after Extended.config.h (which would otherwise reset it to OFF)');
-    L('#undef DEBUG');
-    L('#define DEBUG ' + v('DEBUG'));
-    L('#undef SERIAL_DEBUG_BAUD');
-    L('#define SERIAL_DEBUG_BAUD 9600');
-  }
+  const dbg = debugReapplyLines();
+  if (dbg.length) { L(''); dbg.forEach(L); }
 
   document.getElementById('configOutput').value = c;
   showStatus('Config.h generated successfully!');
@@ -6355,10 +6376,10 @@ window.applyBoardDefaults = async function () {
       // Restore the DEBUG choice made before the import (form field + raw text).
       const dbgEl = document.getElementById('DEBUG');
       if (dbgEl) dbgEl.value = debugChoice;
-      if (debugChoice !== 'OFF') {
-        setRawConfigDefine('DEBUG', debugChoice);
-        setRawConfigDefine('SERIAL_DEBUG_BAUD', '9600');
-      }
+      // Re-apply it AFTER the Extended.config.h include: the E4 Config.h has no
+      // DEBUG line, and a define placed before the include is reset to OFF.
+      const outEl = document.getElementById('configOutput');
+      if (outEl?.value) outEl.value = syncDebugReapplyBlock(outEl.value);
       // The E4-branch Config.h ships no HOST_NAME line, so the WiFi AP would
       // otherwise broadcast the firmware's built-in default name. HOST_NAME
       // drives the AP SSID on OnStepX (`#define AP_SSID HOST_NAME`), so inject
@@ -7093,6 +7114,7 @@ window.generateConfig = function () {
       text = syncTerransPinBlock(text, wantTerrans);
       text = syncE4PinBlock(text, e4SwapActive());
       text = syncGpsSerialBlock(text);
+      text = syncDebugReapplyBlock(text);
     }
     outEl.value = text;
     setConfigSource('Form values patched into existing Config.h — other #defines preserved', 'generated');
