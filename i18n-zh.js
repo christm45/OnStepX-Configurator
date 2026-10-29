@@ -3403,8 +3403,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "Celestron 除露加热环的热敏电阻是 10kΩ，而不是 100kΩ——请设置",
   "The Cloudflare Worker (the \"bridge\")":
     "Cloudflare Worker（「桥接器」）",
-  "The Compile & Flash tab's MCU target list changes: SHC supports ESP32 / Teensy 4.0 / Teensy 3.2; OnStepX adds Teensy 4.1, STM32 BlackPill F411, and STM32F407 / BTT SKR PRO.":
-    "「编译与烧录」选项卡中的 MCU 目标列表会随之变化：SHC 支持 ESP32 / Teensy 4.0 / Teensy 3.2；OnStepX 另外支持 Teensy 4.1、STM32 BlackPill F411 以及 STM32F407 / BTT SKR PRO。",
+  "The Compile & Flash tab's MCU target list changes: SHC supports ESP32 / Teensy 4.0; OnStepX adds Teensy 4.1, STM32 BlackPill F411, and STM32F407 / BTT SKR PRO.":
+    "「编译与烧录」选项卡中的 MCU 目标列表会随之变化：SHC 支持 ESP32 / Teensy 4.0；OnStepX 另外支持 Teensy 4.1、STM32 BlackPill F411 以及 STM32F407 / BTT SKR PRO。",
   "The Config.h you've generated will be sent to a GitHub Actions runner that clones the latest":
     "您生成的 Config.h 将被发送到一个 GitHub Actions 运行器，它会克隆最新的",
   "The E4 Config.h default enables WIFI_ACCESS_POINT mode — the board creates its own WiFi network for direct connection in the field, no router required.":

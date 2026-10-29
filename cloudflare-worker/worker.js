@@ -66,7 +66,7 @@ const ALLOWED_BOARDS = new Set([
   'esp32', 'teensy32', 'teensy40', 'teensy41',
   'blackpill_f411', 'f446_fysetc_s6', 'skr_pro_f407',
   // SmartHandController (hand pendant) build environments
-  'shc_esp32', 'shc_teensy40', 'shc_teensy32',
+  'shc_esp32', 'shc_teensy40',
   // SmartWebServer (web UI bridge) build environments
   'sws_esp32', 'sws_esp8266',
 ]);

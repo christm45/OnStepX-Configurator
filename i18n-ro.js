@@ -3331,8 +3331,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "Termistorul inelului încălzitor anti-rouă Celestron are 10kΩ, nu 100kΩ — setați",
   "The Cloudflare Worker (the \"bridge\")":
     "Cloudflare Worker („puntea”)",
-  "The Compile & Flash tab's MCU target list changes: SHC supports ESP32 / Teensy 4.0 / Teensy 3.2; OnStepX adds Teensy 4.1, STM32 BlackPill F411, and STM32F407 / BTT SKR PRO.":
-    "Lista de MCU-uri țintă din fila Compilare și programare se schimbă: SHC suportă ESP32 / Teensy 4.0 / Teensy 3.2; OnStepX adaugă Teensy 4.1, STM32 BlackPill F411 și STM32F407 / BTT SKR PRO.",
+  "The Compile & Flash tab's MCU target list changes: SHC supports ESP32 / Teensy 4.0; OnStepX adds Teensy 4.1, STM32 BlackPill F411, and STM32F407 / BTT SKR PRO.":
+    "Lista de MCU-uri țintă din fila Compilare și programare se schimbă: SHC suportă ESP32 / Teensy 4.0; OnStepX adaugă Teensy 4.1, STM32 BlackPill F411 și STM32F407 / BTT SKR PRO.",
   "The Config.h you've generated will be sent to a GitHub Actions runner that clones the latest":
     "Config.h generat de dumneavoastră va fi trimis unui runner GitHub Actions care clonează cea mai recentă versiune a",
   "The E4 Config.h default enables WIFI_ACCESS_POINT mode — the board creates its own WiFi network for direct connection in the field, no router required.":

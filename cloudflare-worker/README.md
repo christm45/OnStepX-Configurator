@@ -65,8 +65,8 @@ and proxies the firmware artifact back to the browser.
     prefix (`shc_*` → shc, `sws_*` → sws, everything else → onstepx).
   - `board`: PlatformIO env (`ALLOWED_BOARDS` in `worker.js`).
     OnStepX: `esp32 | teensy32 | teensy40 | teensy41 | blackpill_f411 |
-    f446_fysetc_s6 | skr_pro_f407`. SHC: `shc_esp32 | shc_teensy40 |
-    shc_teensy32`. SWS: `sws_esp32 | sws_esp8266`.
+    f446_fysetc_s6 | skr_pro_f407`. SHC: `shc_esp32 | shc_teensy40`
+    (Teensy 3.2 dropped: current SHC overflows its 256 KB flash). SWS: `sws_esp32 | sws_esp8266`.
   - `ref`: branch / tag / commit SHA of the chosen project (default `'main'`).
   - `plugins`: OnStepX only — array from `website, elegantota, metrics,
     serialBluetoothConfig, guideRateRheostat, usb`.

@@ -81,7 +81,7 @@ window.I18N_FR = Object.assign(window.I18N_FR || {}, {
   "Teensy 3.2 / 4.0 / 4.1 flash": "Flash Teensy 3.2 / 4.0 / 4.1",
   "The \"Source ref\" field resolves against the right upstream repo (": "Le champ « Réf. source » se résout auprès du bon dépôt amont (",
   "The Cloudflare Worker (the \"bridge\")": "Le Cloudflare Worker (le « pont »)",
-  "The Compile & Flash tab's MCU target list changes: SHC supports ESP32 / Teensy 4.0 / Teensy 3.2; OnStepX adds Teensy 4.1, STM32 BlackPill F411, and STM32F407 / BTT SKR PRO.": "La liste des MCU cibles de l'onglet Compiler & Flasher change : SHC prend en charge ESP32 / Teensy 4.0 / Teensy 3.2 ; OnStepX ajoute Teensy 4.1, STM32 BlackPill F411, et STM32F407 / BTT SKR PRO.",
+  "The Compile & Flash tab's MCU target list changes: SHC supports ESP32 / Teensy 4.0; OnStepX adds Teensy 4.1, STM32 BlackPill F411, and STM32F407 / BTT SKR PRO.": "La liste des MCU cibles de l'onglet Compiler & Flasher change : SHC prend en charge ESP32 / Teensy 4.0 ; OnStepX ajoute Teensy 4.1, STM32 BlackPill F411, et STM32F407 / BTT SKR PRO.",
   "The Config.h you've generated will be sent to a GitHub Actions runner that clones the latest": "Le Config.h que vous avez généré sera envoyé à un runner GitHub Actions qui clone le dernier",
   "The Output tab shows the Config.h for the currently-selected firmware.": "L'onglet Sortie affiche le Config.h du firmware actuellement sélectionné.",
   "The SHC needs to talk to your OnStep/OnStepX mount controller. Pick whichever cabling matches your hardware.": "La SHC doit communiquer avec votre contrôleur de monture OnStep/OnStepX. Choisissez le câblage correspondant à votre matériel.",

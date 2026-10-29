@@ -22,7 +22,7 @@
 // Loader instructions. The HalfKay bootloader is in ROM and cannot be bricked
 // by a partial flash — a retry (browser or desktop) always recovers.
 
-import { downloadBlob } from '../compile.js?v=18';
+import { downloadBlob } from '../compile.js?v=19';
 
 const HALFKAY_VID = 0x16C0;
 const HALFKAY_PID = 0x0478;
@@ -123,7 +123,7 @@ function codeSizeForEnv(env) {
   if (env === 'teensy41') return T41_CODE_SIZE;
   if (env === 'teensy40') return T40_CODE_SIZE;
   if (env === 'teensy32') return T32_CODE_SIZE;
-  // SHC variants (shc_teensy40, shc_teensy32) still fall back to download —
+  // SHC variants (shc_teensy40) still fall back to download —
   // the build zip layout is different enough that we don't auto-flash them.
   return null;
 }
