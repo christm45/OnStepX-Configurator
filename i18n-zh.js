@@ -223,8 +223,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "，按照",
   ", its own dedicated pins. The":
     "，有自己专用的引脚。",
-  ", making GPIO34 (X-MIN) the shared input for BOTH":
-    "，使 GPIO34 (X-MIN) 同时作为以下两者的共享输入：",
+  ", putting the limit sense on GPIO34 (X-MIN), the same AUX3 pin as":
+    "，把限位检测放在 GPIO34（X-MIN）上，与以下功能是同一个 AUX3 引脚：",
   ", not":
     "，而不是",
   ", not \"NONE\" — NONE is not a valid OnStepX value and will not compile.":
@@ -331,8 +331,10 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "。接下来约 10 行就是 workflow 在编译前写入源码树的确切文件内容。",
   ". The workflow detects the pre-existing":
     "。workflow 会检测到该分支中已存在的",
-  ". Use one switch at the home position (home = limit), or use separate switches: home to X-MIN, limit to TB (GPIO39) with":
-    "。可在原点位置只用一个开关（原点 = 限位），或使用独立开关：原点接 X-MIN，限位接 TB (GPIO39)，并设置",
+  ". OnStepX won't compile with both enabled, so one switch can't be home and limit at once. Use limits only (home switches OFF), home switches with":
+    "。两者同时启用时 OnStepX 无法编译，因此一个开关不能同时作原点和限位。可选：只用限位（原点开关 OFF）；使用原点开关并设置",
+  ", or both on separate pins: home on X-MIN, limit on TB (GPIO39) with":
+    "；或两者分用不同引脚：原点接 X-MIN，限位接 TB（GPIO39），并设置",
   ". WIFI_STATION = the board JOINS your existing home WiFi/router — best indoors with internet on the same device; find its IP in the serial monitor or your router's client list. Default WiFi password: \"":
     "。WIFI_STATION = 主板加入您现有的家庭 WiFi/路由器——适合室内且同一设备需要上网的情况；可在串口监视器或路由器的客户端列表中找到它的 IP。默认 WiFi 密码：\"",
   ". Wait 1–3 min.":
@@ -867,6 +869,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "低电平有效 = 开关接 GND 触发原点",
   "Active LOW for Axis2 home":
     "Axis2 原点，低电平有效",
+  "Needed with the stock E4 Config.h: its LIMIT_SENSE_PIN 34 is X-MIN, the Axis1 home pin, and OnStepX won't compile both on one pin. Or keep limits by moving them to TB: LIMIT_SENSE_PIN 39":
+    "使用 E4 原厂 Config.h 时必须如此：其 LIMIT_SENSE_PIN 34 就是 X-MIN，即 Axis1 原点引脚，OnStepX 不允许两者共用一个引脚编译。或者把限位移到 TB 以保留限位：LIMIT_SENSE_PIN 39",
   "Active LOW — short to GND = limit triggered":
     "低电平有效 — 短接到 GND = 触发限位",
   "Active LOW — short to GND = limit triggered. Already LOW in the stock E4 Config.h":
@@ -1413,8 +1417,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "Config.h 默认 FEATURE 块：",
   "Default Config.h enables TMC2209 for Axis4. For a different driver, change AXIS4_DRIVER_MODEL.":
     "默认 Config.h 为 Axis4 启用了 TMC2209。如使用其他驱动器，请修改 AXIS4_DRIVER_MODEL。",
-  "Default Config.h: LIMIT_SENSE_PIN = GPIO34 (X-MIN). GPIO34 therefore serves as BOTH Axis1 home AND limit. To separate them, change LIMIT_SENSE_PIN to 39 (TB).":
-    "默认 Config.h：LIMIT_SENSE_PIN = GPIO34（X-MIN）。因此 GPIO34 同时充当 Axis1 原点和限位。要将两者分开，请把 LIMIT_SENSE_PIN 改为 39（TB）。",
+  "The stock E4 Config.h sets LIMIT_SENSE_PIN 34 (X-MIN), which is also AUX3, the Axis1 home pin. OnStepX won't let one AUX pin serve two features: with LIMIT_SENSE on, enabling AXIS1_SENSE_HOME fails the build (AUX3_PIN already in use). For home switches, set LIMIT_SENSE OFF or move the limit to TB with LIMIT_SENSE_PIN 39.":
+    "E4 原厂 Config.h 设置了 LIMIT_SENSE_PIN 34（X-MIN），它同时也是 AUX3，即 Axis1 原点引脚。OnStepX 不允许一个 AUX 引脚承担两个功能：LIMIT_SENSE 开启时再启用 AXIS1_SENSE_HOME 会导致编译失败（AUX3_PIN 已被占用）。要使用原点开关，请将 LIMIT_SENSE 设为 OFF，或用 LIMIT_SENSE_PIN 39 把限位移到 TB。",
   "Default E4 Config.h enables WEATHER and TIME_LOCATION_SOURCE even if you lack those devices; the libraries must still be installed.":
     "默认的 E4 Config.h 即使在你没有这些设备时也启用了 WEATHER 和 TIME_LOCATION_SOURCE；仍然必须安装相应的库。",
   "Default driver":
@@ -2265,10 +2269,10 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "限位开关的实现",
   "Limit Switches":
     "限位开关",
-  "Limit on X-MIN armed (switch to GND stops motion)":
-    "X-MIN 上的限位已启用（开关接通 GND 时停止运动）",
-  "Limit switch NO → GND (shared with Axis1 home)":
-    "限位开关 NO → GND（与 Axis1 原点共用）",
+  "Limit on X-MIN armed (switch to GND stops motion). Set it OFF before enabling AXIS1_SENSE_HOME — same pin":
+    "X-MIN 上的限位已启用（开关接 GND 即停止运动）。启用 AXIS1_SENSE_HOME 前请将其设为 OFF——同一引脚",
+  "Limit switch NO → GND (same pin as Axis1 home — use one or the other)":
+    "限位开关 NO → GND（与 Axis1 原点同一引脚——二者择一）",
   "Limit switch state":
     "限位开关状态",
   "Load Existing Config.h":
@@ -2301,8 +2305,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "MOTZ Rot/Foc2 - MOT Z — 旋转器（Axis3）或 Focuser2（Axis5）",
   "MUST be set explicitly on the E4 — see the warning above. Put it in Extended.config.h, e.g. #define ONE_WIRE_PIN 21 (I2C header SDA, with nothing else on it)":
     "在 E4 上必须显式设置——参见上方警告。将其写入 Extended.config.h，例如 #define ONE_WIRE_PIN 21（I2C 排针的 SDA，且不接其他设备）",
-  "Make sure no limit is being tripped (check the limit pin / LIMIT_STRICT).":
-    "确认没有触发任何限位（检查限位引脚 / LIMIT_STRICT）。",
+  "Make sure no limit is being tripped (check the limit pin and LIMIT_SENSE).":
+    "确认没有触发任何限位（检查限位引脚和 LIMIT_SENSE）。",
   "Make sure the factory SDA↔M-RX / SCL↔M-TX caps and the ZDIAG-EN cap are removed.":
     "确认出厂时的 SDA↔M-RX / SCL↔M-TX 跳线帽和 ZDIAG-EN 跳线帽已拔除。",
   "Make sure you actually entered DFU. BlackPill: hold BOOT0, tap NRST, release. BTT SKR PRO V1.2: set the":
@@ -2769,8 +2773,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "粘贴一个",
   "Remember flip home mode":
     "记住翻转原点模式",
-  "Per Config.h: OFF disables limits until an unpark goto or a sync; ON enables them at startup (the defaults file adds \"if date/time are set\"). The stock E4 Config.h ships OFF.":
-    "根据 Config.h：OFF 会禁用限位，直到执行一次解除停放的 GOTO 或同步；ON 则在启动时启用（默认值文件补充说明「如果已设置日期/时间」）。原厂 E4 Config.h 默认为 OFF。",
+  "LIMIT_STRICT no longer exists: current OnStepX refuses to compile a Config.h that defines it at all, so the configurator removes it from imported files (the stock E4 Config.h still carries LIMIT_STRICT OFF). When limits are enforced after power-up now follows the startup authority, set with MOUNT_STARTUP_MODE (SA_AUTO by default, SA_STRICT or SA_PERMISSIVE).":
+    "LIMIT_STRICT 已不存在：当前 OnStepX 只要 Config.h 中定义了它就拒绝编译，因此配置器会从导入的文件中删除它（E4 原厂 Config.h 仍带有 LIMIT_STRICT OFF）。上电后何时启用限位现在由启动授权决定，通过 MOUNT_STARTUP_MODE 设置（默认 SA_AUTO，另有 SA_STRICT 或 SA_PERMISSIVE）。",
   "Periodic Error Correction (PEC) compensates for worm-gear imperfections. OnStepX learns the error pattern over one worm rotation and applies real-time correction. Requires a sensor to detect the worm index pulse.":
     "周期误差校正（PEC）用于补偿蜗轮蜗杆的缺陷。OnStepX 在蜗杆转动一周的过程中学习误差规律，并实时施加校正。需要一个传感器来检测蜗杆索引脉冲。",
   "Periodic error correction with Hall sensor":
@@ -2981,8 +2985,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "如有需要请反转方向",
   "Reverse movement direction":
     "反转运动方向",
-  "Reverse the affected axis in Config.h: toggle AXIS1_DRIVER_REVERSE / AXIS2_DRIVER_REVERSE.":
-    "在 Config.h 中反转相应的轴：切换 AXIS1_DRIVER_REVERSE / AXIS2_DRIVER_REVERSE。",
+  "Reverse the affected axis in Config.h: toggle AXIS1_REVERSE / AXIS2_REVERSE.":
+    "在 Config.h 中反转相应的轴：切换 AXIS1_REVERSE / AXIS2_REVERSE。",
   "Ring":
     "环（Ring）",
   "Rising edge = index pulse detected":
@@ -3307,8 +3311,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "除非有特别理由使用 24V，否则请保持 12V。",
   "Stock drivers are":
     "原装驱动器为",
-  "Stock value. OFF = limits off until an unpark goto or sync; ON = armed at startup":
-    "原厂值。OFF = 限位在解除停放的自动寻星或同步之前不生效；ON = 启动时即启用",
+  "Replaces the obsolete LIMIT_STRICT (don't define LIMIT_STRICT — the build fails). Controls when startup trust, and with it limit enforcement, is granted":
+    "取代已废弃的 LIMIT_STRICT（不要定义 LIMIT_STRICT——否则编译失败）。决定何时授予启动信任，限位也随之生效",
   "Strip everything: only":
     "全部拆除：仅保留",
   "Sub-zero mod:":
@@ -3485,8 +3489,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "配置器本身不发送任何统计数据、遥测信息或跟踪器。在您点击「编译」之前，没有任何数据离开您的浏览器。",
   "The configurator tabs change — you see Calculator/Axis/Mount in OnStepX mode, or Hand Controller / Communication / Sensors in SHC mode.":
     "配置器的选项卡会变化——OnStepX 模式下显示计算器/轴/支架，SHC 模式下显示手控器/通信/传感器。",
-  "The default Config.h sets":
-    "默认 Config.h 设置了",
+  "The stock E4 Config.h sets":
+    "E4 原厂 Config.h 设置了",
   "The downloaded firmware zip.":
     "下载的固件 zip 文件。",
   "The firmware artifact couldn't be downloaded. Reload the page, re-compile, and watch for a":
@@ -3621,8 +3625,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "典型值：200（1.8°）或 400（0.9°）",
   "UI language & default locale units":
     "界面语言与默认区域单位",
-  "UI language as declared in upstream SHC src/locales. Strings_xx.h shipped upstream for en/us, cn, de and ro (Romanian); es/fr are declared but have no Strings file yet.":
-    "界面语言，按上游 SHC src/locales 中的声明。上游已提供 en/us、cn、de 和 ro（罗马尼亚语）的 Strings_xx.h；es/fr 虽已声明，但尚无 Strings 文件。",
+  "UI language of the hand controller. Only English (L_en, L_us = imperial units) and Romanian (L_ro) have strings upstream; L_cn / L_de / L_es / L_fr are declared there but do not compile. L_ro relies on the build service widening upstream's Validate.h range check (a local build needs the same edit).":
+    "手控器的界面语言。上游只有英语（L_en、L_us = 英制单位）和罗马尼亚语（L_ro）提供了字符串；L_cn / L_de / L_es / L_fr 虽在上游声明，但无法编译。L_ro 依赖编译服务放宽上游 Validate.h 的范围检查（本地编译需做同样修改）。",
   "USB - Firmware upload & serial monitor":
     "USB - 固件上传与串口监视器",
   "USB / PC — Host computer / firmware upload":
@@ -3761,8 +3765,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "本网站的作用：",
   "Whatever you type in the":
     "您在",
-  "When any limit triggers: all gotos abort, tracking stops, the mount freezes. Recover by clearing the condition (move off the switch) and then unparking or syncing — with LIMIT_STRICT OFF, an unpark goto or a sync re-arms normal operation.":
-    "任一限位触发时：所有 GOTO 中止，跟踪停止，支架停住不动。恢复方法：先解除触发条件（移离开关），然后取消停放或同步——在 LIMIT_STRICT 为 OFF 时，一次取消停放的 GOTO 或一次同步即可恢复正常运行。",
+  "When any limit triggers: all gotos abort, tracking stops, the mount freezes. Recover by clearing the condition (move off the switch), then unpark or sync.":
+    "任一限位触发时：所有 GOTO 中止，跟踪停止，支架停住不动。恢复方法：先解除触发条件（移离开关），然后取消停放或同步。",
   "When the browser picker appears, press the white program button on the Teensy. It'll show up as \"Teensy\" in the dialog — pick it and click Connect.":
     "浏览器选择器出现后，按下 Teensy 上的白色编程按钮。它会在对话框中显示为「Teensy」——选中它并点击「连接」。",
   "When the browser picker appears, press the white program button — \"Teensy\" shows up in the dialog, pick it and click Connect.":
@@ -4763,8 +4767,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "⚠ 仅输入引脚：",
   "⚠ Input Only:":
     "⚠ 仅输入：",
-  "⚠ LIMIT_STRICT Behavior:":
-    "⚠ LIMIT_STRICT 行为：",
+  "⚠ Limits at Startup:":
+    "⚠ 启动时的限位：",
   "⚠ Libraries:":
     "⚠ 库：",
   "⚠ Library:":
@@ -4954,4 +4958,12 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "编译超时",
   "Build finished":
     "编译结束",
+  "ALTALT - Altitude/Altitude":
+    "ALTALT - 高度/高度",
+  "Network name clients see (≤31 chars). Empty = follows HOST_NAME above (upstream default).":
+    "客户端看到的网络名称（≤31 个字符）。留空 = 沿用上方的 HOST_NAME（上游默认）。",
+  "Name of your existing WiFi network (≤32 chars). Required when STA_ENABLED is true. Applied on first boot / after NV_WIPE — afterwards change it in the SWS web UI.":
+    "您现有 WiFi 网络的名称（≤32 个字符）。STA_ENABLED 为 true 时必填。仅在首次启动或 NV_WIPE 后写入——之后请在 SWS 网页界面中修改。",
+  "OnStepX StallGuard monitor panel (any axis, needs TMC drivers)":
+    "OnStepX StallGuard 监控面板（任意轴，需要 TMC 驱动）",
 });

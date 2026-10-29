@@ -215,8 +215,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     ", urmați",
   ", its own dedicated pins. The":
     ", pinii săi dedicați. Ieșirea",
-  ", making GPIO34 (X-MIN) the shared input for BOTH":
-    ", făcând din GPIO34 (X-MIN) intrarea comună pentru AMBELE",
+  ", putting the limit sense on GPIO34 (X-MIN), the same AUX3 pin as":
+    ", punând detecția de limită pe GPIO34 (X-MIN), același pin AUX3 ca",
   ", not":
     ", nu",
   ", not \"NONE\" — NONE is not a valid OnStepX value and will not compile.":
@@ -323,8 +323,10 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     ". Următoarele ~10 linii reprezintă exact fișierul pe care workflow-ul l-a scris în arborele sursă înainte de compilare.",
   ". The workflow detects the pre-existing":
     ". Workflow-ul detectează directorul preexistent",
-  ". Use one switch at the home position (home = limit), or use separate switches: home to X-MIN, limit to TB (GPIO39) with":
-    ". Folosiți un singur comutator la poziția de origine (home = limită) sau comutatoare separate: home pe X-MIN, limită pe TB (GPIO39) cu",
+  ". OnStepX won't compile with both enabled, so one switch can't be home and limit at once. Use limits only (home switches OFF), home switches with":
+    ". OnStepX nu compilează cu ambele activate, deci un singur limitator nu poate fi simultan origine și limită. Folosiți fie doar limitele (originea pe OFF), fie limitatoare de origine cu",
+  ", or both on separate pins: home on X-MIN, limit on TB (GPIO39) with":
+    ", fie ambele pe pini separați: originea pe X-MIN, limita pe TB (GPIO39) cu",
   ". WIFI_STATION = the board JOINS your existing home WiFi/router — best indoors with internet on the same device; find its IP in the serial monitor or your router's client list. Default WiFi password: \"":
     ". WIFI_STATION = placa SE CONECTEAZĂ la WiFi-ul/routerul existent de acasă — ideal în interior, cu internet pe același dispozitiv; găsiți IP-ul ei în monitorul serial sau în lista de clienți a routerului. Parola WiFi implicită: „",
   ". Wait 1–3 min.":
@@ -851,6 +853,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "Activ LOW = contactul la GND declanșează poziția de origine (home)",
   "Active LOW for Axis2 home":
     "Activ LOW pentru poziția de origine (home) a Axis2",
+  "Needed with the stock E4 Config.h: its LIMIT_SENSE_PIN 34 is X-MIN, the Axis1 home pin, and OnStepX won't compile both on one pin. Or keep limits by moving them to TB: LIMIT_SENSE_PIN 39":
+    "Necesar cu Config.h-ul original E4: LIMIT_SENSE_PIN 34 al său este X-MIN, pinul de origine al Axis1, iar OnStepX refuză să compileze ambele pe același pin. Sau păstrați limitele mutându-le pe TB: LIMIT_SENSE_PIN 39",
   "Active LOW — short to GND = limit triggered":
     "Activ LOW — scurtcircuit la GND = limitator declanșat",
   "Active LOW — short to GND = limit triggered. Already LOW in the stock E4 Config.h":
@@ -1365,8 +1369,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "Blocul FEATURE implicit din Config.h:",
   "Default Config.h enables TMC2209 for Axis4. For a different driver, change AXIS4_DRIVER_MODEL.":
     "Config.h implicit activează TMC2209 pentru Axis4. Pentru alt driver, modificați AXIS4_DRIVER_MODEL.",
-  "Default Config.h: LIMIT_SENSE_PIN = GPIO34 (X-MIN). GPIO34 therefore serves as BOTH Axis1 home AND limit. To separate them, change LIMIT_SENSE_PIN to 39 (TB).":
-    "Config.h implicit: LIMIT_SENSE_PIN = GPIO34 (X-MIN). Astfel, GPIO34 servește ATÂT ca poziție de origine (home) pentru Axis1, CÂT ȘI ca limită. Pentru a le separa, schimbați LIMIT_SENSE_PIN în 39 (TB).",
+  "The stock E4 Config.h sets LIMIT_SENSE_PIN 34 (X-MIN), which is also AUX3, the Axis1 home pin. OnStepX won't let one AUX pin serve two features: with LIMIT_SENSE on, enabling AXIS1_SENSE_HOME fails the build (AUX3_PIN already in use). For home switches, set LIMIT_SENSE OFF or move the limit to TB with LIMIT_SENSE_PIN 39.":
+    "Config.h-ul original E4 setează LIMIT_SENSE_PIN 34 (X-MIN), care este și AUX3, pinul de origine al Axis1. OnStepX nu permite ca un pin AUX să servească două funcții: cu LIMIT_SENSE activ, activarea AXIS1_SENSE_HOME face compilarea să eșueze (AUX3_PIN deja folosit). Pentru limitatoare de origine, setați LIMIT_SENSE pe OFF sau mutați limita pe TB cu LIMIT_SENSE_PIN 39.",
   "Default E4 Config.h enables WEATHER and TIME_LOCATION_SOURCE even if you lack those devices; the libraries must still be installed.":
     "Config.h implicit pentru E4 activează WEATHER și TIME_LOCATION_SOURCE chiar dacă nu aveți aceste dispozitive; bibliotecile trebuie totuși instalate.",
   "Default driver":
@@ -2209,10 +2213,10 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "Implementarea limitatoarelor de cursă",
   "Limit Switches":
     "Limitatoare de cursă",
-  "Limit on X-MIN armed (switch to GND stops motion)":
-    "Limită pe X-MIN activată (un comutator la GND oprește mișcarea)",
-  "Limit switch NO → GND (shared with Axis1 home)":
-    "Limitator de cursă NO → GND (comun cu originea Axis1)",
+  "Limit on X-MIN armed (switch to GND stops motion). Set it OFF before enabling AXIS1_SENSE_HOME — same pin":
+    "Limită activă pe X-MIN (contactul la GND oprește mișcarea). Setați-o pe OFF înainte de a activa AXIS1_SENSE_HOME — același pin",
+  "Limit switch NO → GND (same pin as Axis1 home — use one or the other)":
+    "Limitator NO → GND (același pin ca originea Axis1 — folosiți unul sau altul)",
   "Limit switch state":
     "Starea limitatorului de cursă",
   "Load Existing Config.h":
@@ -2245,8 +2249,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "MOTZ Rot/Foc2 - MOT Z — rotator (Axis3) sau Focuser2 (Axis5)",
   "MUST be set explicitly on the E4 — see the warning above. Put it in Extended.config.h, e.g. #define ONE_WIRE_PIN 21 (I2C header SDA, with nothing else on it)":
     "TREBUIE setat explicit pe E4 — vedeți avertismentul de mai sus. Puneți-l în Extended.config.h, de ex. #define ONE_WIRE_PIN 21 (SDA de pe conectorul cu pini I2C, fără nimic altceva pe el)",
-  "Make sure no limit is being tripped (check the limit pin / LIMIT_STRICT).":
-    "Asigurați-vă că nu este declanșată nicio limită (verificați pinul de limită / LIMIT_STRICT).",
+  "Make sure no limit is being tripped (check the limit pin and LIMIT_SENSE).":
+    "Asigurați-vă că nu este declanșată nicio limită (verificați pinul de limită și LIMIT_SENSE).",
   "Make sure the factory SDA↔M-RX / SCL↔M-TX caps and the ZDIAG-EN cap are removed.":
     "Asigurați-vă că jumperele din fabrică SDA↔M-RX / SCL↔M-TX și jumperul ZDIAG-EN sunt scoase.",
   "Make sure you actually entered DFU. BlackPill: hold BOOT0, tap NRST, release. BTT SKR PRO V1.2: set the":
@@ -2713,8 +2717,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "Lipiți un",
   "Remember flip home mode":
     "Memorare mod origine la întoarcere",
-  "Per Config.h: OFF disables limits until an unpark goto or a sync; ON enables them at startup (the defaults file adds \"if date/time are set\"). The stock E4 Config.h ships OFF.":
-    "Conform Config.h: OFF dezactivează limitele până la un GOTO de ieșire din parcare sau o sincronizare; ON le activează la pornire (fișierul de valori implicite adaugă „dacă data/ora sunt setate”). Config.h original pentru E4 este livrat cu OFF.",
+  "LIMIT_STRICT no longer exists: current OnStepX refuses to compile a Config.h that defines it at all, so the configurator removes it from imported files (the stock E4 Config.h still carries LIMIT_STRICT OFF). When limits are enforced after power-up now follows the startup authority, set with MOUNT_STARTUP_MODE (SA_AUTO by default, SA_STRICT or SA_PERMISSIVE).":
+    "LIMIT_STRICT nu mai există: OnStepX actual refuză să compileze un Config.h care îl definește, chiar și pe OFF, așa că configuratorul îl elimină din fișierele importate (Config.h-ul original E4 încă conține LIMIT_STRICT OFF). Momentul în care limitele sunt aplicate după pornire depinde acum de autoritatea de pornire, setată cu MOUNT_STARTUP_MODE (SA_AUTO implicit, SA_STRICT sau SA_PERMISSIVE).",
   "Periodic Error Correction (PEC) compensates for worm-gear imperfections. OnStepX learns the error pattern over one worm rotation and applies real-time correction. Requires a sensor to detect the worm index pulse.":
     "Corecția erorii periodice (PEC) compensează imperfecțiunile angrenajului melcat. OnStepX învață tiparul erorii pe o rotație a melcului și aplică o corecție în timp real. Necesită un senzor pentru detectarea impulsului de index al melcului.",
   "Periodic error correction with Hall sensor":
@@ -2921,8 +2925,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "Inversați sensul dacă este necesar",
   "Reverse movement direction":
     "Inversare sens de mișcare",
-  "Reverse the affected axis in Config.h: toggle AXIS1_DRIVER_REVERSE / AXIS2_DRIVER_REVERSE.":
-    "Inversați axa afectată în Config.h: comutați AXIS1_DRIVER_REVERSE / AXIS2_DRIVER_REVERSE.",
+  "Reverse the affected axis in Config.h: toggle AXIS1_REVERSE / AXIS2_REVERSE.":
+    "Inversați axa afectată în Config.h: comutați AXIS1_REVERSE / AXIS2_REVERSE.",
   "Ring":
     "Inel (Ring)",
   "Rising edge = index pulse detected":
@@ -3235,8 +3239,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "Rămâneți la 12V dacă nu aveți un motiv anume pentru 24V.",
   "Stock drivers are":
     "Driverele de origine sunt",
-  "Stock value. OFF = limits off until an unpark goto or sync; ON = armed at startup":
-    "Valoare implicită. OFF = limite inactive până la un GOTO de ieșire din parcare sau o sincronizare; ON = active de la pornire",
+  "Replaces the obsolete LIMIT_STRICT (don't define LIMIT_STRICT — the build fails). Controls when startup trust, and with it limit enforcement, is granted":
+    "Înlocuiește LIMIT_STRICT, devenit învechit (nu definiți LIMIT_STRICT — compilarea eșuează). Controlează când este acordată încrederea la pornire și, odată cu ea, aplicarea limitelor",
   "Strip everything: only":
     "Eliminați tot: doar",
   "Sub-zero mod:":
@@ -3413,8 +3417,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "Configuratorul în sine nu trimite statistici, telemetrie sau trackere. Nimic nu părăsește browserul dumneavoastră până când nu faceți clic pe Compilare.",
   "The configurator tabs change — you see Calculator/Axis/Mount in OnStepX mode, or Hand Controller / Communication / Sensors in SHC mode.":
     "Filele configuratorului se schimbă — vedeți Calculator/Axă/Montură în modul OnStepX sau Telecomandă (hand controller) / Comunicație / Senzori în modul SHC.",
-  "The default Config.h sets":
-    "Config.h implicit setează",
+  "The stock E4 Config.h sets":
+    "Config.h-ul original E4 setează",
   "The downloaded firmware zip.":
     "Arhiva zip a firmware-ului descărcat.",
   "The firmware artifact couldn't be downloaded. Reload the page, re-compile, and watch for a":
@@ -3549,8 +3553,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "Tipic: 200 (1,8°) sau 400 (0,9°)",
   "UI language & default locale units":
     "Limba interfeței și unitățile implicite",
-  "UI language as declared in upstream SHC src/locales. Strings_xx.h shipped upstream for en/us, cn, de and ro (Romanian); es/fr are declared but have no Strings file yet.":
-    "Limba interfeței, așa cum este declarată în src/locales din SHC upstream. Fișierele Strings_xx.h sunt livrate upstream pentru en/us, cn, de și ro (română); es/fr sunt declarate, dar nu au încă un fișier Strings.",
+  "UI language of the hand controller. Only English (L_en, L_us = imperial units) and Romanian (L_ro) have strings upstream; L_cn / L_de / L_es / L_fr are declared there but do not compile. L_ro relies on the build service widening upstream's Validate.h range check (a local build needs the same edit).":
+    "Limba interfeței telecomenzii. Doar engleza (L_en, L_us = unități imperiale) și româna (L_ro) au șiruri upstream; L_cn / L_de / L_es / L_fr sunt declarate acolo, dar nu se compilează. L_ro depinde de serviciul de compilare, care lărgește verificarea de interval din Validate.h upstream (o compilare locală necesită aceeași modificare).",
   "USB - Firmware upload & serial monitor":
     "USB - Încărcare firmware și monitor serial",
   "USB / PC — Host computer / firmware upload":
@@ -3691,8 +3695,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "Ce face acest site:",
   "Whatever you type in the":
     "Orice introduceți în câmpul",
-  "When any limit triggers: all gotos abort, tracking stops, the mount freezes. Recover by clearing the condition (move off the switch) and then unparking or syncing — with LIMIT_STRICT OFF, an unpark goto or a sync re-arms normal operation.":
-    "Când se declanșează orice limită: toate GOTO-urile sunt anulate, urmărirea se oprește, montura se blochează. Recuperați eliminând cauza (îndepărtați montura de pe limitator) și apoi scoateți din parcare sau sincronizați — cu LIMIT_STRICT OFF, un GOTO de ieșire din parcare sau o sincronizare repune în funcțiune operarea normală.",
+  "When any limit triggers: all gotos abort, tracking stops, the mount freezes. Recover by clearing the condition (move off the switch), then unpark or sync.":
+    "Când se declanșează orice limită: toate GOTO-urile sunt anulate, urmărirea se oprește, montura se blochează. Recuperați eliminând cauza (îndepărtați montura de pe limitator), apoi scoateți din parcare sau sincronizați.",
   "When the browser picker appears, press the white program button on the Teensy. It'll show up as \"Teensy\" in the dialog — pick it and click Connect.":
     "Când apare selectorul browserului, apăsați butonul alb de programare de pe Teensy. Acesta va apărea ca „Teensy” în fereastra de dialog — selectați-l și faceți clic pe Connect.",
   "When the browser picker appears, press the white program button — \"Teensy\" shows up in the dialog, pick it and click Connect.":
@@ -4689,8 +4693,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "⚠ Pini doar de intrare:",
   "⚠ Input Only:":
     "⚠ Doar intrare:",
-  "⚠ LIMIT_STRICT Behavior:":
-    "⚠ Comportamentul LIMIT_STRICT:",
+  "⚠ Limits at Startup:":
+    "⚠ Limitele la pornire:",
   "⚠ Libraries:":
     "⚠ Biblioteci:",
   "⚠ Library:":
@@ -4922,4 +4926,12 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "Compilarea a depășit timpul limită",
   "Build finished":
     "Compilare încheiată",
+  "ALTALT - Altitude/Altitude":
+    "ALTALT - Altitudine/Altitudine",
+  "Network name clients see (≤31 chars). Empty = follows HOST_NAME above (upstream default).":
+    "Numele rețelei văzut de clienți (≤31 caractere). Gol = preia HOST_NAME de mai sus (implicit upstream).",
+  "Name of your existing WiFi network (≤32 chars). Required when STA_ENABLED is true. Applied on first boot / after NV_WIPE — afterwards change it in the SWS web UI.":
+    "Numele rețelei WiFi existente (≤32 caractere). Obligatoriu când STA_ENABLED este true. Se aplică la prima pornire / după NV_WIPE — ulterior modificați-l din interfața web SWS.",
+  "OnStepX StallGuard monitor panel (any axis, needs TMC drivers)":
+    "Panou de monitorizare StallGuard OnStepX (orice axă, necesită drivere TMC)",
 });

@@ -118,4 +118,12 @@ window.I18N_FR = Object.assign(window.I18N_FR || {}, {
     "✗ Le modèle de pilote de l'axe 1 est OFF — réglez-le dans l'onglet Axis1.",
   "✗ Axis 2 driver model is OFF — set it on the Axis2 tab.":
     "✗ Le modèle de pilote de l'axe 2 est OFF — réglez-le dans l'onglet Axis2.",
+  "ALTALT - Altitude/Altitude":
+    "ALTALT - Altitude/Altitude",
+  "Network name clients see (≤31 chars). Empty = follows HOST_NAME above (upstream default).":
+    "Nom de réseau vu par les clients (≤31 caractères). Vide = reprend HOST_NAME ci-dessus (défaut amont).",
+  "Name of your existing WiFi network (≤32 chars). Required when STA_ENABLED is true. Applied on first boot / after NV_WIPE — afterwards change it in the SWS web UI.":
+    "Nom de votre réseau WiFi existant (≤32 caractères). Obligatoire si STA_ENABLED vaut true. Appliqué au premier démarrage / après NV_WIPE — ensuite, modifiez-le dans l'interface web du SWS.",
+  "OnStepX StallGuard monitor panel (any axis, needs TMC drivers)":
+    "Panneau de surveillance StallGuard OnStepX (tout axe, pilotes TMC requis)",
 });

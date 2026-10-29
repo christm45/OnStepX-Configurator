@@ -858,7 +858,7 @@
   }
   .design-chip:hover { background: var(--link-border); color: #fff; }
 </style>
-<link rel="stylesheet" href="e4-guide.css?v=17">
+<link rel="stylesheet" href="e4-guide.css?v=18">
 
 <div style="display:flex;align-items:stretch;gap:8px;max-width:820px;margin:0 auto 16px;">
   <div class="mode-switch" role="tablist" aria-label="Project selector" style="flex:1;margin:0;">
@@ -1354,7 +1354,7 @@
     </div>
     <div class="field-row">
       <label class="field-label">RETICLE_LED_DEFAULT <span class="hint-tag hint-option">Option</span></label>
-      <input type="text" id="RETICLE_LED_DEFAULT" value="OFF">
+      <input type="text" id="RETICLE_LED_DEFAULT" value="OFF" pattern="OFF|([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])">
       <span class="field-hint">OFF or 0..255 brightness</span><span class="config-comment">// n. Where n=0..255 (0..100%) activates feature sets default brightness.</span>
     </div>
     <div class="field-row">
@@ -1461,17 +1461,17 @@
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_LIMIT_MIN <span class="hint-tag hint-adjust">Adjust</span></label>
-      <input type="number" id="AXIS1_LIMIT_MIN" value="-360" min="-360" max="-90">
+      <input type="number" id="AXIS1_LIMIT_MIN" value="-360" min="-360" max="-90" step="1">
       <span class="field-hint">-90..-360 degrees</span><span class="config-comment">// n. Where n= -90..-360 (degrees.) Minimum "Hour Angle" or Azimuth.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_LIMIT_MAX <span class="hint-tag hint-adjust">Adjust</span></label>
-      <input type="number" id="AXIS1_LIMIT_MAX" value="360" min="90" max="360">
+      <input type="number" id="AXIS1_LIMIT_MAX" value="360" min="90" max="360" step="1">
       <span class="field-hint">90..360 degrees</span><span class="config-comment">// n. Where n= 90.. 360 (degrees.) Maximum "Hour Angle" or Azimuth.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_LIMIT_SYNC <span class="hint-tag hint-option">Option</span></label>
-      <input type="text" id="AXIS1_LIMIT_SYNC" value="OFF">
+      <input type="text" id="AXIS1_LIMIT_SYNC" value="OFF" pattern="OFF|[0-9]|[12][0-9]|30">
       <span class="field-hint">OFF or 0..30 degrees</span><span class="config-comment">// n. Where n= 0..30 (degrees.) Allow sync/reset only within this +/-range.</span>
     </div>
   </div>
@@ -1499,17 +1499,17 @@
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_DRIVER_IHOLD <span class="hint-tag hint-option">Option</span></label>
-      <input type="text" id="AXIS1_DRIVER_IHOLD" value="OFF">
+      <input type="text" id="AXIS1_DRIVER_IHOLD" value="OFF" pattern="OFF|[0-9]{1,3}|[12][0-9]{3}|3000">
       <span class="field-hint">OFF or mA for standstill current</span><span class="config-comment">// n, (mA.) Current during standstill. OFF uses IRUN/2.0</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_DRIVER_IRUN <span class="hint-tag hint-option">Option</span></label>
-      <input type="text" id="AXIS1_DRIVER_IRUN" value="600">
+      <input type="text" id="AXIS1_DRIVER_IRUN" value="600" pattern="OFF|[0-9]{1,3}|[12][0-9]{3}|3000">
       <span class="field-hint">OFF or mA for tracking current</span><span class="config-comment">// n, (mA.) Current during tracking, appropriate for stepper/driver/etc.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_DRIVER_IGOTO <span class="hint-tag hint-option">Option</span></label>
-      <input type="text" id="AXIS1_DRIVER_IGOTO" value="OFF">
+      <input type="text" id="AXIS1_DRIVER_IGOTO" value="OFF" pattern="OFF|[0-9]{1,3}|[12][0-9]{3}|3000">
       <span class="field-hint">OFF or mA for slew current</span><span class="config-comment">// n, (mA.) Current during slews. OFF uses IRUN.</span>
     </div>
   </div>
@@ -1525,12 +1525,12 @@
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_DRIVER_DECAY <span class="hint-tag hint-infreq">Infreq</span></label>
-      <input type="text" id="AXIS1_DRIVER_DECAY" value="OFF">
+      <input type="text" id="AXIS1_DRIVER_DECAY" value="OFF" pattern="OFF|MIXED|FAST|SLOW|SPREADCYCLE|STEALTHCHOP|[1-6]">
       <span class="field-hint">Tracking decay override (default: STEALTHCHOP)</span><span class="config-comment">// Tracking decay mode default override. TMC default is STEALTHCHOP.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS1_DRIVER_DECAY_GOTO <span class="hint-tag hint-infreq">Infreq</span></label>
-      <input type="text" id="AXIS1_DRIVER_DECAY_GOTO" value="OFF">
+      <input type="text" id="AXIS1_DRIVER_DECAY_GOTO" value="OFF" pattern="OFF|MIXED|FAST|SLOW|SPREADCYCLE|STEALTHCHOP|[1-6]">
       <span class="field-hint">Goto decay override (default: SPREADCYCLE)</span><span class="config-comment">// Decay mode goto default override. TMC default is SPREADCYCLE.</span>
     </div>
     <div class="field-row">
@@ -1600,17 +1600,17 @@
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_LIMIT_MIN <span class="hint-tag hint-infreq">Infreq</span></label>
-      <input type="number" id="AXIS2_LIMIT_MIN" value="-90" min="-90" max="0">
+      <input type="number" id="AXIS2_LIMIT_MIN" value="-90" min="-90" max="0" step="1">
       <span class="field-hint">-90..0 degrees</span><span class="config-comment">// n. Where n=-90..0 (degrees.) Minimum allowed Declination or Altitude.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_LIMIT_MAX <span class="hint-tag hint-infreq">Infreq</span></label>
-      <input type="number" id="AXIS2_LIMIT_MAX" value="90" min="0" max="90">
+      <input type="number" id="AXIS2_LIMIT_MAX" value="90" min="0" max="90" step="1">
       <span class="field-hint">0..90 degrees</span><span class="config-comment">// n. Where n= 0..90 (degrees.) Maximum allowed Declination or Altitude.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_LIMIT_SYNC <span class="hint-tag hint-option">Option</span></label>
-      <input type="text" id="AXIS2_LIMIT_SYNC" value="OFF">
+      <input type="text" id="AXIS2_LIMIT_SYNC" value="OFF" pattern="OFF|[0-9]|[12][0-9]|30">
       <span class="field-hint">OFF or 0..30 degrees</span><span class="config-comment">// n. Where n= 0..30 (degrees.) Allow sync/reset only within this +/-range.</span>
     </div>
   </div>
@@ -1638,17 +1638,17 @@
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_DRIVER_IHOLD <span class="hint-tag hint-option">Option</span></label>
-      <input type="text" id="AXIS2_DRIVER_IHOLD" value="OFF">
+      <input type="text" id="AXIS2_DRIVER_IHOLD" value="OFF" pattern="OFF|[0-9]{1,3}|[12][0-9]{3}|3000">
       <span class="field-hint">OFF or mA</span><span class="config-comment">// n, (mA.) Current during standstill. OFF uses IRUN/2.0</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_DRIVER_IRUN <span class="hint-tag hint-option">Option</span></label>
-      <input type="text" id="AXIS2_DRIVER_IRUN" value="600">
+      <input type="text" id="AXIS2_DRIVER_IRUN" value="600" pattern="OFF|[0-9]{1,3}|[12][0-9]{3}|3000">
       <span class="field-hint">OFF or mA</span><span class="config-comment">// n, (mA.) Current during tracking, appropriate for stepper/driver/etc.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_DRIVER_IGOTO <span class="hint-tag hint-option">Option</span></label>
-      <input type="text" id="AXIS2_DRIVER_IGOTO" value="OFF">
+      <input type="text" id="AXIS2_DRIVER_IGOTO" value="OFF" pattern="OFF|[0-9]{1,3}|[12][0-9]{3}|3000">
       <span class="field-hint">OFF or mA</span><span class="config-comment">// n, (mA.) Current during slews. OFF uses IRUN.</span>
     </div>
   </div>
@@ -1661,12 +1661,12 @@
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_DRIVER_DECAY <span class="hint-tag hint-infreq">Infreq</span></label>
-      <input type="text" id="AXIS2_DRIVER_DECAY" value="OFF">
+      <input type="text" id="AXIS2_DRIVER_DECAY" value="OFF" pattern="OFF|MIXED|FAST|SLOW|SPREADCYCLE|STEALTHCHOP|[1-6]">
       <span class="field-hint">Tracking decay override</span><span class="config-comment">// Tracking decay mode default override. TMC default is STEALTHCHOP.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_DRIVER_DECAY_GOTO <span class="hint-tag hint-infreq">Infreq</span></label>
-      <input type="text" id="AXIS2_DRIVER_DECAY_GOTO" value="OFF">
+      <input type="text" id="AXIS2_DRIVER_DECAY_GOTO" value="OFF" pattern="OFF|MIXED|FAST|SLOW|SPREADCYCLE|STEALTHCHOP|[1-6]">
       <span class="field-hint">Goto decay override</span><span class="config-comment">// Decay mode goto default override. TMC default is SPREADCYCLE.</span>
     </div>
     <div class="field-row">
@@ -1848,7 +1848,7 @@
     <div class="section-title">Guiding, Limits, Parking</div>
     <div class="field-row">
       <label class="field-label">GUIDE_TIME_LIMIT <span class="hint-tag hint-adjust">Adjust</span></label>
-      <input type="number" id="GUIDE_TIME_LIMIT" value="0" min="0" max="120">
+      <input type="number" id="GUIDE_TIME_LIMIT" value="0" min="0" max="120" step="1">
       <span class="field-hint">0..120 seconds (0 = disabled)</span><span class="config-comment">// n. Time limit n=0..120 seconds. Use 0 to disable.</span>
     </div>
     <div class="field-row">
@@ -1891,7 +1891,7 @@
     <div class="section-title">PEC (Periodic Error Correction)</div>
     <div class="field-row">
       <label class="field-label">PEC_STEPS_PER_WORM_ROTATION <span class="hint-tag hint-reqd">Req'd</span></label>
-      <input type="text" id="PEC_STEPS_PER_WORM_ROTATION" value="0">
+      <input type="text" id="PEC_STEPS_PER_WORM_ROTATION" value="0" inputmode="numeric" pattern="[0-9]+">
       <span class="field-hint">0 disables, use Calculator tab</span><span class="config-comment">// n. Steps per worm rotation (0 disables else 720 sec buffer allocated.)</span>
     </div>
     <div class="field-row">
@@ -1901,7 +1901,7 @@
     </div>
     <div class="field-row">
       <label class="field-label">PEC_BUFFER_SIZE_LIMIT <span class="hint-tag hint-infreq">Infreq</span></label>
-      <input type="number" id="PEC_BUFFER_SIZE_LIMIT" value="720">
+      <input type="number" id="PEC_BUFFER_SIZE_LIMIT" value="720" min="0" max="30000" step="1">
       <span class="field-hint">Seconds of PEC buffer</span><span class="config-comment">// Seconds of PEC buffer allowed.</span>
     </div>
   </div>
@@ -1909,7 +1909,7 @@
     <div class="section-title">Tracking &amp; Slewing</div>
     <div class="field-row">
       <label class="field-label">TRACK_BACKLASH_RATE <span class="hint-tag hint-option">Option</span></label>
-      <input type="number" id="TRACK_BACKLASH_RATE" value="20" min="2" max="50">
+      <input type="number" id="TRACK_BACKLASH_RATE" value="20" min="2" max="50" step="1">
       <span class="field-hint">2..50 (x sidereal rate)</span><span class="config-comment">// n. Where n=2..50 (x sidereal rate) during backlash takeup.</span>
     </div>
     <div class="field-row">
@@ -2021,7 +2021,7 @@
     </div>
     <div class="field-row">
       <label class="field-label">ALIGN_MAX_STARS <span class="hint-tag hint-infreq">Infreq</span></label>
-      <input type="text" id="ALIGN_MAX_STARS" value="AUTO">
+      <input type="text" id="ALIGN_MAX_STARS" value="AUTO" pattern="AUTO|[13-9]">
       <span class="field-hint">AUTO or 1, 3..9</span><span class="config-comment">// Uses HAL specified default (either 6 or 9 stars.)</span>
     </div>
   </div>
@@ -2074,12 +2074,12 @@
     </div>
     <div class="field-row">
       <label class="field-label">AXIS3_LIMIT_MIN <span class="hint-tag hint-infreq">Infreq</span></label>
-      <input type="number" id="AXIS3_LIMIT_MIN" value="0" min="-360" max="0">
+      <input type="number" id="AXIS3_LIMIT_MIN" value="0" min="-360" max="0" step="1">
       <span class="field-hint">-360..0 degrees</span><span class="config-comment">// n. Where n=-360..0 (degrees.) Minimum allowed rotator angle.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS3_LIMIT_MAX <span class="hint-tag hint-infreq">Infreq</span></label>
-      <input type="number" id="AXIS3_LIMIT_MAX" value="360" min="0" max="360">
+      <input type="number" id="AXIS3_LIMIT_MAX" value="360" min="0" max="360" step="1">
       <span class="field-hint">0..360 degrees</span><span class="config-comment">// n. Where n=0..360 (degrees.) Maximum allowed rotator angle.</span>
     </div>
     <div class="field-row">
@@ -2103,17 +2103,17 @@
     </div>
     <div class="field-row">
       <label class="field-label">AXIS3_DRIVER_IHOLD <span class="hint-tag hint-option">Option</span></label>
-      <input type="text" id="AXIS3_DRIVER_IHOLD" value="OFF">
+      <input type="text" id="AXIS3_DRIVER_IHOLD" value="OFF" pattern="OFF|[0-9]{1,3}|[12][0-9]{3}|3000">
       <span class="field-hint">OFF or mA</span><span class="config-comment">// n, (mA.) Current during standstill. OFF uses IRUN/2.0</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS3_DRIVER_IRUN <span class="hint-tag hint-option">Option</span></label>
-      <input type="text" id="AXIS3_DRIVER_IRUN" value="600">
+      <input type="text" id="AXIS3_DRIVER_IRUN" value="600" pattern="OFF|[0-9]{1,3}|[12][0-9]{3}|3000">
       <span class="field-hint">OFF or mA</span><span class="config-comment">// n, (mA.) Current during tracking, appropriate for stepper/driver/etc.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS3_DRIVER_IGOTO <span class="hint-tag hint-option">Option</span></label>
-      <input type="text" id="AXIS3_DRIVER_IGOTO" value="OFF">
+      <input type="text" id="AXIS3_DRIVER_IGOTO" value="OFF" pattern="OFF|[0-9]{1,3}|[12][0-9]{3}|3000">
       <span class="field-hint">OFF or mA</span><span class="config-comment">// n, (mA.) Current during slews. OFF uses IRUN.</span>
     </div>
     <div class="field-row">
@@ -2123,12 +2123,12 @@
     </div>
     <div class="field-row">
       <label class="field-label">AXIS3_DRIVER_DECAY <span class="hint-tag hint-infreq">Infreq</span></label>
-      <input type="text" id="AXIS3_DRIVER_DECAY" value="OFF">
+      <input type="text" id="AXIS3_DRIVER_DECAY" value="OFF" pattern="OFF|MIXED|FAST|SLOW|SPREADCYCLE|STEALTHCHOP|[1-6]">
       <span class="field-hint">Tracking decay override</span><span class="config-comment">// Tracking decay mode default override. TMC default is STEALTHCHOP.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS3_DRIVER_DECAY_GOTO <span class="hint-tag hint-infreq">Infreq</span></label>
-      <input type="text" id="AXIS3_DRIVER_DECAY_GOTO" value="OFF">
+      <input type="text" id="AXIS3_DRIVER_DECAY_GOTO" value="OFF" pattern="OFF|MIXED|FAST|SLOW|SPREADCYCLE|STEALTHCHOP|[1-6]">
       <span class="field-hint">Goto decay override</span><span class="config-comment">// Decay mode goto default override. TMC default is SPREADCYCLE.</span>
     </div>
     <div class="field-row">
@@ -2186,12 +2186,12 @@
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_SLEW_RATE_BASE_DESIRED <span class="hint-tag hint-reqd">Req'd</span></label>
-      <input type="number" id="AXIS4_SLEW_RATE_BASE_DESIRED" value="500" min="200" max="5000">
+      <input type="number" id="AXIS4_SLEW_RATE_BASE_DESIRED" value="500" min="200" max="5000" step="1">
       <span class="field-hint">200..5000 &mu;m/s slew rate</span><span class="config-comment">// n, Where n=200..5000 (um/s.) Adjustable at run-time from</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_SLEW_RATE_MINIMUM <span class="hint-tag hint-adjust">Adjust</span></label>
-      <input type="number" id="AXIS4_SLEW_RATE_MINIMUM" value="20" min="5" max="200">
+      <input type="number" id="AXIS4_SLEW_RATE_MINIMUM" value="20" min="5" max="200" step="1">
       <span class="field-hint">5..200 &mu;m/s minimum</span><span class="config-comment">// n. Where n=5..200 (um/s.) Minimum microns/second.</span>
     </div>
     <div class="field-row">
@@ -2206,12 +2206,12 @@
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_LIMIT_MIN <span class="hint-tag hint-adjust">Adjust</span></label>
-      <input type="number" id="AXIS4_LIMIT_MIN" value="0" min="0" max="500">
+      <input type="number" id="AXIS4_LIMIT_MIN" value="0" min="0" max="500" step="1">
       <span class="field-hint">0..500 mm minimum</span><span class="config-comment">// n. Where n=0..500 (millimeters.) Minimum allowed position.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_LIMIT_MAX <span class="hint-tag hint-adjust">Adjust</span></label>
-      <input type="number" id="AXIS4_LIMIT_MAX" value="70" min="0" max="500">
+      <input type="number" id="AXIS4_LIMIT_MAX" value="70" min="0" max="500" step="1">
       <span class="field-hint">0..500 mm maximum</span><span class="config-comment">// n. Where n=0..500 (millimeters.) Maximum allowed position.</span>
     </div>
     <div class="field-row">
@@ -2235,17 +2235,17 @@
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_DRIVER_IHOLD <span class="hint-tag hint-option">Option</span></label>
-      <input type="text" id="AXIS4_DRIVER_IHOLD" value="OFF">
+      <input type="text" id="AXIS4_DRIVER_IHOLD" value="OFF" pattern="OFF|[0-9]{1,3}|[12][0-9]{3}|3000">
       <span class="field-hint">OFF or mA</span><span class="config-comment">// n, (mA.) Current during standstill. OFF uses IRUN/2.0</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_DRIVER_IRUN <span class="hint-tag hint-option">Option</span></label>
-      <input type="text" id="AXIS4_DRIVER_IRUN" value="300">
+      <input type="text" id="AXIS4_DRIVER_IRUN" value="300" pattern="OFF|[0-9]{1,3}|[12][0-9]{3}|3000">
       <span class="field-hint">OFF or mA</span><span class="config-comment">// n, (mA.) Current during tracking, appropriate for stepper/driver/etc.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_DRIVER_IGOTO <span class="hint-tag hint-option">Option</span></label>
-      <input type="text" id="AXIS4_DRIVER_IGOTO" value="OFF">
+      <input type="text" id="AXIS4_DRIVER_IGOTO" value="OFF" pattern="OFF|[0-9]{1,3}|[12][0-9]{3}|3000">
       <span class="field-hint">OFF or mA</span><span class="config-comment">// n, (mA.) Current during slews. OFF uses IRUN.</span>
     </div>
     <div class="field-row">
@@ -2255,12 +2255,12 @@
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_DRIVER_DECAY <span class="hint-tag hint-infreq">Infreq</span></label>
-      <input type="text" id="AXIS4_DRIVER_DECAY" value="OFF">
+      <input type="text" id="AXIS4_DRIVER_DECAY" value="OFF" pattern="OFF|MIXED|FAST|SLOW|SPREADCYCLE|STEALTHCHOP|[1-6]">
       <span class="field-hint">Tracking decay override</span><span class="config-comment">// Tracking decay mode default override. TMC default is STEALTHCHOP.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS4_DRIVER_DECAY_GOTO <span class="hint-tag hint-infreq">Infreq</span></label>
-      <input type="text" id="AXIS4_DRIVER_DECAY_GOTO" value="OFF">
+      <input type="text" id="AXIS4_DRIVER_DECAY_GOTO" value="OFF" pattern="OFF|MIXED|FAST|SLOW|SPREADCYCLE|STEALTHCHOP|[1-6]">
       <span class="field-hint">Goto decay override</span><span class="config-comment">// Decay mode goto default override. TMC default is SPREADCYCLE.</span>
     </div>
     <div class="field-row">
@@ -2305,13 +2305,14 @@
       <select id="SHC_DISPLAY_LANGUAGE">
         <option value="L_en" selected>L_en (English)</option>
         <option value="L_us">L_us (US English, imperial units)</option>
-        <option value="L_cn">L_cn (Chinese)</option>
-        <option value="L_de">L_de (German)</option>
-        <option value="L_es">L_es (Spanish)</option>
-        <option value="L_fr">L_fr (French)</option>
+        <!-- Only languages that build. Upstream SHC Locales.h also declares
+             L_cn / L_de / L_es / L_fr, but ships no Strings_cn.h / Strings_de.h
+             (Locale.h #includes a missing file) and no strings at all for es/fr.
+             L_ro: Strings_ro.h is complete, but upstream Validate.h still rejects
+             DISPLAY_LANGUAGE > 6 — the build service patches that check to 7. -->
         <option value="L_ro">L_ro (Romanian)</option>
       </select>
-      <span class="field-hint">UI language as declared in upstream SHC src/locales. Strings_xx.h shipped upstream for en/us, cn, de and ro (Romanian); es/fr are declared but have no Strings file yet.</span><span class="config-comment">// English. Specify language with two letter country code, if supported.</span>
+      <span class="field-hint">UI language of the hand controller. Only English (L_en, L_us = imperial units) and Romanian (L_ro) have strings upstream; L_cn / L_de / L_es / L_fr are declared there but do not compile. L_ro relies on the build service widening upstream's Validate.h range check (a local build needs the same edit).</span><span class="config-comment">// English. Specify language with two letter country code, if supported.</span>
     </div>
     <div class="field-row">
       <label class="field-label">DISPLAY_OLED <span class="hint-tag hint-reqd">Req'd</span></label>
@@ -3465,7 +3466,7 @@
 
     <h4>Very common adjustments</h4>
     <ul>
-      <li><code>AXIS*_DRIVER_REVERSE</code> &mdash; flip if the axis moves the wrong way.</li>
+      <li><code>AXIS*_REVERSE</code> &mdash; flip if the axis moves the wrong way.</li>
       <li><code>AXIS*_LIMIT_MIN</code> / <code>_MAX</code> &mdash; soft limits in degrees.</li>
       <li><code>AXIS*_DRIVER_IRUN</code> / <code>_IHOLD</code> &mdash; motor current (mA) for TMC drivers.
         Start low, raise only as needed. Too high = hot driver, skipped steps, burned stepper.</li>
@@ -3951,7 +3952,7 @@ teensy_loader_cli --mcu=TEENSY40 -w -v firmware.hex   # 4.0</pre>
       replug the Teensy and retry &mdash; HalfKay is ROM-resident, nothing can be bricked.</p>
 
     <h4>Firmware runs but axis moves wrong direction / doesn't move</h4>
-    <p>That's config, not firmware. Toggle <code>AXIS1_DRIVER_REVERSE</code> / <code>AXIS2_DRIVER_REVERSE</code>,
+    <p>That's config, not firmware. Toggle <code>AXIS1_REVERSE</code> / <code>AXIS2_REVERSE</code>,
       re-generate, re-compile, re-flash. If nothing moves at all, check the wiring &mdash; if step/dir pins
       aren't connected, the firmware is fine but the stepper won't move.</p>
 
@@ -4476,6 +4477,16 @@ function calcPEC() {
 function v(id) {
   const el = document.getElementById(id);
   if (!el) return 'OFF';
+  return fieldValue(el);
+}
+// A field's value, except that a <select> left with no option selected (some
+// path assigned a value it doesn't offer) reads as its markup default instead
+// of '' — the generators must never emit an empty `#define NAME`.
+function fieldValue(el) {
+  if (el.tagName === 'SELECT' && el.selectedIndex < 0 && el.options.length) {
+    const def = [...el.options].find((o) => o.defaultSelected) || el.options[0];
+    return def.value;
+  }
   return el.value;
 }
 // Wrap a value in double quotes (for string-valued #defines).
@@ -4874,6 +4885,10 @@ function syncDebugReapplyBlock(text) {
   const lines = text.split('\n');
   const inc = lines.findIndex((l) => /^[ \t]*#include[ \t]+"Extended\.config\.h"/.test(l));
   if (inc < 0) return text;
+  // An imported DEBUG the form can't hold (e.g. REMOTE), untouched since:
+  // the file's own lines (wherever they sit) are what the user meant — keep them.
+  const dbg = document.getElementById('DEBUG');
+  if (dbg && importRefusalHolds('DEBUG', dbg)) return text;
   const tail = lines.slice(inc + 1).filter((l) => l.trim() !== DEBUG_REAPPLY_MARKER &&
     !/^\s*#(undef|define)\s+(DEBUG|SERIAL_DEBUG_BAUD)\b/.test(l));
   while (tail.length && !tail[tail.length - 1].trim()) tail.pop();
@@ -5234,7 +5249,7 @@ function downloadConfig() {
 //  - `PINMAP OFF` plus one of this page's inline pin-map blocks round-trips
 //    to the board that produced it (TERRANS_V5PRO, or FYSETC_E4 with its
 //    custom driver assignment) instead of PINMAP=OFF.
-function configTextToFormValues(text) {
+function configTextToFormValues(text, { keepEmptyStrings = false } = {}) {
   text = String(text);
   const defs = new Map();
   for (const line of text.split(/\r\n|\r|\n/)) {
@@ -5246,7 +5261,7 @@ function configTextToFormValues(text) {
     val = val.trim().replace(/,\s*$/, '');
     const q = val.match(/^"(.*)"$/);
     if (q) val = q[1];
-    if (val !== '') defs.set(m[1], val);
+    if (val !== '' || (q && keepEmptyStrings)) defs.set(m[1], val);
   }
   // Config.defaults.h legacy mapping (MFLIP_SKIP_HOME / _VISIT_HOME_* / _PAUSE_HOME_*).
   if (!defs.has('MFLIP_HOME_DEFAULT')) {
@@ -5287,6 +5302,75 @@ function setFormFieldFromConfig(el, val) {
   if (el.value === String(val)) return true;
   el.value = prev;
   return false;
+}
+
+// Which project a Config.h was written for, from defines only one of them has
+// (null when it can't tell). Used to warn before e.g. an OnStepX Config.h is
+// imported while the page is in SWS mode.
+const CONFIG_PROJECT_MARKERS = {
+  onstepx: ['PINMAP', 'MOUNT_TYPE', 'AXIS1_DRIVER_MODEL', 'AXIS1_STEPS_PER_DEGREE', 'AXIS2_STEPS_PER_DEGREE'],
+  shc: ['DISPLAY_OLED', 'SERIAL_ONSTEP', 'KEYPAD_JOYSTICK_ANALOG', 'ST4_AUX_INTERFACE', 'DISPLAY_WRAP_MENUS'],
+  sws: ['AP_ENABLED', 'STA_ENABLED', 'PASSWORD_DEFAULT', 'ENC_AUTO_SYNC_DEFAULT', 'DISPLAY_RESET_CONTROLS'],
+};
+const CONFIG_PROJECT_NAMES = { onstepx: 'OnStepX', shc: 'SmartHandController (SHC)', sws: 'SmartWebServer (SWS)' };
+function detectConfigProject(defs) {
+  let best = null, bestHits = 0;
+  for (const [proj, names] of Object.entries(CONFIG_PROJECT_MARKERS)) {
+    const hits = names.filter((n) => defs.has(n)).length;
+    if (hits > bestHits) { best = proj; bestHits = hits; }
+  }
+  return bestHits >= 2 ? best : null;
+}
+
+// Map a parsed Config.h onto the ACTIVE project's form fields, as
+// {field id -> value}. OnStepX: the define name is the field id. SHC / SWS:
+// the field is SHC_<NAME> / SWS_<NAME> (the inverse of generateSHCConfig /
+// generateSWSConfig), and the same-named OnStepX fields (HOST_NAME, WEATHER,
+// SERIAL_RADIO, DEBUG, ...) are never touched. Values the generator formats
+// are turned back into what the field holds: {a,b,c,d} -> "a.b.c.d",
+// {0xDE,...} -> "DE:...", AP_SSID's bare HOST_NAME token -> "" (= follow
+// HOST_NAME). An array that doesn't parse is listed in `unparsed` instead, for
+// the caller to record as an import refusal (so patch mode keeps its raw line).
+function configImportValues(text, mode = window.currentMode) {
+  const companion = mode === 'shc' || mode === 'sws';
+  const defs = configTextToFormValues(text, { keepEmptyStrings: companion });
+  const detected = detectConfigProject(defs);
+  const values = new Map();
+  const unparsed = []; // field ids whose raw value can't be represented
+  if (!companion) {
+    for (const [name, val] of defs) if (document.getElementById(name)) values.set(name, val);
+    return { values, detected, unparsed };
+  }
+  const prefix = mode === 'shc' ? 'SHC_' : 'SWS_'; // SHC_PREFIX/SWS_PREFIX live in the module script
+  for (const [name, raw] of defs) {
+    const id = prefix + name;
+    if (!document.getElementById(id)) continue;
+    let val = raw;
+    const arr = val.match(/^\{([^}]*)\}$/);
+    if (arr) {
+      const parts = arr[1].split(',').map((p) => p.trim()).filter(Boolean);
+      if (name === 'MAC') {
+        if (parts.length !== 6 || !parts.every((p) => /^(0x)?[0-9a-f]{1,2}$/i.test(p))) { unparsed.push(id); continue; }
+        val = parts.map((p) => p.replace(/^0x/i, '').toUpperCase().padStart(2, '0')).join(':');
+      } else {
+        if (parts.length !== 4 || !parts.every((p) => /^\d{1,3}$/.test(p) && Number(p) <= 255)) { unparsed.push(id); continue; }
+        val = parts.map(Number).join('.');
+      }
+    }
+    if (name === 'AP_SSID' && val === 'HOST_NAME') val = '';
+    values.set(id, val);
+  }
+  return { values, detected, unparsed };
+}
+
+// Ask before importing a Config.h that is clearly another project's.
+function confirmConfigProject(detected, source) {
+  const mode = window.currentMode || 'onstepx';
+  if (!detected || detected === mode) return true;
+  return confirm(`${source} looks like a ${CONFIG_PROJECT_NAMES[detected]} Config.h, but the configurator is in ` +
+    `${CONFIG_PROJECT_NAMES[mode] || mode} mode.\n\nOnly defines matching ${CONFIG_PROJECT_NAMES[mode] || mode} fields ` +
+    `would be applied, and Compile would send this file for the ${CONFIG_PROJECT_NAMES[mode] || mode} build.\n\n` +
+    `Switch the project selector first unless you are sure. Import anyway?`);
 }
 
 // Macros current OnStepX main rejects that older Config.h files (the E4
@@ -5333,9 +5417,13 @@ function loadConfig(event) {
   const reader = new FileReader();
   reader.onload = function(e) {
     const text = stripObsoleteConfigMacros(e.target.result);
+    // Field ids for the active project only (SHC_/SWS_ prefixed in those modes).
+    const { values, detected, unparsed } = configImportValues(text);
+    // Reset the input so picking the same file again re-fires change.
+    if (!confirmConfigProject(detected, file.name)) { event.target.value = ''; return; }
     let populated = 0;
-    const refused = [];
-    for (const [name, val] of configTextToFormValues(text)) {
+    const refused = [...unparsed];
+    for (const [name, val] of values) {
       const el = document.getElementById(name);
       if (!el) continue;
       if (setFormFieldFromConfig(el, val)) populated++;
@@ -5775,12 +5863,12 @@ import {
   resolveOnStepXRef,
   sha1Hex,
   WORKER_URL,
-} from './compile.js?v=17';
-import { validateConfig, findSecrets } from './validate.js?v=17';
-import * as esp32Flasher from './flash/esp32.js?v=17';
-import * as stm32Flasher from './flash/stm32.js?v=17';
-import * as teensyFlasher from './flash/teensy.js?v=17';
-import { createMonitor, monitorSupported } from './flash/monitor.js?v=17';
+} from './compile.js?v=18';
+import { validateConfig, findSecrets, parsePinOverrides } from './validate.js?v=18';
+import * as esp32Flasher from './flash/esp32.js?v=18';
+import * as stm32Flasher from './flash/stm32.js?v=18';
+import * as teensyFlasher from './flash/teensy.js?v=18';
+import { createMonitor, monitorSupported } from './flash/monitor.js?v=18';
 
 // Latest compile result ({runId, env, files, configHash})
 let lastBuild = null;
@@ -6225,7 +6313,17 @@ function refreshBoardDefaultsButton() {
 // switch — i18n.js calls window.afterI18nApply() at the end of set()/init().
 window.afterI18nApply = function () {
   try { refreshBoardDefaultsButton(); } catch (e) {}
-  try { syncEnvFromPinmap(); } catch (e) {}
+  // Only re-render the hint: a language switch must not undo a target the
+  // user picked by hand.
+  try {
+    const sel = document.getElementById('COMPILE_ENV');
+    const picked = sel?.value;
+    syncEnvFromPinmap();
+    if (sel && picked && picked !== sel.value && [...sel.options].some((o) => o.value === picked)) {
+      sel.value = picked;
+      refreshFlashSupportHint();
+    }
+  } catch (e) {}
 };
 /**
  * Fetch a Config.h from a URL, parse its #defines, and apply them to any
@@ -6240,18 +6338,24 @@ async function importConfigFromUrl(url, { promptUser = true, label } = {}) {
   const text = stripObsoleteConfigMacros(await res.text());
   // Same parser as "Load Config.h": CRLF-safe, maps legacy names, and brings
   // PINMAP OFF + an inline Terrans/E4 pin block back as that board.
+  // In SHC / SWS mode the defines land on the SHC_ / SWS_ fields only — never
+  // on the same-named OnStepX fields (HOST_NAME, WEATHER, SERIAL_RADIO, ...).
+  const { values, detected, unparsed } = configImportValues(text);
   const changes = [];
-  const refused = [];
-  for (const [name, next] of configTextToFormValues(text)) {
+  const refused = [...unparsed];
+  for (const [name, next] of values) {
     const el = document.getElementById(name);
     if (!el) continue;
-    // Skip values the field can't hold (unknown <select> option) — they
-    // would blank it rather than set it. Patch mode then keeps their raw line.
+    // Skip values the field can't hold (unknown <select> option, non-number in
+    // a number input) — they would blank it rather than set it. Patch mode then
+    // keeps their raw line.
     if (el.tagName === 'SELECT' && ![...el.options].some((o) => o.value === next)) { refused.push(name); continue; }
+    if (el.tagName === 'INPUT' && el.type === 'number' && next !== '' && !Number.isFinite(Number(next))) { refused.push(name); continue; }
     if (el.value !== next) changes.push({ id: name, current: el.value, next });
   }
   if (promptUser) {
     const source = label ? label : url;
+    if (!confirmConfigProject(detected, source)) return [];
     const preview = changes.slice(0, 12).map((c) => `  ${c.id}: "${c.current || '(empty)'}" → "${c.next}"`).join('\n');
     const more = changes.length > 12 ? `\n  ...and ${changes.length - 12} more` : '';
     const msg = changes.length
@@ -6671,9 +6775,10 @@ function updateCompileBoardOptions() {
   // Hint text for SHC/SWS since PINMAP doesn't drive the env there
   const hint = document.getElementById('pinmap-hint');
   if (hint) {
-    if (window.currentMode === 'shc') hint.textContent = 'SHC builds — pick the MCU in your hand controller';
-    else if (terransSws) hint.textContent = 'Terrans V5 Pro: SWS runs on the on-board ESP8266 — flash with the board switch on the right';
-    else if (window.currentMode === 'sws') hint.textContent = 'SWS builds — pick the MCU hosting the web server';
+    // #pinmap-hint is data-no-i18n, so translate here.
+    if (window.currentMode === 'shc') hint.textContent = pgT('SHC builds — pick the MCU in your hand controller', 'Compilations SHC — choisissez le MCU de votre raquette', 'SHC 构建——选择您手控器中的 MCU', 'Compilări SHC — alegeți MCU-ul din telecomanda (hand controller) dumneavoastră');
+    else if (terransSws) hint.textContent = pgT('Terrans V5 Pro: SWS runs on the on-board ESP8266 — flash with the board switch on the right', 'Terrans V5 Pro : SWS tourne sur l\'ESP8266 intégré — flashez avec le sélecteur de la carte à droite', 'Terrans V5 Pro：SWS 运行在板载 ESP8266 上——刷写时将板上开关拨到右侧', 'Terrans V5 Pro: SWS rulează pe ESP8266 integrat — flashați cu comutatorul plăcii pe dreapta');
+    else if (window.currentMode === 'sws') hint.textContent = pgT('SWS builds — pick the MCU hosting the web server', 'Compilations SWS — choisissez le MCU qui héberge le serveur web', 'SWS 构建——选择承载 Web 服务器的 MCU', 'Compilări SWS — alegeți MCU-ul care găzduiește serverul web');
   }
 }
 
@@ -6721,6 +6826,9 @@ function applyFieldMap(map) {
     const el = document.getElementById(id);
     if (!el) continue;
     if (el.type === 'checkbox') el.checked = !!val;
+    // A saved option this version no longer offers would blank the <select>
+    // (and emit an empty #define); keep the field's current/default value.
+    else if (el.tagName === 'SELECT') setFormFieldFromConfig(el, val);
     else el.value = val;
   }
 }
@@ -7063,7 +7171,7 @@ setupFieldHelp();
 function generateSHCConfig() {
   const v = (id, fallback = 'OFF') => {
     const el = document.getElementById(id);
-    return (el?.value ?? fallback).trim() || fallback;
+    return (el ? fieldValue(el) : fallback).trim() || fallback;
   };
   const lines = [];
   lines.push('// ----------------------------------------------------------------------');
@@ -7116,7 +7224,7 @@ function generateSHCConfig() {
 function generateSWSConfig() {
   const v = (id, fallback = 'OFF') => {
     const el = document.getElementById(id);
-    return (el?.value ?? fallback).toString().trim() || fallback;
+    return (el ? fieldValue(el) : fallback).toString().trim() || fallback;
   };
   const q = (id, fallback) => `"${v(id, fallback).replace(/"/g, '')}"`;
   // Parse "192.168.0.1" → "{192,168,0,1}". Falls back to fallback if malformed.
@@ -7267,6 +7375,10 @@ function patchFormFieldsIntoConfig(rawText) {
       if (!m) return line;
       const [, prefix, name, sep, rest, trailingWs] = m;
       if (!companion.has(name)) return line;
+      // Imported value the SHC_/SWS_ field couldn't hold, untouched since: keep it.
+      const fid = (mode === 'shc' ? 'SHC_' : 'SWS_') + name;
+      const fel = document.getElementById(fid);
+      if (fel && importRefusalHolds(fid, fel)) return line;
       // Keep a trailing // comment, but not one inside a quoted value.
       const cm = rest.match(/^("(?:[^"\\]|\\.)*"|[^"]*?)(\s*\/\/.*)?$/);
       const currentValue = (cm ? cm[1] : rest).trimEnd();
@@ -7482,6 +7594,13 @@ const relevantIds = [
   'AXIS1_DRIVER_STATUS', 'AXIS2_DRIVER_STATUS', 'AXIS3_DRIVER_STATUS', 'AXIS4_DRIVER_STATUS',
   // Serial port availability per board (validate.js PINMAP_SERIAL).
   'SERIAL_B_BAUD_DEFAULT', 'SERIAL_C_BAUD_DEFAULT', 'SERIAL_D_BAUD_DEFAULT', 'SERIAL_E_BAUD_DEFAULT',
+  // Upstream Validate.h / Mount.cpp / Align range and cross-field checks.
+  'AXIS1_DRIVER_IGOTO', 'AXIS2_DRIVER_IGOTO', 'AXIS3_DRIVER_IGOTO', 'AXIS4_DRIVER_IGOTO',
+  'AXIS1_DRIVER_DECAY', 'AXIS1_DRIVER_DECAY_GOTO', 'AXIS2_DRIVER_DECAY', 'AXIS2_DRIVER_DECAY_GOTO',
+  'AXIS3_DRIVER_DECAY', 'AXIS3_DRIVER_DECAY_GOTO', 'AXIS4_DRIVER_DECAY', 'AXIS4_DRIVER_DECAY_GOTO',
+  'AXIS3_LIMIT_MIN', 'AXIS3_LIMIT_MAX', 'AXIS4_LIMIT_MIN', 'AXIS4_LIMIT_MAX',
+  'AXIS4_SLEW_RATE_MINIMUM', 'AXIS4_SLEW_RATE_BASE_DESIRED', 'GUIDE_TIME_LIMIT', 'TRACK_BACKLASH_RATE',
+  'PEC_STEPS_PER_WORM_ROTATION', 'PEC_BUFFER_SIZE_LIMIT', 'ALIGN_MAX_STARS', 'NV_DRIVER',
 ];
 // Build the input object for validateConfig() (OnStepX mode): the relevantIds
 // field values plus bundled extras the validator needs — selected plugins,
@@ -7520,6 +7639,9 @@ function snapshotForValidation() {
   // the THERMISTOR warning stays quiet for configs that legitimately define them.
   const out = document.getElementById('configOutput')?.value || '';
   s._hasThermistorParams = /\bTHERMISTOR1_\w+/.test(out);
+  // Role-pin overrides the Config.h carries (e.g. the stock FYSETC E4's
+  // LIMIT_SENSE_PIN 34 = AUX3 = Axis1 home), for the AUX pin-sharing replay.
+  s._pinOverrides = parsePinOverrides(out);
   return s;
 }
 // Collect the few SHC-mode fields (display, serial-to-OnStep, radio, build env)
@@ -7547,7 +7669,8 @@ function validateShcConfig(s) {
     }
   }
   if (s.SHC_SERIAL_RADIO && s.SHC_SERIAL_RADIO !== 'OFF' && s.COMPILE_ENV !== 'shc_esp32') {
-    issues.push({ level: 'warn', id: 'SHC_SERIAL_RADIO', message: 'SERIAL_RADIO requires the shc_esp32 build target — only ESP32 has WiFi/Bluetooth.' });
+    // Upstream #errors "No Bluetooth/Wifi support is present for this device".
+    issues.push({ level: 'error', id: 'SHC_SERIAL_RADIO', message: 'SERIAL_RADIO requires the shc_esp32 build target — only ESP32 has WiFi/Bluetooth; upstream SHC refuses to build it for Teensy. Set SERIAL_RADIO OFF or pick shc_esp32.' });
   }
   if (!s.COMPILE_ENV || !s.COMPILE_ENV.startsWith('shc_')) {
     issues.push({ level: 'error', id: 'COMPILE_ENV', message: 'Pick an SHC build target (shc_esp32 / shc_teensy40 / shc_teensy32) on the Compile & Flash tab.' });
@@ -7595,13 +7718,14 @@ function validateSwsConfig(s) {
   if (s.SWS_HOST_NAME && s.SWS_HOST_NAME.length > 16) {
     issues.push({ level: 'warn', id: 'SWS_HOST_NAME', message: 'HOST_NAME is longer than 16 characters; SWS truncates.' });
   }
-  // Upstream SWS src/Validate.h hard-errors on ESP32 when AP and Station are
-  // both enabled ("AP and Station modes cannot be enabled at the same time
-  // with ESP32") — catch it here before Compile instead of in the build log.
-  // (Checked outside WIFI mode on purpose: upstream's #error is unconditional
-  // on OPERATIONAL_MODE too.)
+  // Upstream SWS src/Validate.h carries an ESP32 "AP and Station modes cannot
+  // be enabled at the same time" #error, but nothing in SWS ever #includes that
+  // file, so the build succeeds and WifiManager starts both (WIFI_AP_STA). On
+  // ESP32 the soft-AP then has to follow the router's channel (AP_CHANNEL is
+  // ignored once the station connects), which is why upstream discourages it.
+  // A warning, not an error — and no auto-flip of the other field.
   if (s.SWS_AP_ENABLED === 'true' && s.SWS_STA_ENABLED === 'true' && s.COMPILE_ENV === 'sws_esp32') {
-    issues.push({ level: 'error', id: 'SWS_STA_ENABLED', message: 'AP_ENABLED and STA_ENABLED are both true — upstream SWS forbids this on ESP32 (Validate.h #error). Turn one of them off. (sws_esp8266 targets may run both.)' });
+    issues.push({ level: 'warn', id: 'SWS_STA_ENABLED', message: 'AP_ENABLED and STA_ENABLED are both true. SWS builds and runs both on ESP32, but upstream advises against it: the access point is forced onto your router\'s channel and can drop clients while the station reconnects. Prefer one mode unless you need both.' });
   }
   // Network credentials sanity (only meaningful in WIFI mode)
   const isWifi = s.SWS_OPERATIONAL_MODE === 'WIFI';
@@ -7721,6 +7845,12 @@ function runPreflight() {
 
 // Auto-match Compile Target to the selected PINMAP.
 function syncEnvFromPinmap() {
+  // PINMAP only drives the OnStepX target list; SHC/SWS have their own.
+  if (window.currentMode === 'shc' || window.currentMode === 'sws') {
+    updateCompileBoardOptions();
+    refreshFlashSupportHint();
+    return;
+  }
   const pinmap = document.getElementById('PINMAP')?.value;
   const env = inferEnvFromPinmap(pinmap);
   const sel = document.getElementById('COMPILE_ENV');
@@ -7846,25 +7976,8 @@ function autoFixForCompileEnv() {
   }
 }
 
-// Hard upstream SWS constraint: on ESP32, AP and Station cannot both be on
-// (src/Validate.h #errors the build otherwise). Auto-correct on field change
-// so the user can't reach Compile with an unbuildable combination. ESP8266
-// targets may run both, so they are left alone.
-function autoFixSwsApSta(changedId) {
-  if (window.currentMode !== 'sws') return;
-  if (document.getElementById('COMPILE_ENV')?.value !== 'sws_esp32') return;
-  const ap = document.getElementById('SWS_AP_ENABLED');
-  const sta = document.getElementById('SWS_STA_ENABLED');
-  if (!ap || !sta) return;
-  if (ap.value === 'true' && sta.value === 'true') {
-    const other = changedId === 'SWS_AP_ENABLED' ? sta : ap;
-    other.value = 'false';
-    showStatus?.(`Auto-set ${other === ap ? 'AP_ENABLED' : 'STA_ENABLED'}=false — SWS forbids AP+Station together on ESP32.`, 'warn');
-  }
-}
-
-document.getElementById('SWS_AP_ENABLED')?.addEventListener('change', () => autoFixSwsApSta('SWS_AP_ENABLED'));
-document.getElementById('SWS_STA_ENABLED')?.addEventListener('change', () => autoFixSwsApSta('SWS_STA_ENABLED'));
+// (No AP/Station auto-correct: SWS AP+STA on ESP32 builds and runs — upstream's
+// src/Validate.h #error is never included — so preflight only warns about it.)
 document.getElementById('PINMAP')?.addEventListener('change', () => {
   syncEnvFromPinmap(); refreshBoardDefaultsButton(); autoPinRefForPinmap(); autoFixForCompileEnv(); runPreflight();
 });
@@ -8100,6 +8213,12 @@ window.startCompileFlow = async function () {
   const downloadBtn = document.getElementById('downloadFwBtn');
   const flashBtn = document.getElementById('flashBtn');
   const logEl = document.getElementById('compileLog');
+  // A new build drops lastBuild, which the running flash's finally would
+  // leave behind as a dead Flash button.
+  if (flashInProgress) {
+    showStatus?.(pgT('A flash is in progress — wait for it to finish before compiling.', 'Un flash est en cours — attendez la fin avant de compiler.', '正在刷写——请等待完成后再编译。', 'Un flash este în curs — așteptați să se termine înainte de a compila.'), 'warn');
+    return;
+  }
   logEl.textContent = '';
   logEl.style.display = 'block';
   compileBtn.disabled = true;
@@ -8577,23 +8696,23 @@ window.restorePreflashConfig = function () {
   return true;
 };
 </script>
-<script src="e4-guide.js?v=17"></script>
-<script src="i18n-fr.js?v=17"></script>
-<script src="i18n-fr-2.js?v=17"></script>
-<script src="i18n-fr-3.js?v=17"></script>
-<script src="i18n-fr-4.js?v=17"></script>
-<script src="i18n-fr-e4a.js?v=17"></script>
-<script src="i18n-fr-e4b.js?v=17"></script>
-<script src="i18n-fr-e4c.js?v=17"></script>
-<script src="i18n-fr-5.js?v=17"></script>
-<script src="i18n-fr-6.js?v=17"></script>
-<script src="i18n-fr-7.js?v=17"></script>
-<script src="i18n-fr-8.js?v=17"></script>
-<script src="i18n-fr-terrans.js?v=17"></script>
-<script src="i18n-fr-9.js?v=17"></script>
-<script src="i18n-fr-e4d.js?v=17"></script>
-<script src="i18n-zh.js?v=17"></script>
-<script src="i18n-ro.js?v=17"></script>
-<script src="i18n.js?v=17"></script>
+<script src="e4-guide.js?v=18"></script>
+<script src="i18n-fr.js?v=18"></script>
+<script src="i18n-fr-2.js?v=18"></script>
+<script src="i18n-fr-3.js?v=18"></script>
+<script src="i18n-fr-4.js?v=18"></script>
+<script src="i18n-fr-e4a.js?v=18"></script>
+<script src="i18n-fr-e4b.js?v=18"></script>
+<script src="i18n-fr-e4c.js?v=18"></script>
+<script src="i18n-fr-5.js?v=18"></script>
+<script src="i18n-fr-6.js?v=18"></script>
+<script src="i18n-fr-7.js?v=18"></script>
+<script src="i18n-fr-8.js?v=18"></script>
+<script src="i18n-fr-terrans.js?v=18"></script>
+<script src="i18n-fr-9.js?v=18"></script>
+<script src="i18n-fr-e4d.js?v=18"></script>
+<script src="i18n-zh.js?v=18"></script>
+<script src="i18n-ro.js?v=18"></script>
+<script src="i18n.js?v=18"></script>
 </body>
 </html>

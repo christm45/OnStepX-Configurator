@@ -90,7 +90,7 @@ window.I18N_FR = Object.assign(window.I18N_FR || {}, {
   "The configurator tabs change — you see Calculator/Axis/Mount in OnStepX mode, or Hand Controller / Communication / Sensors in SHC mode.": "Les onglets du configurateur changent — vous voyez Calculateur/Axe/Monture en mode OnStepX, ou Raquette / Communication / Capteurs en mode SHC.",
   "The simpler alternative: before flashing, click": "L'alternative plus simple : avant de flasher, cliquez sur",
   "The workflow clones": "Le workflow clone",
-  "UI language as declared in upstream SHC src/locales. Strings_xx.h shipped upstream for en/us, cn, de and ro (Romanian); es/fr are declared but have no Strings file yet.": "Langue de l'interface telle que déclarée dans le src/locales du SHC amont. Strings_xx.h est livré en amont pour en/us, cn, de et ro (roumain) ; es/fr sont déclarés mais n'ont pas encore de fichier Strings.",
+  "UI language of the hand controller. Only English (L_en, L_us = imperial units) and Romanian (L_ro) have strings upstream; L_cn / L_de / L_es / L_fr are declared there but do not compile. L_ro relies on the build service widening upstream's Validate.h range check (a local build needs the same edit).": "Langue de la raquette. Seuls l'anglais (L_en, L_us = unités impériales) et le roumain (L_ro) ont des chaînes en amont ; L_cn / L_de / L_es / L_fr y sont déclarés mais ne compilent pas. L_ro dépend du service de compilation, qui élargit la vérification de plage du Validate.h amont (une compilation locale demande la même modification).",
   "USB JTAG/serial debug unit": "Unité de débogage USB JTAG/série",
   "Wait for \"Flash complete\", then tap": "Attendez « Flash terminé », puis appuyez sur",
   "Whatever you type in the": "Ce que vous saisissez dans le",

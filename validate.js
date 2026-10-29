@@ -73,15 +73,30 @@ const TMC_UART_DRIVERS = new Set(['TMC2208', 'TMC2209', 'TMC2225', 'TMC2226']);
 //   M3: {axis: aux} for AXISn_M3_PIN (checked against AXISn_DRIVER_STATUS)
 //   m3UnlessAxis4PowerDown: Pins.MaxESP3.h only defines AXIS1/2_M3_PIN when
 //                           AXIS4_POWER_DOWN != ON.
+// Config.h can move a role pin: the pinmap wraps most of them in
+// `#ifndef ROLE_PIN`, so a `#define LIMIT_SENSE_PIN 34` in Config.h wins (the
+// stock FYSETC E4 Config.h does exactly that, putting the limit sense on
+// AUX3 = X-MIN, the Axis1 home pin). To replay that:
+//   gpio:    {aux: pin value} as written in the pinmap — an overridden role
+//            pin is compared against these by value, like upstream does
+//   guarded: roles whose pin the pinmap only defines #ifndef (overridable)
+//   follows: roles the pinmap defines as another role's pin
+//            (e.g. MOUNT_LED_PIN STATUS_LED_PIN)
+const ESP_GUARDED = ['STATUS_LED', 'RETICLE_LED', 'STATUS_BUZZER', 'PPS_SENSE', 'LIMIT_SENSE', 'AXIS1_HOME', 'AXIS2_HOME'];
+const TEENSY_STM_GUARDED = ['RETICLE_LED', 'PPS_SENSE', 'LIMIT_SENSE', 'AXIS1_HOME', 'AXIS2_HOME'];
 const MAXSTM_AUX = {
   aux: [0, 1, 2, 3, 4, 5, 6, 7, 8],
   MOUNT_LED: 0, STATUS_LED: 0, RETICLE_LED: 8, PPS_SENSE: 2, LIMIT_SENSE: 7,
   AXIS1_HOME: 3, AXIS2_HOME: 4, M3: { 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 },
+  gpio: { 0: 'PB12', 1: 'PA6', 2: 'PA13', 3: 'PB13', 4: 'PB14', 5: 'PA9', 6: 'PA10', 7: 'PB15', 8: 'PA8' },
+  guarded: TEENSY_STM_GUARDED,
 };
 const MINIPCB_AUX = {
   aux: [0, 1, 2, 3, 4],               // AUX5 (DAC A14) only on Teensy 3.2
   MOUNT_LED: 0, STATUS_LED: 0, RETICLE_LED: 4, LIMIT_SENSE: 3,
   AXIS1_HOME: 3, AXIS2_HOME: 4, ADDON_GPIO0: 1, ADDON_RESET: 2, M3: { 1: 1, 2: 2 },
+  gpio: { 0: '19', 1: '18', 2: '5', 3: '4', 4: '22' },
+  guarded: [...TEENSY_STM_GUARDED, 'STATUS_BUZZER'],
 };
 export const PINMAP_AUX = {
   MaxESP3: {
@@ -89,31 +104,49 @@ export const PINMAP_AUX = {
     MOUNT_LED: 8, STATUS_LED: 8, RETICLE_LED: 8, STATUS_BUZZER: 8,
     PPS_SENSE: 7, LIMIT_SENSE: 7, AXIS1_HOME: 3, AXIS2_HOME: 4,
     ADDON_RESET: 2, M3: { 1: 2, 2: 2 }, m3UnlessAxis4PowerDown: true,
+    gpio: { 2: '4', 3: '21', 4: '22', 7: '39', 8: '25' },
+    guarded: ESP_GUARDED, follows: { MOUNT_LED: 'STATUS_LED', RETICLE_LED: 'STATUS_LED' },
   },
   // Terrans V5 Pro: the inline pin block is Pins.MaxESP3.h with AUX2_PIN -1
-  // (GPIO4 is AXIS1 DIR), so ADDON_RESET / AXISn_M3 resolve to OFF.
+  // (GPIO4 is AXIS1 DIR), so ADDON_RESET / AXISn_M3 resolve to OFF. Every role
+  // pin is written into Config.h itself, so all of them count as overridable.
   TERRANS_V5PRO: {
     aux: [3, 4, 7, 8],
     MOUNT_LED: 8, STATUS_LED: 8, RETICLE_LED: 8, STATUS_BUZZER: 8,
     PPS_SENSE: 7, LIMIT_SENSE: 7, AXIS1_HOME: 3, AXIS2_HOME: 4,
+    gpio: { 3: '21', 4: '22', 7: '39', 8: '25' },
+    guarded: [...ESP_GUARDED, 'MOUNT_LED'], follows: { MOUNT_LED: 'STATUS_LED', RETICLE_LED: 'STATUS_LED' },
   },
   MaxESP4: {
     aux: [2, 3, 4, 5, 6, 7, 8],
     RETICLE_LED: 8, PPS_SENSE: 7, LIMIT_SENSE: 7, AXIS1_HOME: 3, AXIS2_HOME: 4,
+    gpio: { 2: '39', 3: '14', 4: '13', 5: '1', 6: '3', 7: '23', 8: '25' },
+    guarded: ESP_GUARDED, follows: { MOUNT_LED: 'STATUS_LED' },
   },
   CNC3: {
     aux: [2, 3, 4, 7, 8],
     MOUNT_LED: 8, STATUS_LED: 8, RETICLE_LED: 8,
     PPS_SENSE: 7, LIMIT_SENSE: 7, AXIS1_HOME: 3, AXIS2_HOME: 4,
     ADDON_RESET: 2, M3: { 1: 2, 2: 2 },
+    gpio: { 2: '18', 3: '21', 4: '22', 7: '39', 8: '23' },
+    guarded: ESP_GUARDED.filter((r) => r !== 'RETICLE_LED'),
+    follows: { MOUNT_LED: 'STATUS_LED', RETICLE_LED: 'STATUS_LED' },
   },
   // AUX7_PIN is SPARE_RX_PIN, which is OFF with the onboard TMC2209 UART drivers.
+  // LIMIT_SENSE_PIN defaults to 39 (TB, not an AUX pin), but the stock E4
+  // Config.h overrides it to 34 = AUX3 — see `gpio` / `guarded` above.
   FYSETC_E4: {
     aux: [3, 4, 5, 6, 8],
     MOUNT_LED: 8, STATUS_LED: 8, RETICLE_LED: 8, STATUS_BUZZER: 8,
     AXIS1_HOME: 3, AXIS2_HOME: 4,
+    gpio: { 3: '34', 4: '35', 5: '2', 6: '4', 8: '13' },
+    guarded: ESP_GUARDED, follows: { MOUNT_LED: 'STATUS_LED', RETICLE_LED: 'STATUS_LED' },
   },
-  MaxPCB4: MAXSTM_AUX,
+  MaxPCB4: {
+    ...MAXSTM_AUX,
+    gpio: { 0: '23', 1: '34', 2: '20', 3: '21', 4: '22', 5: '1', 6: '0', 7: '9', 8: '10' },
+    guarded: [...TEENSY_STM_GUARDED, 'STATUS_BUZZER'],
+  },
   MaxSTM3: MAXSTM_AUX,
   MaxSTM3I: MAXSTM_AUX,
   MiniPCB: MINIPCB_AUX,
@@ -150,6 +183,56 @@ export const PINMAP_SERIAL = {
 
 const isOn = (v) => v !== undefined && v !== null && v !== '' && v !== 'OFF';
 
+// Role -> the pin macro the pinmap (or Config.h) defines for it.
+const ROLE_PIN = {
+  MOUNT_LED: 'MOUNT_LED_PIN', STATUS_LED: 'STATUS_LED_PIN', RETICLE_LED: 'RETICLE_LED_PIN',
+  STATUS_BUZZER: 'STATUS_BUZZER_PIN', PPS_SENSE: 'PPS_SENSE_PIN', LIMIT_SENSE: 'LIMIT_SENSE_PIN',
+  AXIS1_HOME: 'AXIS1_SENSE_HOME_PIN', AXIS2_HOME: 'AXIS2_SENSE_HOME_PIN',
+};
+const PIN_ROLE = Object.fromEntries(Object.entries(ROLE_PIN).map(([r, m]) => [m, r]));
+
+/**
+ * Role-pin #defines a Config.h sets itself, as {MACRO: value}. Only
+ * unconditional defines count: a `#define X_PIN v` directly under
+ * `#ifndef X_PIN` is a default (the E4 / Terrans inline pin blocks), not an
+ * override. The last define wins, as it would for the preprocessor.
+ */
+export function parsePinOverrides(text) {
+  const out = {};
+  if (!text) return out;
+  let prev = '';
+  for (const raw of String(text).split(/\r?\n/)) {
+    const line = raw.replace(/\/\/.*$/, '').trim();
+    const m = /^#\s*define\s+(\w+_PIN)\s+(.+)$/.exec(line);
+    if (m && PIN_ROLE[m[1]] && !new RegExp('^#\\s*ifndef\\s+' + m[1] + '\\b').test(prev)) {
+      out[m[1]] = m[2].trim().replace(/^\((.*)\)$/, '$1').trim();
+    }
+    if (line) prev = line;
+  }
+  return out;
+}
+
+// Which AUX pin (number) a role pin lands on for this board, honouring
+// Config.h overrides of #ifndef-guarded role pins; undefined = no AUX pin.
+function roleAux(board, role, overrides, depth = 0) {
+  if (depth > 4) return undefined;
+  const macro = ROLE_PIN[role];
+  if (overrides && macro in overrides && (board.guarded || []).includes(role)) {
+    return pinExprAux(board, overrides[macro], overrides, depth + 1);
+  }
+  if (board.follows && board.follows[role]) return roleAux(board, board.follows[role], overrides, depth + 1);
+  return board[role];
+}
+function pinExprAux(board, expr, overrides, depth) {
+  const v = String(expr).trim();
+  if (v === 'OFF' || v === '-1') return undefined;
+  const aux = /^AUX(\d)_PIN$/.exec(v);
+  if (aux) return board.aux.includes(Number(aux[1])) ? Number(aux[1]) : undefined;
+  if (PIN_ROLE[v]) return roleAux(board, PIN_ROLE[v], overrides, depth);
+  const hit = Object.entries(board.gpio || {}).find(([n, g]) => g === v && board.aux.includes(Number(n)));
+  return hit ? Number(hit[0]) : undefined;
+}
+
 /**
  * Replays upstream src/pinmaps/Validate.h's AUX pin bookkeeping (the
  * AUXn_PIN_IN_USE chain, in upstream's order) and returns the #errors it would
@@ -161,14 +244,24 @@ export function auxPinConflicts(values) {
   const out = [];
   const inUse = new Set();
   const has = (n) => board.aux.includes(n);
-  const on = (role, n) => board[role] === n;
+  const ov = values._pinOverrides || {};
+  const on = (role, n) => roleAux(board, role, ov) === n;
+  // When a Config.h override put a role on this AUX pin, say so — otherwise
+  // the error points at a pin the form never shows (e.g. the stock E4
+  // Config.h's LIMIT_SENSE_PIN 34, which is AUX3 = the Axis1 home pin).
+  const overrideNote = (n) => {
+    const moved = Object.entries(ROLE_PIN)
+      .filter(([role, macro]) => macro in ov && (board.guarded || []).includes(role) && roleAux(board, role, ov) === n)
+      .map(([, macro]) => `${macro} ${ov[macro]}`);
+    return moved.length ? ` This Config.h sets ${moved.join(', ')}, which puts it on AUX${n}_PIN — change or remove that #define to separate them.` : '';
+  };
   // One upstream "#if role on AUXn && enabled { #ifdef AUXn_IN_USE #error; #define AUXn_IN_USE }" step.
   const claim = (n, id, what, markAs = n) => {
     if (inUse.has(n)) {
       out.push({ id, message:
         `${what} enabled but AUX${n}_PIN is already in use on PINMAP=${values.PINMAP} — OnStepX's ` +
         `pinmap Validate.h refuses to compile ("choose one feature on AUX${n}_PIN"). ` +
-        `Turn one of the features sharing AUX${n}_PIN OFF.` });
+        `Turn one of the features sharing AUX${n}_PIN OFF.${overrideNote(n)}` });
     }
     inUse.add(markAs);
   };
@@ -307,6 +400,32 @@ export const DRIVER_MICROSTEPS = {
   SERVO_TMC5160: null,
 };
 
+// PINMAPs whose Pins.<Board>.h defines both ADDON_GPIO0_PIN and ADDON_RESET_PIN
+// (not OFF). src/Validate.h: SERIAL_B_ESP_FLASHING ON needs them ("only
+// supported if ADDON_GPIO0_PIN and ADDON_RESET_PIN are defined"). MaxSTM3(I)
+// and MaxPCB4 define them OFF, MaxESP4 / FYSETC_E4 not at all, and the Terrans
+// inline block's ADDON_RESET_PIN is AUX2_PIN = -1 (OFF).
+const PINMAPS_ESP_FLASHING = new Set([
+  'MaxESP3', 'CNC3', 'MiniPCB', 'MiniPCB2', 'FYSETC_S6', 'FYSETC_S6_2', 'BTT_SKR_PRO',
+]);
+
+// PINMAPs with a dedicated AXIS4_ENABLE_PIN (not OFF / SHARED). Elsewhere
+// src/Validate.h only allows AXIS4_POWER_DOWN ON with a software-controlled
+// TMC driver (TMC_DRIVER_FIRST..STEP_DIR_DRIVER_LAST): "AXIS4_POWER_DOWN
+// requires a dedicated enable pin or a software-controlled step/dir TMC driver."
+// MaxESP3 gets AXIS4_ENABLE_PIN = AUX2_PIN when AXIS4_POWER_DOWN is ON.
+const PINMAPS_AXIS4_ENABLE = new Set(['MaxESP3', 'MaxPCB4', 'FYSETC_S6', 'FYSETC_S6_2', 'BTT_SKR_PRO']);
+const TMC_SOFTWARE_DRIVERS = new Set([
+  'TMC2130', 'TMC2160', 'TMC2660', 'TMC5160', 'TMC5161', 'TMC2208', 'TMC2225', 'TMC2209', 'TMC2226',
+]);
+const SERVO_DRIVERS = new Set(['SERVO_PE', 'SERVO_EE', 'SERVO_TMC2209', 'SERVO_TMC5160']);
+
+// src/lib/Constants.h DRIVER_DECAY_MODE_FIRST..LAST (1..6); named ones 1..5.
+const DECAY_MODES = new Set(['MIXED', 'FAST', 'SLOW', 'SPREADCYCLE', 'STEALTHCHOP']);
+
+// NV drivers src/telescope/mount/Mount.cpp accepts for MOUNT_COORDS_MEMORY ON.
+const FRAM_NV_DRIVERS = new Set(['NV_MB85RC32', 'NV_MB85RC64', 'NV_MB85RC256']);
+
 // Every MOUNT_TYPE in upstream src/Constants.h (MOUNT_TYPE_FIRST..LAST), which
 // src/Validate.h accepts (all offered by the MOUNT_TYPE select).
 export const MOUNT_TYPES_COMMON = [
@@ -406,15 +525,36 @@ export function validateConfig(values) {
       'OnStepX refuses to activate the mount with one axis configured and the other not.');
   }
 
-  // Motor current (IRUN / IHOLD) must be OFF or 0–3000 mA.
+  // Motor current and decay mode — src/Validate.h checks these only for
+  // step/dir axes (#ifdef AXISn_STEP_DIR_PRESENT), so an OFF or servo axis may
+  // carry anything:
+  //   AXISn_DRIVER_IRUN / IHOLD / IGOTO: OFF or 0..3000 (mA)
+  //   AXISn_DRIVER_DECAY / DECAY_GOTO:  OFF or a DRIVER DECAY MODE (Constants.h)
+  // and in servo mode IGOTO must be OFF.
   for (const axis of [1, 2, 3, 4]) {
-    for (const which of ['IRUN', 'IHOLD']) {
-      const key = `AXIS${axis}_DRIVER_${which}`;
-      const v = values[key];
-      if (!v || v === 'OFF') continue;
-      const n = Number(v);
-      if (!Number.isFinite(n) || n < 0 || n > 3000) {
-        add('error', key, `${key}=${v} is out of range. Use OFF or 0–3000 (mA).`);
+    const model = values[`AXIS${axis}_DRIVER_MODEL`];
+    if (STEP_DIR_DRIVERS.has(model)) {
+      for (const which of ['IRUN', 'IHOLD', 'IGOTO']) {
+        const key = `AXIS${axis}_DRIVER_${which}`;
+        const v = (values[key] ?? '').toString().trim();
+        if (v === '' || v === 'OFF') continue;
+        if (!/^\d+$/.test(v) || Number(v) > 3000) {
+          add('error', key, `${key}=${v} is invalid — OnStepX's Validate.h only accepts OFF or a whole number 0 to 3000 (mA).`);
+        }
+      }
+      for (const which of ['DECAY', 'DECAY_GOTO']) {
+        const key = `AXIS${axis}_DRIVER_${which}`;
+        const v = (values[key] ?? '').toString().trim();
+        if (v === '' || v === 'OFF' || DECAY_MODES.has(v) || /^[1-6]$/.test(v)) continue;
+        add('error', key,
+          `${key}=${v} isn't a decay mode OnStepX knows, so Validate.h refuses to compile. Use OFF, MIXED, FAST, SLOW, ` +
+          `SPREADCYCLE or STEALTHCHOP (TMC drivers: SPREADCYCLE / STEALTHCHOP).`);
+      }
+    } else if (SERVO_DRIVERS.has(model)) {
+      const key = `AXIS${axis}_DRIVER_IGOTO`;
+      const v = (values[key] ?? '').toString().trim();
+      if (v !== '' && v !== 'OFF') {
+        add('error', key, `${key} must be OFF for a servo driver (AXIS${axis}_DRIVER_MODEL=${model}) — OnStepX's Validate.h refuses anything else.`);
       }
     }
   }
@@ -432,6 +572,72 @@ export function validateConfig(values) {
     const n = Number(v);
     if (!Number.isFinite(n) || n < r.lo || n > r.hi) {
       add('error', r.id, `${r.id}=${v} is outside the valid range (${r.hint}).`);
+    }
+  }
+
+  // Rotator / focuser travel. Axis3 MIN and MAX are checked independently;
+  // Axis4 (and 5..9) also needs MAX >= MIN.
+  const num = (id) => {
+    const v = (values[id] ?? '').toString().trim();
+    return v === '' ? null : Number(v);
+  };
+  const a3min = num('AXIS3_LIMIT_MIN'), a3max = num('AXIS3_LIMIT_MAX');
+  if (a3min !== null && !(a3min >= -360 && a3min <= 0)) {
+    add('error', 'AXIS3_LIMIT_MIN', `AXIS3_LIMIT_MIN=${values.AXIS3_LIMIT_MIN} is outside the valid range (0 to -360 degrees).`);
+  }
+  if (a3max !== null && !(a3max >= 0 && a3max <= 360)) {
+    add('error', 'AXIS3_LIMIT_MAX', `AXIS3_LIMIT_MAX=${values.AXIS3_LIMIT_MAX} is outside the valid range (0 to 360 degrees).`);
+  }
+  const a4min = num('AXIS4_LIMIT_MIN'), a4max = num('AXIS4_LIMIT_MAX');
+  if (a4min !== null && !(a4min >= 0 && a4min <= 500)) {
+    add('error', 'AXIS4_LIMIT_MIN', `AXIS4_LIMIT_MIN=${values.AXIS4_LIMIT_MIN} is outside the valid range (0 to 500 mm).`);
+  } else if (a4max !== null && !(a4max <= 500 && (a4min === null || a4max >= a4min))) {
+    add('error', 'AXIS4_LIMIT_MAX',
+      `AXIS4_LIMIT_MAX=${values.AXIS4_LIMIT_MAX} must be between AXIS4_LIMIT_MIN (${a4min ?? 0}) and 500 mm — ` +
+      `OnStepX's Validate.h refuses a maximum below the minimum.`);
+  }
+  for (const [id, lo, hi] of [['AXIS4_SLEW_RATE_MINIMUM', 5, 200], ['AXIS4_SLEW_RATE_BASE_DESIRED', 200, 5000], ['GUIDE_TIME_LIMIT', 0, 120]]) {
+    const n = num(id);
+    if (n !== null && !(n >= lo && n <= hi)) add('error', id, `${id}=${values[id]} is outside the valid range (${lo} to ${hi}).`);
+  }
+  if (values.GOTO_FEATURE === 'OFF' && num('TRACK_BACKLASH_RATE') > 20) {
+    add('error', 'TRACK_BACKLASH_RATE',
+      `TRACK_BACKLASH_RATE=${values.TRACK_BACKLASH_RATE} must be 20 or less when GOTO_FEATURE is OFF (OnStepX's Validate.h).`);
+  }
+  // These macros are compared in #if lines, where the preprocessor only does
+  // integer maths: a decimal value fails the build with "floating constant in
+  // preprocessor expression".
+  for (const id of [
+    'AXIS1_LIMIT_MIN', 'AXIS1_LIMIT_MAX', 'AXIS2_LIMIT_MIN', 'AXIS2_LIMIT_MAX', 'AXIS1_LIMIT_SYNC', 'AXIS2_LIMIT_SYNC',
+    'AXIS3_LIMIT_MIN', 'AXIS3_LIMIT_MAX', 'AXIS4_LIMIT_MIN', 'AXIS4_LIMIT_MAX',
+    'AXIS4_SLEW_RATE_MINIMUM', 'AXIS4_SLEW_RATE_BASE_DESIRED', 'GUIDE_TIME_LIMIT', 'TRACK_BACKLASH_RATE',
+    'PEC_STEPS_PER_WORM_ROTATION', 'PEC_BUFFER_SIZE_LIMIT', 'RETICLE_LED_DEFAULT', 'ALIGN_MAX_STARS',
+  ]) {
+    const v = (values[id] ?? '').toString().trim();
+    if (/^-?\d*\.\d+$|^-?\d+\.\d*$/.test(v)) {
+      add('error', id,
+        `${id}=${v} must be a whole number — OnStepX compares it in a preprocessor #if, which fails on decimals ` +
+        `("floating constant in preprocessor expression"). Use ${Math.round(Number(v))}.`);
+    }
+  }
+  // PEC: src/Validate.h — PEC_STEPS_PER_WORM_ROTATION 0 (disabled) to 129600000.
+  const pecSteps = num('PEC_STEPS_PER_WORM_ROTATION');
+  if (pecSteps !== null && Number.isFinite(pecSteps) && (pecSteps < 0 || pecSteps > 129600000)) {
+    add('error', 'PEC_STEPS_PER_WORM_ROTATION',
+      `PEC_STEPS_PER_WORM_ROTATION=${values.PEC_STEPS_PER_WORM_ROTATION} is outside the valid range (0 to disable, or 1 to 129600000).`);
+  }
+  // RETICLE_LED_DEFAULT: OFF or 0..255 (src/Validate.h).
+  const reticle = (values.RETICLE_LED_DEFAULT ?? '').toString().trim();
+  if (reticle !== '' && reticle !== 'OFF' && /^-?\d+$/.test(reticle) && (Number(reticle) < 0 || Number(reticle) > 255)) {
+    add('error', 'RETICLE_LED_DEFAULT', `RETICLE_LED_DEFAULT=${reticle} is invalid — OnStepX's Validate.h only accepts OFF or 0 to 255.`);
+  }
+  // ALIGN_MAX_STARS: Align.hs.h / Align.ref.h (built whenever the mount is
+  // enabled) #error unless AUTO, 1, or 3 to 9.
+  const stars = (values.ALIGN_MAX_STARS ?? '').toString().trim();
+  if (isOn(values.AXIS1_DRIVER_MODEL) && stars !== '' && stars !== 'AUTO' && /^-?\d+$/.test(stars)) {
+    const n = Number(stars);
+    if (n !== 1 && (n < 3 || n > 9)) {
+      add('error', 'ALIGN_MAX_STARS', `ALIGN_MAX_STARS=${stars} is invalid — OnStepX only accepts AUTO, 1, or 3 to 9.`);
     }
   }
 
@@ -496,6 +702,46 @@ export function validateConfig(values) {
         `${key}=${values[key]}, but PINMAP=${values.PINMAP} has no SERIAL_${port} port, so OnStepX won't compile ` +
         `("SERIAL_${port} isn't defined, ${key} should be OFF"). Set ${key}=OFF.`);
     }
+  }
+
+  // src/Validate.h (no sector gear / tangent arm in this form):
+  //   "Enabling AXIS2_SENSE_HOME requires enabling AXIS1_SENSE_HOME or AXIS2_TANGENT_ARM."
+  if (isOn(values.AXIS2_SENSE_HOME) && !isOn(values.AXIS1_SENSE_HOME)) {
+    add('error', 'AXIS2_SENSE_HOME',
+      `AXIS2_SENSE_HOME=${values.AXIS2_SENSE_HOME} needs AXIS1_SENSE_HOME enabled too — OnStepX homes Axis2 only together ` +
+      `with Axis1 (or on a tangent-arm Dec), so Validate.h refuses to compile. Enable AXIS1_SENSE_HOME or set AXIS2_SENSE_HOME OFF.`);
+  }
+  // src/telescope/mount/Mount.cpp (built whenever the mount is enabled):
+  //   MOUNT_COORDS_MEMORY ON && NV_DRIVER not NV_MB85RC32/64/256 -> #error
+  // NV_DEFAULT resolves to the MCU's flash/EEPROM on every supported board.
+  if (values.MOUNT_COORDS_MEMORY === 'ON' && isOn(values.AXIS1_DRIVER_MODEL) &&
+      !FRAM_NV_DRIVERS.has(values.NV_DRIVER)) {
+    add('error', 'MOUNT_COORDS_MEMORY',
+      `MOUNT_COORDS_MEMORY=ON needs an FRAM NV device (NV_DRIVER=NV_MB85RC32 / NV_MB85RC64 / NV_MB85RC256), but ` +
+      `NV_DRIVER=${values.NV_DRIVER || 'NV_DEFAULT'}. OnStepX refuses to compile it ("requires a NV storage device with very high ` +
+      `write endurance (FRAM)"). Set MOUNT_COORDS_MEMORY OFF, or pick the FRAM chip your board actually has.`);
+  }
+  if (values.GOTO_FEATURE === 'OFF' && (values.MOUNT_TYPE === 'FORK_TA' || values.MOUNT_TYPE === 'FORK_TAC')) {
+    add('error', 'MOUNT_TYPE',
+      `MOUNT_TYPE=${values.MOUNT_TYPE} isn't available when GOTO_FEATURE is OFF (OnStepX's Validate.h). Turn GOTO_FEATURE ON or use FORK.`);
+  }
+  if (values.SERIAL_B_ESP_FLASHING === 'ON' && values.PINMAP) {
+    if (!PINMAPS_ESP_FLASHING.has(values.PINMAP)) {
+      add('error', 'SERIAL_B_ESP_FLASHING',
+        `SERIAL_B_ESP_FLASHING=ON, but PINMAP=${values.PINMAP} has no ESP8266 GPIO0/RESET control pins (ADDON_GPIO0_PIN / ` +
+        `ADDON_RESET_PIN), so OnStepX's Validate.h refuses to compile. Set SERIAL_B_ESP_FLASHING OFF.`);
+    } else if (!isOn(values.SERIAL_B_BAUD_DEFAULT)) {
+      add('error', 'SERIAL_B_ESP_FLASHING',
+        `SERIAL_B_ESP_FLASHING=ON needs SERIAL_B enabled (SERIAL_B_BAUD_DEFAULT is OFF) — OnStepX's Validate.h refuses to compile. ` +
+        `Set a SERIAL_B baud rate, or SERIAL_B_ESP_FLASHING OFF.`);
+    }
+  }
+  if (values.AXIS4_POWER_DOWN === 'ON' && PINMAP_MCU[values.PINMAP] && !PINMAPS_AXIS4_ENABLE.has(values.PINMAP) &&
+      !TMC_SOFTWARE_DRIVERS.has(values.AXIS4_DRIVER_MODEL)) {
+    add('error', 'AXIS4_POWER_DOWN',
+      `AXIS4_POWER_DOWN=ON, but PINMAP=${values.PINMAP} has no dedicated Axis4 enable pin and AXIS4_DRIVER_MODEL=` +
+      `${values.AXIS4_DRIVER_MODEL || 'OFF'} isn't a software-controlled (SPI/UART) TMC driver, so OnStepX's Validate.h ` +
+      `refuses to compile. Set AXIS4_POWER_DOWN OFF.`);
   }
 
   // AUX pin sharing (STATUS_MOUNT_LED / RETICLE_LED / STATUS_BUZZER on AUX8,

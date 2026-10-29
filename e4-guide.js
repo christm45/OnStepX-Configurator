@@ -35,7 +35,7 @@
 
   const SEARCH = {
     pinmap: 'pinmap gpio header overview specifications esp32 tmc2209 i2c sda scl enable stepper driver power usb board diagram aux te tb x-min y-min heat fan rst led reset mot shared_en jumper diag m-tx m-rx uart gpio15 vin',
-    limits: 'limit switch home endstop sensor gpio34 gpio35 gpio39 x-min y-min axis1_sense_home limit_sense limit_strict homing axis2_sense_home microswitch hall',
+    limits: 'limit switch home endstop sensor gpio34 gpio35 gpio39 x-min y-min axis1_sense_home limit_sense homing axis2_sense_home microswitch hall mount_startup_mode',
     gps: 'gps module neo-m8n neo-6m gy-gpsv3 time location serial capacitor baud nmea gpgga gprmc satellite',
     thermistor: 'thermistor ntc temperature te tb gpio36 gpio39 beta 3950 3435 100k voltage divider pull-up rparallel steinhart',
     dew: 'dew heater pwm heat_e0 heat_bed gpio2 gpio4 mosfet irlz44n feature1 feature2 dew point heater strap tape',
@@ -464,6 +464,7 @@
       config: [
         { dir: 'AXIS1_SENSE_HOME', val: 'LOW', note: 'Active LOW = switch to GND triggers home' },
         { dir: 'AXIS2_SENSE_HOME', val: 'LOW', note: 'Active LOW for Axis2 home' },
+        { dir: 'LIMIT_SENSE', val: 'OFF', note: 'Needed with the stock E4 Config.h: its LIMIT_SENSE_PIN 34 is X-MIN, the Axis1 home pin, and OnStepX won\'t compile both on one pin. Or keep limits by moving them to TB: LIMIT_SENSE_PIN 39' },
         { dir: 'AXIS1_SENSE_HOME_OFFSET', val: '0', note: 'Arc-second offset from switch to true home' },
         { dir: 'AXIS2_SENSE_HOME_OFFSET', val: '0', note: 'Arc-second offset for Axis2' },
         { dir: 'ALIGN_AUTO_HOME', val: 'ON', note: 'Auto-home at startup before alignment' },
@@ -482,25 +483,25 @@
       title: 'Limit Switches',
       desc: 'Hardware limits stop ALL mount movement when triggered. The E4 Config.h overrides the default limit pin to GPIO34 instead of GPIO39.',
       warnings: [
-        { label: 'Shared Pin', text: 'Default Config.h: LIMIT_SENSE_PIN = GPIO34 (X-MIN). GPIO34 therefore serves as BOTH Axis1 home AND limit. To separate them, change LIMIT_SENSE_PIN to 39 (TB).' },
-        { label: 'LIMIT_STRICT Behavior', text: 'Per Config.h: OFF disables limits until an unpark goto or a sync; ON enables them at startup (the defaults file adds "if date/time are set"). The stock E4 Config.h ships OFF.' },
-        { label: 'E-Stop Effect', text: 'When any limit triggers: all gotos abort, tracking stops, the mount freezes. Recover by clearing the condition (move off the switch) and then unparking or syncing — with LIMIT_STRICT OFF, an unpark goto or a sync re-arms normal operation.' },
+        { label: 'Shared Pin', text: 'The stock E4 Config.h sets LIMIT_SENSE_PIN 34 (X-MIN), which is also AUX3, the Axis1 home pin. OnStepX won\'t let one AUX pin serve two features: with LIMIT_SENSE on, enabling AXIS1_SENSE_HOME fails the build (AUX3_PIN already in use). For home switches, set LIMIT_SENSE OFF or move the limit to TB with LIMIT_SENSE_PIN 39.' },
+        { label: 'Limits at Startup', text: 'LIMIT_STRICT no longer exists: current OnStepX refuses to compile a Config.h that defines it at all, so the configurator removes it from imported files (the stock E4 Config.h still carries LIMIT_STRICT OFF). When limits are enforced after power-up now follows the startup authority, set with MOUNT_STARTUP_MODE (SA_AUTO by default, SA_STRICT or SA_PERMISSIVE).' },
+        { label: 'E-Stop Effect', text: 'When any limit triggers: all gotos abort, tracking stops, the mount freezes. Recover by clearing the condition (move off the switch), then unpark or sync.' },
       ],
       wiring: [
-        { e4: 'X-MIN (GPIO34) — default', gpio: 'GPIO34', to: 'Limit switch NO → GND (shared with Axis1 home)' },
+        { e4: 'X-MIN (GPIO34) — default', gpio: 'GPIO34', to: 'Limit switch NO → GND (same pin as Axis1 home — use one or the other)' },
         { e4: 'TB (GPIO39) — alternative', gpio: 'GPIO39', to: 'Dedicated limit switch input (original pinmap)' },
         { e4: '3.3V (via 10kΩ pull-up on E4)', gpio: '—', to: 'On-board pull-up on X-MIN/Y-MIN' },
       ],
       config: [
         { dir: 'LIMIT_SENSE', val: 'LOW', note: 'Active LOW — short to GND = limit triggered. Already LOW in the stock E4 Config.h' },
         { dir: 'LIMIT_SENSE_PIN', val: '34', note: 'Already set to 34 in the stock E4 Config.h, overriding the pinmap default of 39 (TB)' },
-        { dir: 'LIMIT_STRICT', val: 'OFF', note: 'Stock value. OFF = limits off until an unpark goto or sync; ON = armed at startup' },
+        { dir: 'MOUNT_STARTUP_MODE', val: 'SA_AUTO', note: 'Replaces the obsolete LIMIT_STRICT (don\'t define LIMIT_STRICT — the build fails). Controls when startup trust, and with it limit enforcement, is granted' },
         { dir: 'AXIS1_SENSE_LIMIT_MIN', val: 'LIMIT_SENSE', note: 'Uses shared LIMIT_SENSE' },
         { dir: 'AXIS1_SENSE_LIMIT_MAX', val: 'LIMIT_SENSE', note: 'Uses shared LIMIT_SENSE' },
         { dir: 'AXIS2_SENSE_LIMIT_MIN', val: 'LIMIT_SENSE', note: 'Uses shared LIMIT_SENSE' },
         { dir: 'AXIS2_SENSE_LIMIT_MAX', val: 'LIMIT_SENSE', note: 'Uses shared LIMIT_SENSE' },
       ],
-      notes: callout('info', `<strong>PIN SHARING — CRITICAL:</strong> The default Config.h sets ${code('LIMIT_SENSE_PIN 34')}, making GPIO34 (X-MIN) the shared input for BOTH ${code('AXIS1_SENSE_HOME')} and ${code('LIMIT_SENSE')}. Use one switch at the home position (home = limit), or use separate switches: home to X-MIN, limit to TB (GPIO39) with ${code('#define LIMIT_SENSE_PIN 39')}.`),
+      notes: callout('info', `<strong>PIN SHARING — CRITICAL:</strong> The stock E4 Config.h sets ${code('LIMIT_SENSE_PIN 34')}, putting the limit sense on GPIO34 (X-MIN), the same AUX3 pin as ${code('AXIS1_SENSE_HOME')}. OnStepX won't compile with both enabled, so one switch can't be home and limit at once. Use limits only (home switches OFF), home switches with ${code('LIMIT_SENSE OFF')}, or both on separate pins: home on X-MIN, limit on TB (GPIO39) with ${code('#define LIMIT_SENSE_PIN 39')}.`),
     })}
     ${callout('warn', `<strong>Community note — default limit behaviour:</strong> out of the box, <strong>X-MIN (GPIO34) acts as an emergency stop for BOTH axes</strong>, while <strong>Y-MIN does NOT stop motion</strong> — the default limit is an e-stop, not a homing endstop. All of these pins are remappable: one working build uses ${code('LIMIT_SENSE_PIN 36')} (TE), ${code('AXIS1_SENSE_HOME_PIN 39')} (TB) and ${code('AXIS2_SENSE_HOME_PIN 35')} (Y-MIN). <span style="color:rgba(255,255,255,.6)">Source: <a href="https://onstep.groups.io/g/main/message/60114" target="_blank" rel="noopener">#60114</a>, <a href="https://onstep.groups.io/g/main/message/68294" target="_blank" rel="noopener">#68294</a></span>`)}`;
 
@@ -918,7 +919,7 @@
         { dir: 'AXIS3_DRIVER_MODEL', val: 'TMC2209', note: 'OFF in the stock E4 Config.h, which gives MOT-Z to Axis5 (focuser2). Set AXIS5_DRIVER_MODEL OFF first' },
         { dir: 'AXIS3_STEPS_PER_DEGREE', val: '64.0', note: 'Typical for a direct-drive rotator' },
         { dir: 'AXIS3_SLEW_RATE_BASE_DESIRED', val: '1.0', note: 'deg/s' },
-        { dir: 'AXIS3_DRIVER_REVERSE', val: 'OFF', note: 'Reverse direction if needed' },
+        { dir: 'AXIS3_REVERSE', val: 'OFF', note: 'Reverse direction if needed' },
         { dir: 'AXIS3_LIMIT_MIN', val: '0', note: 'Min angle (degrees)' },
         { dir: 'AXIS3_LIMIT_MAX', val: '360', note: 'Max angle (degrees)' },
       ],
@@ -1047,8 +1048,8 @@
         { problem: 'Settings (UTC offset, park position) are not saved across a power cycle', cause: 'Values were not committed to non-volatile storage before power-off, or the NV is stale/corrupt.', solutions: ['After changing settings, give the board a few seconds before cutting power so NV writes complete.', 'Add a DS3231 RTC so time/location persist regardless.', 'If park/coords stay corrupt, re-flash with "Erase All Flash" to wipe stale NV, then reconfigure. Source: discussion #58501.'] },
       ] },
       { category: 'Imaging Clients & Alignment (ASIAIR / NINA)', color: '#22d3ee', items: [
-        { problem: 'ASIAIR moves the mount in the OPPOSITE direction (N↔S / E↔W), even though the OnStepX web UI moves correctly', cause: 'Axis direction convention differs between the OnStep web UI and the ASIAIR mount profile.', solutions: ['Reverse the affected axis in Config.h: toggle AXIS1_DRIVER_REVERSE / AXIS2_DRIVER_REVERSE.', 'Confirm the correct mount type/profile is selected in ASIAIR (OnStep / "OnStep Electronics").', 'Verify N/S/E/W behave correctly from the web UI first, then re-test in ASIAIR. Source: discussion #68576.'] },
-        { problem: 'ASIAIR polar alignment stops "hard" near the 60° rotation and errors "rotation stopped"', cause: 'Slew speed too high for the deceleration ASIAIR expects; the axis decelerates then halts abruptly like hitting a limit.', solutions: ['Set the slew speed to ~5°/sec — slower than that errored out for one user, faster also failed.', 'Make sure no limit is being tripped (check the limit pin / LIMIT_STRICT).', 'Use "Go Home" from ASIAIR to recover, then retry. Source: discussions #68119, #68264.'] },
+        { problem: 'ASIAIR moves the mount in the OPPOSITE direction (N↔S / E↔W), even though the OnStepX web UI moves correctly', cause: 'Axis direction convention differs between the OnStep web UI and the ASIAIR mount profile.', solutions: ['Reverse the affected axis in Config.h: toggle AXIS1_REVERSE / AXIS2_REVERSE.', 'Confirm the correct mount type/profile is selected in ASIAIR (OnStep / "OnStep Electronics").', 'Verify N/S/E/W behave correctly from the web UI first, then re-test in ASIAIR. Source: discussion #68576.'] },
+        { problem: 'ASIAIR polar alignment stops "hard" near the 60° rotation and errors "rotation stopped"', cause: 'Slew speed too high for the deceleration ASIAIR expects; the axis decelerates then halts abruptly like hitting a limit.', solutions: ['Set the slew speed to ~5°/sec — slower than that errored out for one user, faster also failed.', 'Make sure no limit is being tripped (check the limit pin and LIMIT_SENSE).', 'Use "Go Home" from ASIAIR to recover, then retry. Source: discussions #68119, #68264.'] },
         { problem: 'Meridian flip never completes — mount just slews to home and stops (or does nothing)', cause: 'Flip/home configuration; on GEM the mount visits home, and on fork the default slew logic can trigger an unwanted flip near park.', solutions: ['Verify meridian-limit and MFLIP settings; for GEM, set MFLIP_HOME_DEFAULT appropriately (OFF skips visiting home, VISIT goes via home, PAUSE waits at home).', 'Update to a recent OnStepX — fork-mount slewing was reworked in newer releases.', 'As a workaround, manually slew several degrees past the meridian to the east, then issue the goto. Source: discussions #53807, #58501.'] },
       ] },
       { category: 'Hardware & Safety', color: '#f97316', items: [
@@ -1134,7 +1135,7 @@
           [code('AXIS3_DRIVER_MODEL'), code('OFF'), 'Rotator off — MOT-Z goes to Focuser2'],
           [code('AXIS4_DRIVER_MODEL'), code('TMC2209'), 'Focuser1 active by default on MOT-E'],
           [code('AXIS5_DRIVER_MODEL'), code('TMC2209'), 'Focuser2 active by default on MOT-Z'],
-          [code('LIMIT_SENSE'), code('LOW'), 'Limit on X-MIN armed (switch to GND stops motion)'],
+          [code('LIMIT_SENSE'), code('LOW'), 'Limit on X-MIN armed (switch to GND stops motion). Set it OFF before enabling AXIS1_SENSE_HOME — same pin'],
           [code('STATUS_LED') + ' / ' + code('STATUS_BUZZER'), code('ON') + ' / ' + code('2000'), 'Both on GPIO13. Current OnStepX refuses both at once (this configurator\'s build service turns them OFF); on the FAN MOSFET the LED also needs STATUS_LED_ON_STATE HIGH'],
           [code('WEATHER'), code('BME280_0x76'), 'BME280 at 0x76'],
           [code('MOUNT_TYPE'), code('GEM'), 'Mount type (change to ALTAZM as needed)'],

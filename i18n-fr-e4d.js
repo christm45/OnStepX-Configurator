@@ -272,8 +272,7 @@ window.I18N_FR = Object.assign(window.I18N_FR || {}, {
     "LED / Buzzer (commuté)",
   "LM1117-3.3 — LM1117-3.3 / AMS1117-3.3 regulator":
     "LM1117-3.3 — Régulateur LM1117-3.3 / AMS1117-3.3",
-  "Limit on X-MIN armed (switch to GND stops motion)":
-    "Limite sur X-MIN armée (un contacteur à la masse arrête le mouvement)",
+  "Limit on X-MIN armed (switch to GND stops motion). Set it OFF before enabling AXIS1_SENSE_HOME — same pin": "Limite armée sur X-MIN (un contact à GND arrête le mouvement). Réglez-la sur OFF avant d'activer AXIS1_SENSE_HOME — même broche",
   "MOT-X (JST-XH 4-pin)":
     "MOT-X (JST-XH 4 broches)",
   "MOT-Y (JST-XH 4-pin)":
