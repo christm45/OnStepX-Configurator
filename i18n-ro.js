@@ -815,8 +815,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "O funcție JavaScript de ~200 de linii pe care Cloudflare o rulează la cerere când browserul dumneavoastră o apelează. Singurul ei rol este să accepte cererea dumneavoastră",
   "A3144 on PCB":
     "A3144 pe PCB",
-  "ALIGN_AUTO_HOME or MFLIP_SKIP_HOME issues; mount tries to visit home before goto.":
-    "Probleme cu ALIGN_AUTO_HOME sau MFLIP_SKIP_HOME; montura încearcă să treacă prin poziția de origine (home) înainte de GOTO.",
+  "ALIGN_AUTO_HOME or MFLIP_HOME_DEFAULT settings; mount tries to visit home before goto.":
+    "Setările ALIGN_AUTO_HOME sau MFLIP_HOME_DEFAULT; montura încearcă să treacă prin poziția de origine (home) înainte de GOTO.",
   "ALTAZM - Alt/Az, Dobsonians":
     "ALTAZM - Alt/Az, Dobson",
   "ALTAZM_UNL - Unlimited Azimuth":
@@ -3055,8 +3055,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "Setați ALIGN_AUTO_HOME pe OFF dacă nu aveți limitatoare pentru poziția de origine (home).",
   "Set DEBUG VERBOSE plus FEATURE1_TEMP DS1820, flash, and read the serial numbers off the serial monitor — then assign each sensor by its own 64-bit serial. (There is no FEATURE_LIST_DS directive in OnStepX.)":
     "Setați DEBUG pe VERBOSE împreună cu FEATURE1_TEMP DS1820, programați firmware-ul (flash) și citiți numerele de serie din monitorul serial — apoi atribuiți fiecare senzor după propriul număr de serie pe 64 de biți. (Nu există directiva FEATURE_LIST_DS în OnStepX.)",
-  "Set MFLIP_SKIP_HOME to ON for gotos without visiting home.":
-    "Setați MFLIP_SKIP_HOME pe ON pentru GOTO-uri fără trecere prin poziția de origine (home).",
+  "Set MFLIP_HOME_DEFAULT to OFF for gotos without visiting home.":
+    "Setați MFLIP_HOME_DEFAULT pe OFF pentru GOTO-uri fără trecere prin poziția de origine (home).",
   "Set PEC_SENSE to HIGH for Hall sensors.":
     "Setați PEC_SENSE pe HIGH pentru senzori Hall.",
   "Set SERIAL_B_BAUD_DEFAULT to 230400.":
@@ -3641,8 +3641,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "Verificați mai întâi că N/S/E/V funcționează corect din interfața web, apoi testați din nou în ASIAIR. Sursă: discuția #68576.",
   "Verify axis limits are correct for your mount.":
     "Verificați că limitele axelor sunt corecte pentru montura dumneavoastră.",
-  "Verify meridian-limit and MFLIP settings; for GEM, set MFLIP_SKIP_HOME appropriately.":
-    "Verificați setările pentru limita de meridian și MFLIP; pentru GEM, setați MFLIP_SKIP_HOME corespunzător.",
+  "Verify meridian-limit and MFLIP settings; for GEM, set MFLIP_HOME_DEFAULT appropriately (OFF skips visiting home, VISIT goes via home, PAUSE waits at home).":
+    "Verificați setările pentru limita de meridian și MFLIP; pentru GEM, setați MFLIP_HOME_DEFAULT corespunzător (OFF evită trecerea prin home, VISIT trece prin home, PAUSE așteaptă în home).",
   "Verify the COM port appears in Device Manager.":
     "Verificați că portul COM apare în Manager dispozitive.",
   "Verify the module first:":
@@ -4787,10 +4787,10 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "Calibrați pentru focuser-ul dumneavoastră",
   "Adafruit BME280 v2.2.2 + Adafruit Sensor v1.1.7 (Arduino Library Manager).":
     "Adafruit BME280 v2.2.2 + Adafruit Sensor v1.1.7 (Arduino Library Manager / managerul de biblioteci).",
-  "Leave OFF for normal use. Turn ON (errors and warnings) or VERBOSE (everything) when asked to troubleshoot: OnStepX then prints startup messages on the USB serial port at 9600 baud.":
-    "Lăsați pe OFF pentru utilizarea normală. Setați ON (erori și avertismente) sau VERBOSE (totul) atunci când vi se cere pentru depanare: OnStepX afișează atunci mesajele de pornire pe portul serial USB la 9600 baud.",
-  "Still an Init NV/EEPROM error on main after erasing? Use E4 as the Source ref for now, then set DEBUG to ON (Controller tab), rebuild, and read the Nv lines on the USB serial monitor at 9600 baud.":
-    "Încă o eroare Init NV/EEPROM pe main după ștergere? Folosiți deocamdată E4 ca Source ref, apoi setați DEBUG pe ON (fila Controller), recompilați și citiți liniile Nv în monitorul serial USB la 9600 baud.",
+  "Leave OFF for normal use. Turn ON (errors and warnings) or VERBOSE (everything) when asked to troubleshoot: OnStepX then prints startup messages on the USB serial port at the SERIAL_A_BAUD_DEFAULT baud rate (9600 unless changed under Serial Ports). CONSOLE (VT100 debug console) and PROFILER (VT100 task profiler) use the same port and need a terminal program such as PuTTY.":
+    "Lăsați pe OFF pentru utilizarea normală. Setați ON (erori și avertismente) sau VERBOSE (totul) atunci când vi se cere pentru depanare: OnStepX afișează atunci mesajele de pornire pe portul serial USB la viteza SERIAL_A_BAUD_DEFAULT (9600 baud dacă nu ați schimbat-o la Porturi seriale). CONSOLE (consolă de depanare VT100) și PROFILER (profilator de sarcini VT100) folosesc același port și necesită un program terminal precum PuTTY.",
+  "Still an Init NV/EEPROM error on main after erasing? Use E4 as the Source ref for now, then set DEBUG to ON (Controller tab), rebuild, and read the Nv lines on the USB serial monitor at the SERIAL_A_BAUD_DEFAULT baud rate (9600 unless changed).":
+    "Încă o eroare Init NV/EEPROM pe main după ștergere? Folosiți deocamdată E4 ca Source ref, apoi setați DEBUG pe ON (fila Controller), recompilați și citiți liniile Nv în monitorul serial USB la viteza SERIAL_A_BAUD_DEFAULT (9600 baud dacă nu ați schimbat-o).",
   "Serial monitor":
     "Monitor serial",
   "Connect":
@@ -4908,4 +4908,18 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "Se scrie firmware-ul…",
   "Flash complete ✓":
     "Scriere firmware terminată ✓",
+  "A flash is in progress — wait for it to finish, then connect the monitor.":
+    "Scrierea firmware-ului este în curs — așteptați să se termine, apoi conectați monitorul.",
+  "Web Serial is not available in this browser. Use Chrome or Edge on a desktop computer.":
+    "Web Serial nu este disponibil în acest browser. Folosiți Chrome sau Edge pe un computer.",
+  "Build succeeded":
+    "Compilare reușită",
+  "Build failed":
+    "Compilarea a eșuat",
+  "Build cancelled":
+    "Compilare anulată",
+  "Build timed out":
+    "Compilarea a depășit timpul limită",
+  "Build finished":
+    "Compilare încheiată",
 });

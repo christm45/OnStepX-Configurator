@@ -74,7 +74,9 @@ unmatched IDs (no upstream comment):
 
 `COMPILE_ENV` is configurator-only (build-tab choice, not a `#define`) so it's
 expected to be unmatched. The `36` skipped rows are field-row blocks that
-contain no form input id (buttons, info rows, etc.) — also expected.
+contain a field-hint but no form input id (buttons, info rows, etc.) — also
+expected. Rows without a field-hint aren't counted. Exact numbers drift as
+upstream and the configurator change.
 
 ## When to re-run
 
@@ -84,14 +86,18 @@ contain no form input id (buttons, info rows, etc.) — also expected.
 - A new form field is added to the configurator that mirrors an upstream
   `#define` and you want the inline comment to follow.
 
-The script is **idempotent** — a row that already has a `.config-comment` is
-skipped, so re-running after partial work is safe. It rewrites the comment if
-upstream changed (because the previous comment is preserved verbatim and the
-script only touches rows lacking the class).
+The script is **idempotent** — a row whose field-hint is already followed by
+a `.config-comment` is skipped (`skipped (already)`), and a run that has
+nothing to add leaves `index.html` untouched. Re-running after partial work,
+or by accident, is safe. (Before 2026-10-29 the row matcher stopped at the
+hint's `</span>`, never saw the comment after it, and appended a duplicate on
+every re-run; for a hint containing a nested `<span>` it also inserted the
+comment inside the hint. Both are fixed: the hint's real end is found by
+counting nested spans.)
 
-> **Note on idempotency:** because the script only injects when no
+> **Refreshing stale comments:** because the script only injects where no
 > `.config-comment` exists, refreshing upstream and re-running will *not*
-> overwrite stale comments. To force a refresh, first remove all
+> overwrite comments already there. To force a refresh, first remove all
 > `<span class="config-comment">…</span>` from `index.html`
 > (`sed -i 's|<span class="config-comment">[^<]*</span>||g' index.html`),
 > then re-run the script.

@@ -25,6 +25,8 @@ export function createMonitor({ onLine, onStatus, onError }) {
   let reader = null;
   let readLoop = null;
   let closing = false;
+  let onDisconnect = null; // this connection's 'disconnect' listener
+  let fatalMsg = null;     // reported AFTER teardown, so onStatus(false) can't wipe it
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -43,8 +45,16 @@ export function createMonitor({ onLine, onStatus, onError }) {
     };
     try {
       // One pass per readable stream; a non-fatal error swaps in a new one.
+      let errored = null; // the stream that just failed with a non-fatal error
       while (port && port.readable && !closing) {
-        reader = port.readable.getReader();
+        // The spec swaps in a fresh stream after a non-fatal error. If it
+        // didn't, re-reading the errored one would spin forever.
+        if (port.readable === errored) {
+          fatalMsg = 'Serial read stopped: the port stopped delivering data after a line error.';
+          break;
+        }
+        const stream = port.readable;
+        reader = stream.getReader();
         let stop = false;
         try {
           for (;;) {
@@ -71,9 +81,10 @@ export function createMonitor({ onLine, onStatus, onError }) {
           } else if (e && NON_FATAL_READ_ERRORS.has(e.name)) {
             // Usually a baud-rate mismatch or line noise: note it and keep reading.
             flushPartial();
+            errored = stream;
             onLine(`WRN: serial ${e.name} (${e.message || 'line error'}) — data may be garbled; check the baud rate. Continuing…`);
           } else {
-            onError(`Serial read stopped: ${(e && e.message) || e}`);
+            fatalMsg = `Serial read stopped: ${(e && e.message) || e}`;
             stop = true;
           }
         } finally {
@@ -90,6 +101,8 @@ export function createMonitor({ onLine, onStatus, onError }) {
   async function teardown() {
     const p = port;
     port = null;
+    if (p && onDisconnect) p.removeEventListener('disconnect', onDisconnect);
+    onDisconnect = null;
     try { if (reader) await reader.cancel(); } catch (_) { /* already gone */ }
     try { if (reader) reader.releaseLock(); } catch (_) { /* already released */ }
     reader = null;
@@ -124,8 +137,27 @@ export function createMonitor({ onLine, onStatus, onError }) {
     }
     port = chosen;
     closing = false;
-    readLoop = pump().then(() => { if (!closing && port) teardown(); });
-    port.addEventListener('disconnect', () => { if (port) { closing = true; teardown(); } });
+    fatalMsg = null;
+    // Report a fatal read error only once the port is fully closed: teardown()
+    // ends with onStatus(false), which clears the status line.
+    // (teardown() awaits readLoop, so it must be the bare pump() promise —
+    // awaiting teardown inside a .then() chained onto readLoop would deadlock.)
+    readLoop = pump();
+    readLoop.catch(() => {}).then(async () => {
+      if (!closing && port === chosen) {
+        await teardown();
+        if (fatalMsg) onError(fatalMsg);
+      }
+    });
+    // Bound to THIS connection: compare against its own port (an unplug of a
+    // port used by an earlier session must not tear down the current one) and
+    // removed again in teardown().
+    onDisconnect = (ev) => {
+      if (port !== chosen || (ev && ev.target && ev.target !== chosen)) return;
+      closing = true;
+      teardown().then(() => onError('The board was disconnected (USB unplugged or reset).'));
+    };
+    port.addEventListener('disconnect', onDisconnect);
     onStatus(true);
     return true;
   }

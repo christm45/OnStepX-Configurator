@@ -858,7 +858,7 @@
   }
   .design-chip:hover { background: var(--link-border); color: #fff; }
 </style>
-<link rel="stylesheet" href="e4-guide.css?v=16">
+<link rel="stylesheet" href="e4-guide.css?v=17">
 
 <div style="display:flex;align-items:stretch;gap:8px;max-width:820px;margin:0 auto 16px;">
   <div class="mode-switch" role="tablist" aria-label="Project selector" style="flex:1;margin:0;">
@@ -1271,6 +1271,7 @@
     <div class="field-row">
       <label class="field-label">SERIAL_A_BAUD_DEFAULT <span class="hint-tag hint-infreq">Infreq</span></label>
       <select id="SERIAL_A_BAUD_DEFAULT">
+        <option value="OFF">OFF</option>
         <option value="9600" selected>9600</option>
         <option value="19200">19200</option>
         <option value="57600">57600</option>
@@ -1406,8 +1407,12 @@
         <option value="OFF" selected>OFF</option>
         <option value="ON">ON</option>
         <option value="VERBOSE">VERBOSE</option>
+        <!-- LibConstants.h CONSOLE / PROFILER (Extended.config.h). REMOTE is
+             omitted: it prints via SERIAL_ONSTEP, which only SHC/SWS define. -->
+        <option value="CONSOLE">CONSOLE</option>
+        <option value="PROFILER">PROFILER</option>
       </select>
-      <span class="field-hint">Leave OFF for normal use. Turn ON (errors and warnings) or VERBOSE (everything) when asked to troubleshoot: OnStepX then prints startup messages on the USB serial port at 9600 baud.</span><span class="config-comment">// Use ON for background error messages only, use VERBOSE for all</span>
+      <span class="field-hint">Leave OFF for normal use. Turn ON (errors and warnings) or VERBOSE (everything) when asked to troubleshoot: OnStepX then prints startup messages on the USB serial port at the SERIAL_A_BAUD_DEFAULT baud rate (9600 unless changed under Serial Ports). CONSOLE (VT100 debug console) and PROFILER (VT100 task profiler) use the same port and need a terminal program such as PuTTY.</span><span class="config-comment">// Use ON for background error messages only, use VERBOSE for all</span>
     </div>
   </div>
 </div>
@@ -1702,6 +1707,7 @@
         <option value="FORK_TAC">FORK_TAC - w/tangent arm + correction</option>
         <option value="ALTAZM" selected>ALTAZM - Alt/Az, Dobsonians</option>
         <option value="ALTAZM_UNL">ALTAZM_UNL - Unlimited Azimuth</option>
+        <option value="ALTALT">ALTALT - Altitude/Altitude</option>
       </select>
       <span class="field-hint">Mount type</span><span class="config-comment">// GEM German Equatorial Mount, etc. that need meridian flips.</span>
     </div>
@@ -2945,7 +2951,7 @@
         can stop with &ldquo;Init NV/EEPROM error&rdquo; on a board that still holds the old one.
       </div>
       <div style="margin-top:6px; color:var(--label);">
-        Still an Init NV/EEPROM error on main after erasing? Use E4 as the Source ref for now, then set DEBUG to ON (Controller tab), rebuild, and read the Nv lines on the USB serial monitor at 9600 baud.
+        Still an Init NV/EEPROM error on main after erasing? Use E4 as the Source ref for now, then set DEBUG to ON (Controller tab), rebuild, and read the Nv lines on the USB serial monitor at the SERIAL_A_BAUD_DEFAULT baud rate (9600 unless changed).
       </div>
       <div style="margin-top:6px; color:var(--label);">
         <b>NINA / ASCOM over USB says &ldquo;OnStep wasn't found&rdquo; and the WiFi disappears?</b> The E4's USB chip
@@ -3060,6 +3066,7 @@
           <option value="57600">57600</option>
           <option value="115200">115200</option>
           <option value="230400">230400</option>
+          <option value="460800">460800</option>
         </select>
         <button class="btn btn-generate" id="monitorConnectBtn" onclick="monitorToggle()">Connect</button>
         <button class="btn btn-copy" id="monitorResetBtn" onclick="monitorReset()" disabled>Reset board</button>
@@ -3068,7 +3075,7 @@
         <button class="btn btn-download" onclick="monitorSave()">Save .txt</button>
       </div>
       <div id="monitorStatus" style="margin-top:6px;color:var(--label);font-size:0.8em;"></div>
-      <div id="monitorLog" style="margin-top:8px;padding:10px;background:#000;color:var(--green);border:1px solid var(--border);border-radius:0;height:260px;overflow:auto;font-family:Consolas,monospace;font-size:0.8em;white-space:pre-wrap;display:none;"></div>
+      <div id="monitorLog" data-no-i18n style="margin-top:8px;padding:10px;background:#000;color:var(--green);border:1px solid var(--border);border-radius:0;height:260px;overflow:auto;font-family:Consolas,monospace;font-size:0.8em;white-space:pre-wrap;display:none;"></div>
     </div>
   </div>
 </div>
@@ -5282,6 +5289,41 @@ function setFormFieldFromConfig(el, val) {
   return false;
 }
 
+// Macros current OnStepX main rejects that older Config.h files (the E4
+// branch's included) still carry. Same list as the build service's sanitizer
+// (build-service/.github/workflows/build.yml): LIMIT_STRICT #errors on a mere
+// #ifdef, PARK_STRICT when ON; Config.defaults.h supplies the replacements.
+// Dropping the lines on import keeps the Output text — and a downloaded
+// Config.h compiled locally — identical to what the build service compiles.
+const OBSOLETE_CONFIG_MACROS = ['LIMIT_STRICT', 'PARK_STRICT'];
+function stripObsoleteConfigMacros(text) {
+  const re = new RegExp('^[ \\t]*#[ \\t]*define[ \\t]+(' + OBSOLETE_CONFIG_MACROS.join('|') + ')(?:[ \\t].*)?(?:\\r?\\n|$)', 'gm');
+  return String(text).replace(re, '');
+}
+
+// Imported values a field could not hold (a <select> with no such option): field
+// id -> the value the form kept instead. Patch mode must not overwrite the raw
+// line with that stale form value, so it leaves the line alone until the field
+// is actually changed (a real user edit, or any code path setting a different
+// value). Each import starts a fresh map.
+const importRefusedFields = new Map();
+function noteImportRefusals(ids) {
+  importRefusedFields.clear();
+  for (const id of ids) {
+    const el = document.getElementById(id);
+    if (el) importRefusedFields.set(id, el.value);
+  }
+}
+function importRefusalHolds(id, el) {
+  if (!importRefusedFields.has(id)) return false;
+  if (el.value === importRefusedFields.get(id)) return true;
+  importRefusedFields.delete(id);
+  return false;
+}
+document.addEventListener('change', (e) => {
+  if (e.isTrusted && e.target && e.target.id) importRefusedFields.delete(e.target.id);
+}, true);
+
 // File-input handler: read a user-picked Config.h, populate matching form
 // fields from its #define lines, and preserve the raw text verbatim in the
 // Output textarea so Compile sends it byte-for-byte (incl. unmappable fields).
@@ -5290,12 +5332,16 @@ function loadConfig(event) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = function(e) {
-    const text = e.target.result;
+    const text = stripObsoleteConfigMacros(e.target.result);
     let populated = 0;
+    const refused = [];
     for (const [name, val] of configTextToFormValues(text)) {
       const el = document.getElementById(name);
-      if (el && setFormFieldFromConfig(el, val)) populated++;
+      if (!el) continue;
+      if (setFormFieldFromConfig(el, val)) populated++;
+      else refused.push(name);
     }
+    noteImportRefusals(refused);
     // Also preserve the raw loaded content in the Output textarea so Compile
     // sends it byte-for-byte (including fields the form can't represent).
     const out = document.getElementById('configOutput');
@@ -5729,12 +5775,12 @@ import {
   resolveOnStepXRef,
   sha1Hex,
   WORKER_URL,
-} from './compile.js?v=16';
-import { validateConfig, findSecrets } from './validate.js?v=16';
-import * as esp32Flasher from './flash/esp32.js?v=16';
-import * as stm32Flasher from './flash/stm32.js?v=16';
-import * as teensyFlasher from './flash/teensy.js?v=16';
-import { createMonitor, monitorSupported } from './flash/monitor.js?v=16';
+} from './compile.js?v=17';
+import { validateConfig, findSecrets } from './validate.js?v=17';
+import * as esp32Flasher from './flash/esp32.js?v=17';
+import * as stm32Flasher from './flash/stm32.js?v=17';
+import * as teensyFlasher from './flash/teensy.js?v=17';
+import { createMonitor, monitorSupported } from './flash/monitor.js?v=17';
 
 // Latest compile result ({runId, env, files, configHash})
 let lastBuild = null;
@@ -6189,16 +6235,19 @@ window.afterI18nApply = function () {
 async function importConfigFromUrl(url, { promptUser = true, label } = {}) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`fetch failed (${res.status}) for ${url}`);
-  const text = await res.text();
+  // Obsolete LIMIT_STRICT / PARK_STRICT lines are dropped up front, exactly as
+  // the build service would, so the Output text compiles as shown.
+  const text = stripObsoleteConfigMacros(await res.text());
   // Same parser as "Load Config.h": CRLF-safe, maps legacy names, and brings
   // PINMAP OFF + an inline Terrans/E4 pin block back as that board.
   const changes = [];
+  const refused = [];
   for (const [name, next] of configTextToFormValues(text)) {
     const el = document.getElementById(name);
     if (!el) continue;
     // Skip values the field can't hold (unknown <select> option) — they
-    // would blank it rather than set it.
-    if (el.tagName === 'SELECT' && ![...el.options].some((o) => o.value === next)) continue;
+    // would blank it rather than set it. Patch mode then keeps their raw line.
+    if (el.tagName === 'SELECT' && ![...el.options].some((o) => o.value === next)) { refused.push(name); continue; }
     if (el.value !== next) changes.push({ id: name, current: el.value, next });
   }
   if (promptUser) {
@@ -6219,6 +6268,7 @@ async function importConfigFromUrl(url, { promptUser = true, label } = {}) {
     el.value = next;
     el.dispatchEvent(new Event('change', { bubbles: true }));
   }
+  noteImportRefusals(refused);
   // Preserve the raw imported Config.h verbatim in the Output textarea so
   // Compile can send exactly what was fetched — including fields the form
   // doesn't represent (THERMISTOR1_*, LIMIT_SENSE_PIN, SERIAL_TMC_RX, etc.).
@@ -6288,6 +6338,12 @@ function applyCalculatorToRawConfig() {
     'AXIS1_DRIVER_MICROSTEPS',
     'AXIS2_DRIVER_MICROSTEPS',
     'AXIS3_DRIVER_MICROSTEPS',
+    // The goto microsteps follow the Calculator (calcSlew drives Axis1's) and
+    // the tracking value they must stay below; without these the raw E4 text
+    // kept its `_GOTO 4` while the form said OFF. OFF is a valid value here.
+    'AXIS1_DRIVER_MICROSTEPS_GOTO',
+    'AXIS2_DRIVER_MICROSTEPS_GOTO',
+    'AXIS3_DRIVER_MICROSTEPS_GOTO',
     'SLEW_RATE_BASE_DESIRED',
     'PEC_STEPS_PER_WORM_ROTATION',
   ];
@@ -6298,7 +6354,8 @@ function applyCalculatorToRawConfig() {
     if (!el) continue;
     const raw = (el.value || '').trim();
     const num = parseFloat(raw);
-    if (!isFinite(num) || num <= 0) continue; // skip empty / zero / non-numeric
+    const offOk = name.endsWith('_GOTO') && raw === 'OFF';
+    if (!offOk && (!isFinite(num) || num <= 0)) continue; // skip empty / zero / non-numeric
     // Swap the value token of an active "#define NAME value [// comment]" line,
     // preserving the leading indentation and any trailing comment/alignment.
     const re = new RegExp('^([ \\t]*#define[ \\t]+' + name + '[ \\t]+)(\\S+)(.*)$', 'm');
@@ -6313,9 +6370,9 @@ function applyCalculatorToRawConfig() {
 
 // Force the given macros to OFF in the raw Output text, preserving indentation
 // and any trailing comment/alignment. Used by the FYSETC_E4 path: main's
-// Pins.FYSETC_E4.h defines no SERIAL_B and shares AUX8_PIN (GPIO13) between
-// STATUS_LED and STATUS_BUZZER, so the E4-branch Config.h's non-OFF values for
-// these hard-#error when compiled against main. Returns the number of lines
+// Pins.FYSETC_E4.h defines no SERIAL_B (a non-OFF SERIAL_B_BAUD_DEFAULT
+// #errors) and drives STATUS_LED and STATUS_BUZZER on the same AUX8_PIN
+// (GPIO13), where they fight at runtime. Returns the number of lines
 // rewritten. Mirrors the build-service sanitizer so the file the user sees and
 // downloads matches what actually compiles.
 function forceRawConfigOff(names) {
@@ -6393,6 +6450,59 @@ const PRISTINE_BOARD_FIELDS = Object.fromEntries(
     .filter(([, value]) => value !== undefined)
 );
 
+// Axis 1/2/3 driver microsteps are owned by the Calculator tab: steps/degree
+// is derived from the calc's microsteps, so the driver must match it. Board
+// defaults skip these (the calcAxis*() re-run sets them) — otherwise the
+// preview would advertise a microsteps change we immediately overwrite, and
+// the post-flash reset would leave steps/degree computed for the calc's
+// microsteps next to the board's (a factor-2 error for 16 vs 32). Axis 4
+// (focuser) has no geometry calc, so its board-default microsteps still apply.
+const BOARD_CALC_OWNED_FIELDS = new Set([
+  'AXIS1_DRIVER_MICROSTEPS', 'AXIS1_DRIVER_MICROSTEPS_GOTO',
+  'AXIS2_DRIVER_MICROSTEPS',
+  'AXIS3_DRIVER_MICROSTEPS',
+  // AXIS2/AXIS3_DRIVER_MICROSTEPS_GOTO used to be listed here too, but no
+  // calculator writes them — calcSlew() only drives the Axis1 one, from
+  // calc_a1_goto_us. Listing them meant no board profile could ever set
+  // them, and they silently kept the page default instead.
+]);
+
+// The field changes "Apply board defaults" makes for a BOARD_DEFAULTS entry:
+// start from the pristine board-dependent fields, let the profile win, skip
+// the calculator-owned ones. [{ id, current, next }] for fields that differ.
+// Shared by applyBoardDefaults() and the post-flash form reset so the two can
+// never disagree.
+function boardDefaultsChanges(entry) {
+  const boardFields = { ...PRISTINE_BOARD_FIELDS, ...entry.fields };
+  return Object.keys(boardFields)
+    .filter((id) => !BOARD_CALC_OWNED_FIELDS.has(id))
+    .map((id) => {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const current = el.value;
+      const next = boardFields[id];
+      return current !== next ? { id, current, next } : null;
+    })
+    .filter(Boolean);
+}
+
+// Write boardDefaultsChanges() output into the form, then re-run the
+// steps/deg + slew-rate + PEC calculators so the Calculator-tab inputs remain
+// authoritative for AXIS{1,2,3}_STEPS_PER_DEGREE,
+// AXIS{1,2,3}_DRIVER_MICROSTEPS(_GOTO), SLEW_RATE_BASE_DESIRED, and
+// PEC_STEPS_PER_WORM_ROTATION. Board defaults set driver model + run current;
+// mount-geometry-derived values (steps/deg and their microsteps) come from
+// the Calculator only.
+function applyBoardDefaultsChanges(changes) {
+  for (const { id, next } of changes) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.value = next;
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  try { calcAxis1(); calcAxis2(); calcAxis3(); calcSlew(); calcPEC(); } catch {}
+}
+
 // "Apply board defaults" button handler: load a starter config for the
 // selected PINMAP. FYSETC_E4 is special-cased (live-fetch the E4 branch
 // Config.h, tick Website, re-run calculators, force OFF the fields that
@@ -6408,8 +6518,9 @@ window.applyBoardDefaults = async function () {
   // bundles the website plugin. Mirrors Howard's "copy E4 Config.h
   // into main + enable website" recipe.
   if (pinmap === 'FYSETC_E4') {
-    // The E4 import overwrites the DEBUG form field with the branch's OFF and
-    // pins the raw text, so remember the user's Controller-tab choice first.
+    // The E4-branch Config.h has no DEBUG line, so the import leaves the DEBUG
+    // field alone; remember the Controller-tab choice anyway so it survives a
+    // future E4 Config.h that does carry one (the restore below is then a no-op).
     const debugChoice = document.getElementById('DEBUG')?.value || 'OFF';
     try {
       const changes = await importConfigFromUrl(
@@ -6434,11 +6545,12 @@ window.applyBoardDefaults = async function () {
       try { calcAxis1(); calcAxis2(); calcAxis3(); calcSlew(); calcPEC(); } catch {}
       const patched = applyCalculatorToRawConfig();
       // main's Pins.FYSETC_E4.h has diverged from the E4 branch this Config.h
-      // targets: it defines no SERIAL_B and shares AUX8_PIN (GPIO13) between
-      // STATUS_LED and STATUS_BUZZER. The E4-branch values for these
-      // (SERIAL_B_BAUD_DEFAULT baud, STATUS_BUZZER 2000, STATUS_LED ON) compile
-      // fine on the E4 branch but hard-#error against main. Force all three OFF
-      // — in the form fields (so a later "Generate Config.h" stays correct) and
+      // targets: it defines no SERIAL_B, so the E4-branch SERIAL_B_BAUD_DEFAULT
+      // baud #errors in src/pinmaps/Validate.h. It also maps STATUS_LED and
+      // STATUS_BUZZER to the same AUX8_PIN (GPIO13): upstream compiles that
+      // (STATUS_LED + STATUS_BUZZER is never a Validate.h error), but at runtime
+      // the LED blink and the buzzer tone drive one GPIO and fight. Force all
+      // three OFF — in the form fields (so a later "Generate Config.h" stays correct) and
       // in the raw Output text Compile sends verbatim. Matches the build-service
       // sanitizer, so this is belt-and-braces.
       const E4_FORCE_OFF = ['SERIAL_B_BAUD_DEFAULT', 'STATUS_BUZZER', 'STATUS_LED'];
@@ -6490,33 +6602,9 @@ window.applyBoardDefaults = async function () {
   // of it came along — where GPIO4 is AXIS1_DIR, so a heater PWM was driving
   // the RA direction line, and the tracking LED stayed dark. Anything a board
   // genuinely wants, it states in `fields`.
-  const boardFields = { ...PRISTINE_BOARD_FIELDS, ...entry.fields };
-
-  // Axis 1/2/3 driver microsteps are owned by the Calculator tab: steps/degree
-  // is derived from the calc's microsteps, so the driver must match it. Skip
-  // these here (the calcAxis*() re-run below sets them) — otherwise the preview
-  // would advertise a microsteps change we immediately overwrite. Axis 4
-  // (focuser) has no geometry calc, so its board-default microsteps still apply.
-  const CALC_OWNED = new Set([
-    'AXIS1_DRIVER_MICROSTEPS', 'AXIS1_DRIVER_MICROSTEPS_GOTO',
-    'AXIS2_DRIVER_MICROSTEPS',
-    'AXIS3_DRIVER_MICROSTEPS',
-    // AXIS2/AXIS3_DRIVER_MICROSTEPS_GOTO used to be listed here too, but no
-    // calculator writes them — calcSlew() only drives the Axis1 one, from
-    // calc_a1_goto_us. Listing them meant no board profile could ever set
-    // them, and they silently kept the page default instead.
-  ]);
-
-  const existing = Object.keys(boardFields)
-    .filter((id) => !CALC_OWNED.has(id))
-    .map((id) => {
-      const el = document.getElementById(id);
-      if (!el) return null;
-      const current = el.value;
-      const next = boardFields[id];
-      return current !== next ? { id, current, next } : null;
-    })
-    .filter(Boolean);
+  // (Pristine fields + profile, calculator-owned microsteps skipped: see
+  // boardDefaultsChanges(), shared with the post-flash form reset.)
+  const existing = boardDefaultsChanges(entry);
 
   if (existing.length === 0) {
     showStatus?.('Form already matches the board defaults.');
@@ -6532,19 +6620,7 @@ window.applyBoardDefaults = async function () {
   );
   if (!ok) return;
 
-  for (const { id, next } of existing) {
-    const el = document.getElementById(id);
-    if (!el) continue;
-    el.value = next;
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-  }
-  // Re-run the steps/deg + slew-rate + PEC calculators so the Calculator-tab
-  // inputs remain authoritative for AXIS{1,2,3}_STEPS_PER_DEGREE,
-  // AXIS{1,2,3}_DRIVER_MICROSTEPS(_GOTO), SLEW_RATE_BASE_DESIRED, and
-  // PEC_STEPS_PER_WORM_ROTATION. Board defaults set driver model + run current;
-  // mount-geometry-derived values (steps/deg and their microsteps) come from
-  // the Calculator only.
-  try { calcAxis1(); calcAxis2(); calcAxis3(); calcSlew(); calcPEC(); } catch {}
+  applyBoardDefaultsChanges(existing);
   showStatus?.(`${entry.label} defaults applied.`);
 };
 
@@ -6605,7 +6681,10 @@ function updateCompileBoardOptions() {
 // Versioned to v2 to accommodate per-mode field state.
 const STORAGE_KEY = 'onstepx-configurator-v2';
 const STORAGE_KEY_LEGACY = 'onstepx-configurator-v1'; // single-mode (OnStepX) legacy
-const VOLATILE_IDS = new Set(['configOutput', 'fileInput', 'preflightOverrideCheckbox']);
+// flashEraseAll: a one-shot "wipe NV" choice — persisting it would silently
+// erase the saved settings on every later ESP flash. monitorBaud: follows
+// SERIAL_A_BAUD_DEFAULT unless picked in this session (see syncMonitorBaud).
+const VOLATILE_IDS = new Set(['configOutput', 'fileInput', 'preflightOverrideCheckbox', 'flashEraseAll', 'monitorBaud']);
 const SHC_PREFIX = 'SHC_';
 const SWS_PREFIX = 'SWS_';
 
@@ -6638,6 +6717,7 @@ function collectFormState() {
 function applyFieldMap(map) {
   if (!map) return;
   for (const [id, val] of Object.entries(map)) {
+    if (VOLATILE_IDS.has(id)) continue; // older saves may still carry them
     const el = document.getElementById(id);
     if (!el) continue;
     if (el.type === 'checkbox') el.checked = !!val;
@@ -7209,6 +7289,8 @@ function patchFormFieldsIntoConfig(rawText) {
     const [, prefix, name, sep, currentValue, trailingWs] = m;
     const el = document.getElementById(name);
     if (!el) return line;
+    // Imported value the form couldn't hold, field untouched since: keep it.
+    if (importRefusalHolds(name, el)) return line;
     let newValue = String(el.value ?? '').trim();
     if (!newValue) return line; // empty form field — leave original alone
     // TERRANS_V5PRO is a configurator-only token; OnStepX only accepts a board
@@ -7231,6 +7313,101 @@ function patchFormFieldsIntoConfig(rawText) {
   return updated.join('\n');
 }
 
+// The OnStepX generator's output for the current form, rendered without
+// touching the Output textarea or flashing a status message. Patch mode uses
+// it as the reference for line text and define order.
+function onstepxReferenceConfig() {
+  const out = document.getElementById('configOutput');
+  const keep = out ? out.value : '';
+  const status = window.showStatus;
+  let text = '';
+  try {
+    window.showStatus = () => {};
+    _generateOnStepXConfig?.();
+    text = out ? out.value : '';
+  } finally {
+    window.showStatus = status;
+    if (out) out.value = keep;
+  }
+  return text;
+}
+
+// The value a form field ships with in the markup (its "untouched" state).
+function formFieldDefault(el) {
+  if (el.tagName === 'SELECT') {
+    const opt = [...el.options].find((o) => o.defaultSelected) || el.options[0];
+    return opt ? opt.value : '';
+  }
+  return el.defaultValue ?? '';
+}
+
+// Upstream's legacy meridian-flip names (Config.defaults.h maps them onto the
+// new pair only when the new name is absent) -> the define that replaces them.
+const MFLIP_LEGACY_DEFINES = {
+  MFLIP_HOME_DEFAULT: ['MFLIP_SKIP_HOME', 'MFLIP_VISIT_HOME_DEFAULT', 'MFLIP_PAUSE_HOME_DEFAULT'],
+  MFLIP_HOME_MEMORY: ['MFLIP_VISIT_HOME_MEMORY', 'MFLIP_PAUSE_HOME_MEMORY'],
+};
+// Defines with their own patch-mode sync helper (or that must never be added).
+const PATCH_INSERT_SKIP = new Set(['PINMAP', 'SERIAL_GPS', 'SERIAL_GPS_RX', 'SERIAL_GPS_TX', 'SERIAL_GPS_BAUD']);
+
+// Patch-mode companion to patchFormFieldsIntoConfig, which only rewrites lines
+// that already exist: a form edit to a define the imported text lacks (the E4
+// branch Config.h predates AXISn_LIMIT_SYNC and MFLIP_HOME_DEFAULT/_MEMORY) was
+// silently dropped. Generalises the GPS / DEBUG sync helpers:
+//  - legacy MFLIP_SKIP_HOME / MFLIP_VISIT_HOME_* / MFLIP_PAUSE_HOME_* lines are
+//    replaced by MFLIP_HOME_DEFAULT / _MEMORY carrying the form's value (the
+//    importer already mapped them onto those fields the way upstream does);
+//  - any other form-backed define the generator emits, absent here, and whose
+//    field differs from its markup default is inserted with the generator's
+//    own line, after the nearest define that precedes it in generator order
+//    (else before the nearest following one, else before the Extended include).
+// Untouched fields are not added, so the file stays as imported.
+function syncMissingFormDefines(text) {
+  const order = [];
+  const refLine = new Map();
+  let inBlock = false;
+  for (const line of onstepxReferenceConfig().split('\n')) {
+    if (line.startsWith(TERRANS_PIN_BLOCK_BEGIN) || line.startsWith(E4_PIN_BLOCK_BEGIN)) { inBlock = true; continue; }
+    if (line.startsWith(TERRANS_PIN_BLOCK_END) || line.startsWith(E4_PIN_BLOCK_END)) { inBlock = false; continue; }
+    if (/^\s*#include\s+"Extended\.config\.h"/.test(line)) break;
+    const m = !inBlock && line.match(/^\s*#define\s+(\w+)/);
+    if (m && !refLine.has(m[1])) { refLine.set(m[1], line); order.push(m[1]); }
+  }
+  if (!order.length) return text;
+  const lines = text.split('\n');
+  const defIdx = (name) => lines.findIndex((l) => new RegExp('^\\s*#define\\s+' + name + '\\b').test(l));
+  let changed = 0;
+
+  for (const [name, legacy] of Object.entries(MFLIP_LEGACY_DEFINES)) {
+    if (!refLine.has(name) || defIdx(name) >= 0) continue;
+    const at = legacy.map(defIdx).filter((i) => i >= 0).sort((a, b) => a - b);
+    if (!at.length) continue;
+    lines[at[0]] = refLine.get(name);
+    for (const i of at.slice(1).reverse()) lines.splice(i, 1);
+    changed++;
+  }
+
+  for (let k = 0; k < order.length; k++) {
+    const name = order[k];
+    if (PATCH_INSERT_SKIP.has(name) || defIdx(name) >= 0) continue;
+    const el = document.getElementById(name);
+    if (!el) continue;
+    const val = String(el.value ?? '').trim();
+    if (!val || val === String(formFieldDefault(el)).trim()) continue;
+    let at = -1;
+    for (let j = k - 1; j >= 0 && at < 0; j--) { const i = defIdx(order[j]); if (i >= 0) at = i + 1; }
+    for (let j = k + 1; j < order.length && at < 0; j++) { const i = defIdx(order[j]); if (i >= 0) at = i; }
+    if (at < 0) {
+      const inc = lines.findIndex((l) => /^\s*#include\s+"Extended\.config\.h"/.test(l));
+      at = inc >= 0 ? inc : lines.length;
+    }
+    lines.splice(at, 0, refLine.get(name));
+    changed++;
+  }
+  if (changed > 0) console.log(`syncMissingFormDefines: added/replaced ${changed} define(s)`);
+  return lines.join('\n');
+}
+
 // Override generateConfig() (defined in the classic script) to dispatch by mode.
 // KEY BEHAVIOUR: if the Output textarea already has #define lines (imported,
 // loaded, or hand-edited), we PATCH the form-known fields into it instead
@@ -7250,6 +7427,8 @@ window.generateConfig = function () {
     // patchFormFieldsIntoConfig only ever rewrites values on lines that
     // already exist.
     if (window.currentMode !== 'shc' && window.currentMode !== 'sws') {
+      text = stripObsoleteConfigMacros(text);
+      text = syncMissingFormDefines(text);
       const wantTerrans = document.getElementById('PINMAP')?.value === 'TERRANS_V5PRO';
       text = syncTerransPinBlock(text, wantTerrans);
       text = syncE4PinBlock(text, e4SwapActive());
@@ -7261,7 +7440,8 @@ window.generateConfig = function () {
     return outEl.value;
   }
 
-  // Fresh generate — no existing content to preserve.
+  // Fresh generate — no existing content to preserve (nor imported lines to protect).
+  importRefusedFields.clear();
   let result;
   if (window.currentMode === 'shc') result = generateSHCConfig();
   else if (window.currentMode === 'sws') result = generateSWSConfig();
@@ -7300,6 +7480,8 @@ const relevantIds = [
   'STATUS_MOUNT_LED', 'RETICLE_LED_DEFAULT', 'LIMIT_SENSE', 'TIME_LOCATION_PPS_SENSE',
   'AXIS1_SENSE_HOME', 'AXIS2_SENSE_HOME', 'SERIAL_B_ESP_FLASHING', 'AXIS4_POWER_DOWN',
   'AXIS1_DRIVER_STATUS', 'AXIS2_DRIVER_STATUS', 'AXIS3_DRIVER_STATUS', 'AXIS4_DRIVER_STATUS',
+  // Serial port availability per board (validate.js PINMAP_SERIAL).
+  'SERIAL_B_BAUD_DEFAULT', 'SERIAL_C_BAUD_DEFAULT', 'SERIAL_D_BAUD_DEFAULT', 'SERIAL_E_BAUD_DEFAULT',
 ];
 // Build the input object for validateConfig() (OnStepX mode): the relevantIds
 // field values plus bundled extras the validator needs — selected plugins,
@@ -7817,6 +7999,18 @@ function pgT(en, fr, zh, ro) {
 function tr(s) {
   return (window.I18N && typeof window.I18N.t === 'function') ? window.I18N.t(s) : s;
 }
+// Progress-bar label for a finished GitHub Actions run. Fixed strings per
+// conclusion (not a `Build ${conclusion}` template) so each has a dictionary
+// entry; anything rarer keeps the raw conclusion after a generic label.
+function buildConclusionLabel(conclusion) {
+  switch (conclusion) {
+    case 'success': return pgT('Build succeeded', 'Compilation réussie', '编译成功', 'Compilare reușită');
+    case 'failure': return pgT('Build failed', 'Échec de la compilation', '编译失败', 'Compilarea a eșuat');
+    case 'cancelled': return pgT('Build cancelled', 'Compilation annulée', '编译已取消', 'Compilare anulată');
+    case 'timed_out': return pgT('Build timed out', 'Délai de compilation dépassé', '编译超时', 'Compilarea a depășit timpul limită');
+    default: return `${pgT('Build finished', 'Compilation terminée', '编译结束', 'Compilare încheiată')} (${conclusion})`;
+  }
+}
 
 // Render the firmware Flash/RAM usage bars from the build's manifest.json
 // (used/total bytes). Hidden if the manifest lacks size data; warns above 90%.
@@ -7987,7 +8181,7 @@ window.startCompileFlow = async function () {
     const final = await pollUntilDone(requestId, (s) => {
       if (s.state === 'queued') { setStatus('Waiting for runner…'); _compPhase = pgT('Waiting for runner', 'En attente du runner', '等待构建服务器', 'Se așteaptă runner-ul'); }
       else if (s.state === 'in_progress') { setStatus('Compiling on GitHub Actions…'); _compPhase = pgT('Compiling', 'Compilation', '正在编译', 'Compilare'); }
-      else if (s.state === 'completed') { setStatus(`Build ${s.conclusion}`, s.conclusion === 'success' ? 'ok' : 'err'); _compPhase = pgT(`Build ${s.conclusion}`, `Compilation ${s.conclusion === 'success' ? 'réussie' : s.conclusion}`, `编译${s.conclusion === 'success' ? '成功' : '结果：' + s.conclusion}`, `Compilare ${s.conclusion === 'success' ? 'reușită' : s.conclusion}`); }
+      else if (s.state === 'completed') { setStatus(`Build ${s.conclusion}`, s.conclusion === 'success' ? 'ok' : 'err'); _compPhase = buildConclusionLabel(s.conclusion); }
     });
 
     if (final.conclusion !== 'success') {
@@ -8086,6 +8280,35 @@ let monitorBox = null;
 // same serial port mid-flash (the flasher's open()/requestPort would fail or
 // the two readers would steal each other's bytes).
 let flashInProgress = false;
+// Monitor baud follows SERIAL_A_BAUD_DEFAULT (the generated Config.h makes
+// SERIAL_DEBUG_BAUD follow it too, see debugReapplyLines) until the user picks
+// one in the monitor's own dropdown this session (monitorBaud is in
+// VOLATILE_IDS, so the pick isn't persisted either).
+let monitorBaudPicked = false;
+function syncMonitorBaud() {
+  const sel = document.getElementById('monitorBaud');
+  if (!sel || monitorBaudPicked) return;
+  const a = String(document.getElementById('SERIAL_A_BAUD_DEFAULT')?.value || '').trim();
+  const baud = /^\d+$/.test(a) ? a : '9600';
+  if ([...sel.options].some((o) => o.value === baud)) sel.value = baud;
+}
+(function initMonitorBaud() {
+  const sel = document.getElementById('monitorBaud');
+  if (!sel) return;
+  // Offer every rate SERIAL_A offers, so the two lists can't drift apart.
+  const have = new Set([...sel.options].map((o) => o.value));
+  for (const o of document.getElementById('SERIAL_A_BAUD_DEFAULT')?.options || []) {
+    if (!/^\d+$/.test(o.value) || have.has(o.value)) continue;
+    const opt = document.createElement('option');
+    opt.value = opt.textContent = o.value;
+    const after = [...sel.options].find((x) => Number(x.value) > Number(o.value));
+    sel.insertBefore(opt, after || null);
+    have.add(o.value);
+  }
+  sel.addEventListener('change', () => { monitorBaudPicked = true; });
+  document.getElementById('SERIAL_A_BAUD_DEFAULT')?.addEventListener('change', syncMonitorBaud);
+  syncMonitorBaud();
+})();
 function monitorStatusText(msg, warn) {
   const el = document.getElementById('monitorStatus');
   if (!el) return;
@@ -8144,6 +8367,7 @@ window.monitorToggle = async function () {
     return;
   }
   monitorStatusText('');
+  syncMonitorBaud(); // the form may have been restored/imported without a change event
   await monitorBox.connect(document.getElementById('monitorBaud').value);
 };
 window.monitorReset = async function () { if (monitorBox) await monitorBox.reset(); };
@@ -8172,17 +8396,33 @@ window.monitorSave = function () {
 // log lines into the progress bar, and (OnStepX mode) resets the form to board
 // defaults on success.
 window.flashBoard = async function () {
-  if (!lastBuild) return;
+  if (!lastBuild || flashInProgress) return;
   const flashBtn = document.getElementById('flashBtn');
+  // Claim the flash synchronously, before the first await: a double click (or
+  // the monitor's Connect) during the SHA-1 / stale-firmware confirm() below
+  // must not start a second flash. Released on every early return.
+  flashInProgress = true;
+  flashBtn.disabled = true;
+  const release = () => { flashInProgress = false; flashBtn.disabled = false; };
   const logEl = document.getElementById('flashLog');
   logEl.textContent = '';
   logEl.style.display = 'block';
   // Drive the determinate flash bar off the flashers' own "NN%" log lines
-  // (esp32 "[1/3] 45%", stm32 "wrote x/y (45.6%)", teensy "progress: 45%").
+  // (esp32 "[1/3] 45% (overall 60%)", stm32 "wrote x/y (45.6%)", teensy
+  // "progress: 45%"). Teensy's "Firmware size: … (N% of flash)" is a size, not
+  // progress, and the bar never moves backwards (ESP32's per-file % restarts
+  // at 0 for every file — the "overall" figure is preferred when present).
+  let lastPct = 0;
   const log = (m) => {
     appendLog('flashLog', m);
-    const mm = String(m).match(/(\d+(?:\.\d+)?)\s*%/);
-    if (mm) progSet('flashProgBar', 'flashProgLabel', parseFloat(mm[1]), `${pgT('Flashing…', 'Flash en cours…', '正在烧录…', 'Se scrie firmware-ul…')} ${mm[1]}%`);
+    const s = String(m);
+    if (/%\s*of flash/i.test(s)) return;
+    const mm = s.match(/overall\s+(\d+(?:\.\d+)?)\s*%/i) || s.match(/(\d+(?:\.\d+)?)\s*%/);
+    if (!mm) return;
+    const pct = Math.min(100, parseFloat(mm[1]));
+    if (!(pct >= lastPct)) return;
+    lastPct = pct;
+    progSet('flashProgBar', 'flashProgLabel', pct, `${pgT('Flashing…', 'Flash en cours…', '正在烧录…', 'Se scrie firmware-ul…')} ${mm[1]}%`);
   };
 
   // Stale-flash guard: has Config.h changed since this firmware was built?
@@ -8201,7 +8441,7 @@ window.flashBoard = async function () {
         'Flashing now will put OUT-OF-DATE firmware on the board. Recompile first?\n\n' +
         'OK = cancel flash and recompile.\nCancel = flash the old firmware anyway.'
       );
-      if (go) return;
+      if (go) { release(); return; }
     } else {
       document.getElementById('staleFlashWarn').style.display = 'none';
     }
@@ -8209,8 +8449,15 @@ window.flashBoard = async function () {
     console.warn('stale-flash check failed', e);
   }
 
-  flashBtn.disabled = true;
-  flashInProgress = true;
+  const { env, files } = lastBuild;
+  // All ESP32 builds (OnStepX / SHC / SWS) share the Web Serial flasher.
+  // Both ESP32 and ESP8266 are supported by esptool-js; the flasher adapts
+  // based on which files are in the bundle.
+  const isEsp = env === 'esp32' || env === 'shc_esp32' || env === 'sws_esp32' || env === 'sws_esp8266';
+  const isTeensy =
+    env === 'teensy32' || env === 'teensy40' || env === 'teensy41' ||
+    env === 'shc_teensy40' || env === 'shc_teensy32';
+  const isStm32Dfu = env === 'blackpill_f411' || env === 'skr_pro_f407' || env === 'f446_fysetc_s6';
   progShow('flashProgress', 'flashProgBar', 'flashProgLabel', { pct: 0, label: `${pgT('Flashing…', 'Flash en cours…', '正在烧录…', 'Se scrie firmware-ul…')} 0%` });
   try {
     // Release the serial monitor's hold on the port BEFORE any flasher asks for
@@ -8221,15 +8468,6 @@ window.flashBoard = async function () {
       log('Closing the serial monitor so the flasher can use the port…');
       await monitorBox.disconnect();
     }
-    const { env, files } = lastBuild;
-    // All ESP32 builds (OnStepX / SHC / SWS) share the Web Serial flasher.
-    // Both ESP32 and ESP8266 are supported by esptool-js; the flasher adapts
-    // based on which files are in the bundle.
-    const isEsp = env === 'esp32' || env === 'shc_esp32' || env === 'sws_esp32' || env === 'sws_esp8266';
-    const isTeensy =
-      env === 'teensy32' || env === 'teensy40' || env === 'teensy41' ||
-      env === 'shc_teensy40' || env === 'shc_teensy32';
-    const isStm32Dfu = env === 'blackpill_f411' || env === 'skr_pro_f407' || env === 'f446_fysetc_s6';
     const eraseAll = !!document.getElementById('flashEraseAll')?.checked;
     let result;
     if (isEsp) result = await esp32Flasher.flash(files, log, { eraseAll });
@@ -8258,14 +8496,14 @@ window.flashBoard = async function () {
     if (window.currentMode === 'onstepx') {
       const pinmap = document.getElementById('PINMAP')?.value;
       const entry = BOARD_DEFAULTS[pinmap];
+      // Exactly what "Apply board defaults" would change (pristine fields +
+      // profile, calculator-owned microsteps skipped). Live-fetch profiles
+      // (FYSETC E4) can't be re-applied offline, so they are left alone.
+      const changes = entry && !entry.liveFetch ? boardDefaultsChanges(entry) : [];
       // If the form already holds these defaults (e.g. a second flash right
       // after an auto-reset), there's nothing to reset — and snapshotting now
       // would overwrite the user's real pre-flash config with the defaults.
-      const alreadyDefaults = entry && Object.entries(entry.fields).every(([id, val]) => {
-        const el = document.getElementById(id);
-        return !el || String(el.value) === String(val);
-      });
-      if (entry && alreadyDefaults) {
+      if (entry && changes.length === 0) {
         log('');
         log('✓ Flash complete. (Form already at board defaults — left as-is.)');
       } else if (entry) {
@@ -8277,12 +8515,10 @@ window.flashBoard = async function () {
             : (localStorage.getItem(STORAGE_KEY) || '');
           localStorage.setItem('onstepx-configurator-v2-preflash', snap);
         } catch {}
-        for (const [id, val] of Object.entries(entry.fields)) {
-          const el = document.getElementById(id);
-          if (!el) continue;
-          el.value = val;
-          el.dispatchEvent(new Event('change', { bubbles: true }));
-        }
+        // Same writer as the button, so the result equals a fresh "Apply board
+        // defaults" — including the calculator re-run that keeps
+        // STEPS_PER_DEGREE and DRIVER_MICROSTEPS consistent.
+        applyBoardDefaultsChanges(changes);
         log('');
         log(`✓ Flash complete. Form reset to ${entry.label} starter defaults for next build.`);
         log(`  Your pre-flash config was saved. To restore it, run restorePreflashConfig() in the`);
@@ -8298,16 +8534,34 @@ window.flashBoard = async function () {
     }
   } catch (err) {
     log(`! ${err.message}`);
-    // requestPort/requestDevice need a fresh click: if the user sat on the
-    // stale-firmware dialog too long the browser refuses to show the picker.
-    if (err && err.name === 'SecurityError') {
+    // The flashers tag where an error came from (err.flashStage): 'picker' =
+    // requestPort/requestDevice, 'open' = opening/claiming the chosen device.
+    // A SecurityError from the PICKER means the click's user activation ran
+    // out (e.g. the user sat on the stale-firmware dialog) — click again. A
+    // SecurityError from open() ("Access denied") is a driver/ownership
+    // problem that clicking again won't fix.
+    const stage = err && err.flashStage;
+    if (err && err.name === 'SecurityError' && stage === 'picker') {
       log('  The browser blocked the device picker because too much time passed since the click.');
       log('  Click "Flash to Board" again.');
+    } else if (stage === 'open' && isStm32Dfu) {
+      log('  The browser found the STM32 BOOTLOADER but could not open it.');
+      if (/Windows/i.test(navigator.userAgent || '')) {
+        log('  On Windows it needs the WinUSB driver: run Zadig (zadig.akeo.ie), pick "STM32 BOOTLOADER",');
+        log('  select WinUSB, click Replace/Install Driver, then unplug and replug the board.');
+      } else {
+        log('  On Linux, add a udev rule giving your user access to USB device 0483:df11, then replug.');
+      }
+      log('  Also close STM32CubeProgrammer, dfu-util or any other program that may have claimed it.');
     }
     progHide('flashProgress');
   } finally {
     flashInProgress = false;
     flashBtn.disabled = false;
+    // Erase-all is a one-shot choice: never let it ride along into the next
+    // flash (it wipes the saved NV/EEPROM settings every time).
+    const ea = document.getElementById('flashEraseAll');
+    if (ea) ea.checked = false;
   }
 };
 
@@ -8323,23 +8577,23 @@ window.restorePreflashConfig = function () {
   return true;
 };
 </script>
-<script src="e4-guide.js?v=16"></script>
-<script src="i18n-fr.js?v=16"></script>
-<script src="i18n-fr-2.js?v=16"></script>
-<script src="i18n-fr-3.js?v=16"></script>
-<script src="i18n-fr-4.js?v=16"></script>
-<script src="i18n-fr-e4a.js?v=16"></script>
-<script src="i18n-fr-e4b.js?v=16"></script>
-<script src="i18n-fr-e4c.js?v=16"></script>
-<script src="i18n-fr-5.js?v=16"></script>
-<script src="i18n-fr-6.js?v=16"></script>
-<script src="i18n-fr-7.js?v=16"></script>
-<script src="i18n-fr-8.js?v=16"></script>
-<script src="i18n-fr-terrans.js?v=16"></script>
-<script src="i18n-fr-9.js?v=16"></script>
-<script src="i18n-fr-e4d.js?v=16"></script>
-<script src="i18n-zh.js?v=16"></script>
-<script src="i18n-ro.js?v=16"></script>
-<script src="i18n.js?v=16"></script>
+<script src="e4-guide.js?v=17"></script>
+<script src="i18n-fr.js?v=17"></script>
+<script src="i18n-fr-2.js?v=17"></script>
+<script src="i18n-fr-3.js?v=17"></script>
+<script src="i18n-fr-4.js?v=17"></script>
+<script src="i18n-fr-e4a.js?v=17"></script>
+<script src="i18n-fr-e4b.js?v=17"></script>
+<script src="i18n-fr-e4c.js?v=17"></script>
+<script src="i18n-fr-5.js?v=17"></script>
+<script src="i18n-fr-6.js?v=17"></script>
+<script src="i18n-fr-7.js?v=17"></script>
+<script src="i18n-fr-8.js?v=17"></script>
+<script src="i18n-fr-terrans.js?v=17"></script>
+<script src="i18n-fr-9.js?v=17"></script>
+<script src="i18n-fr-e4d.js?v=17"></script>
+<script src="i18n-zh.js?v=17"></script>
+<script src="i18n-ro.js?v=17"></script>
+<script src="i18n.js?v=17"></script>
 </body>
 </html>

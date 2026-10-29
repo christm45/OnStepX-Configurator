@@ -124,6 +124,30 @@ export const PINMAP_AUX = {
   BTT_SKR_PRO: { aux: [1, 2, 3, 4, 5] },
 };
 
+// Serial ports each Pins.<Board>.h defines (SERIAL_A always exists via
+// Pins.defaults.h). src/pinmaps/Validate.h:
+//   #if !defined(SERIAL_x) && SERIAL_x_BAUD_DEFAULT != OFF  #error
+// SERIAL_D/E on MaxPCB4/MiniPCB are SerialUSB1/2, defined only under
+// USB_DUAL_SERIAL / USB_TRIPLE_SERIAL — the build service's Teensy envs use
+// -D USB_SERIAL, so they're absent here. Pins.MiniPCB.h also #errors outright
+// on SERIAL_C ("SerialC isn't supported"). TERRANS_V5PRO's inline pin block
+// mirrors Pins.MaxESP3.h (SERIAL_B = Serial2).
+export const PINMAP_SERIAL = {
+  MaxESP3: ['A', 'B'],
+  MaxESP4: ['A', 'B'],
+  TERRANS_V5PRO: ['A', 'B'],
+  CNC3: ['A', 'B'],
+  FYSETC_E4: ['A'],
+  FYSETC_S6: ['A', 'B', 'C'],
+  FYSETC_S6_2: ['A', 'B', 'C'],
+  MaxPCB4: ['A', 'B', 'C'],
+  MaxSTM3: ['A', 'B', 'C'],
+  MaxSTM3I: ['A', 'B', 'C'],
+  MiniPCB: ['A', 'B'],
+  MiniPCB2: ['A', 'B'],
+  BTT_SKR_PRO: ['A', 'B', 'C'],
+};
+
 const isOn = (v) => v !== undefined && v !== null && v !== '' && v !== 'OFF';
 
 /**
@@ -226,6 +250,17 @@ const STANDALONE_DRIVERS = new Set([
   'TMC2100', 'TMC2130S', 'TMC2208S', 'TMC2225S', 'TMC2209S', 'TMC2226S',
 ]);
 
+// Driver models in upstream LibConstants.h STEP_DIR_DRIVER_FIRST..LAST (0..21).
+// Config.defaults.h defines AXISn_STEP_DIR_PRESENT only for these, and
+// src/Validate.h checks the step/dir microstep settings only inside
+// `#ifdef AXISn_STEP_DIR_PRESENT` — OFF and servo/ODrive axes are skipped.
+const STEP_DIR_DRIVERS = new Set([
+  'A4988', 'DRV8825', 'GENERIC', 'LV8729', 'RAPS128', 'S109', 'ST820',
+  'TMC2100', 'TMC2130S', 'TMC2208S', 'TMC2225S', 'TMC2209S', 'TMC2226S',
+  'TMC2130', 'TMC2160', 'TMC2660', 'TMC5160', 'TMC5161',
+  'TMC2208', 'TMC2225', 'TMC2209', 'TMC2226',
+]);
+
 // OnStepX plugin → required SERIAL_RADIO mode. Plugins that need WiFi
 // fail at compile time with a #error from the plugin's own Validate.h
 // when SERIAL_RADIO is anything else (including BLUETOOTH).
@@ -273,7 +308,7 @@ export const DRIVER_MICROSTEPS = {
 };
 
 // Every MOUNT_TYPE in upstream src/Constants.h (MOUNT_TYPE_FIRST..LAST), which
-// src/Validate.h accepts. ALTALT is a valid subtype the form doesn't offer.
+// src/Validate.h accepts (all offered by the MOUNT_TYPE select).
 export const MOUNT_TYPES_COMMON = [
   'GEM', 'FORK', 'ALTAZM', 'ALTALT', 'GEM_TA', 'GEM_TAC', 'FORK_TA', 'FORK_TAC', 'ALTAZM_UNL',
 ];
@@ -410,11 +445,6 @@ export function validateConfig(values) {
     }
   }
 
-  // STATUS_LED + STATUS_BUZZER pin-sharing: on the boards in
-  // PINMAPS_LED_BUZZER_SHARED_PIN, OnStepX's Validate.h fires
-  //   #error "Configuration (Config.h): STATUS_BUZZER enabled but AUX8_PIN
-  //   is already in use, choose one feature on AUX8_PIN"
-  // when both are ON. Catch it locally — saves a 30-second CI round-trip.
   // --- GPS serial port ---
   // OnStepX src/lib/tls/gps/GPS.cpp #errors "SERIAL_GPS must be set ..." when
   // TIME_LOCATION_SOURCE is GPS and nothing defines SERIAL_GPS. Only these
@@ -452,6 +482,19 @@ export function validateConfig(values) {
       add('error', 'WEATHER',
         `SERIAL_GPS_RX/TX use GPIO21/22, which is the I2C bus, but WEATHER=${values.WEATHER} is an I2C sensor on the ` +
         `same pins. Set WEATHER OFF (or a _SPI variant), or move the GPS.`);
+    }
+  }
+
+  // Serial ports the board doesn't have: src/pinmaps/Validate.h #errors
+  // "SERIAL_x isn't defined, SERIAL_x_BAUD_DEFAULT should be OFF."
+  const serialPorts = PINMAP_SERIAL[values.PINMAP];
+  if (serialPorts) {
+    for (const port of ['B', 'C', 'D', 'E']) {
+      const key = `SERIAL_${port}_BAUD_DEFAULT`;
+      if (!isOn(values[key]) || serialPorts.includes(port)) continue;
+      add('error', key,
+        `${key}=${values[key]}, but PINMAP=${values.PINMAP} has no SERIAL_${port} port, so OnStepX won't compile ` +
+        `("SERIAL_${port} isn't defined, ${key} should be OFF"). Set ${key}=OFF.`);
     }
   }
 
@@ -573,6 +616,8 @@ export function validateConfig(values) {
   //   #if AXISn_DRIVER_MICROSTEPS_GOTO != OFF && (_GOTO < 1 || _GOTO >= AXISn_DRIVER_MICROSTEPS) #error
   //   #if AXISn_DRIVER_MICROSTEPS == OFF && AXISn_DRIVER_MICROSTEPS_GOTO != OFF                  #error
   //   SERVO_TMC2209/SERVO_TMC5160: MICROSTEPS must be 256 and _GOTO must be OFF                 #error
+  // The first two only for step/dir models (#ifdef AXISn_STEP_DIR_PRESENT),
+  // the servo one only inside #ifdef AXISn_SERVO_PRESENT.
   for (const axis of [1, 2, 3, 4, 5]) {
     const msKey = `AXIS${axis}_DRIVER_MICROSTEPS`;
     const goKey = `AXIS${axis}_DRIVER_MICROSTEPS_GOTO`;
@@ -586,6 +631,8 @@ export function validateConfig(values) {
       }
       continue;
     }
+    // Only step/dir axes are checked upstream (#ifdef AXISn_STEP_DIR_PRESENT).
+    if (!STEP_DIR_DRIVERS.has(model)) continue;
     if (!go || go === 'OFF') continue;
     if (!ms || ms === 'OFF') {
       add('error', goKey,
@@ -610,11 +657,11 @@ export function validateConfig(values) {
     const key = `FEATURE${i}_PIN`;
     if (values[key] !== 'AUX') continue;
     if (!isOn(values[`FEATURE${i}_PURPOSE`])) {
-      add('warn', key,
+      add('error', key,
         `${key}=AUX while FEATURE${i}_PURPOSE is OFF — OnStepX only maps AUX to AUX${i}_PIN for an enabled ` +
         `feature, so this fails to compile ("Setting ${key} unknown"). Set ${key}=OFF or pick a purpose.`);
     } else if (auxBoard && !auxBoard.aux.includes(i)) {
-      add('warn', key,
+      add('error', key,
         `${key}=AUX, but PINMAP=${values.PINMAP} doesn't define AUX${i}_PIN, so OnStepX can't map it and the ` +
         `build fails ("Setting ${key} unknown"). Use a real pin number instead` +
         `${auxBoard.aux.length ? ` (this board's AUX pins: ${auxBoard.aux.map((n) => 'AUX' + n).join(', ')})` : ''}.`);

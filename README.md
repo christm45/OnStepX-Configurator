@@ -92,7 +92,7 @@ The little ? icons next to field names open a one-sentence explanation for that 
 PINMAP → MCU target auto-resolves. Pick MaxPCB4 in the Controller section and the Compile & Flash tab's Target MCU switches to teensy41 for you. Changing it manually to something incompatible fires a preflight warning before you spend a build minute.
 Form state is saved to local storage on every change, so a refresh or closed tab doesn't lose your work. The header ↻ Reset to Defaults clears it.
 The Cloudflare Worker (the "bridge")
-A ~200-line JavaScript function that Cloudflare runs on-demand when your browser pings it. Its only job is to accept your /compile request, attach a private GitHub API token (which, critically, your browser shouldn't see), and tell GitHub Actions to start a build. It also proxies the resulting firmware zip back to you. The Worker doesn't store anything — each request is independent.
+A small JavaScript program (cloudflare-worker/worker.js) that Cloudflare runs on-demand when your browser pings it. It accepts your /compile request, attaches a private GitHub API credential (which, critically, your browser shouldn't see), and tells GitHub Actions to start a build. It hands your browser a per-build token, reports the build's progress (and, on failure, the compiler error lines from the log, with credential-looking values redacted), and proxies the resulting firmware zip back to you. The only thing it stores is a per-IP build counter for rate limiting (1 hour).
 
 Why it's needed: GitHub Pages is static-only (it serves files, it can't call protected APIs). A tiny serverless function is the simplest way to bridge a static site to an authenticated API without standing up a server you have to maintain.
 
@@ -358,7 +358,7 @@ Data	Where it goes	How long it stays
 Your Config.h (base64-encoded)	Cloudflare Worker → GitHub Actions as a workflow input	Logged in the Actions run metadata indefinitely (public repo)
 Board selection & OnStepX ref	Same as above	Same
 Your IP address (for rate limiting only)	Cloudflare Worker KV (if rate limit is enabled)	1 hour
-The compiled firmware	GitHub Actions artifact storage	24 hours, then deleted automatically
+The compiled firmware (embeds any WiFi SSID/password from your Config.h)	GitHub Actions artifact storage — downloadable by any signed-in GitHub user while it exists, since the build repo is public	24 hours, then deleted automatically
 Form state (all your settings)	Your browser's localStorage	Until you click Reset to Defaults or clear site data
 Don't put WiFi passwords, API keys, or other secrets in Config.h. The workflow input is visible in the public Actions log. Leave those fields at OFF / empty and configure them over the OnStepX web UI after flashing, where they only live on your board.
 The configurator itself sends no analytics, no telemetry, no trackers. Nothing leaves your browser until you click Compile.

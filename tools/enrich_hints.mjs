@@ -101,6 +101,23 @@ function escapeHtml(s) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// Offset just past the </span> closing the <span ...> that starts at `at`,
+// counting nested spans. -1 if unbalanced.
+function spanEnd(html, at) {
+  const tag = /<span\b|<\/span>/g;
+  tag.lastIndex = at + 1;
+  let depth = 1;
+  let m;
+  while ((m = tag.exec(html))) {
+    if (m[0] === '</span>') {
+      if (--depth === 0) return m.index + m[0].length;
+    } else {
+      depth++;
+    }
+  }
+  return -1;
+}
+
 function main() {
   const onstepx = loadAll(ONSTEP_FILES);
   const sws = loadAll(SWS_FILES);
@@ -113,30 +130,41 @@ function main() {
   let skippedNoMatch = 0;
   const unmatchedIds = new Set();
 
-  // Match a field-row up to and including its <span class="field-hint">...</span>.
-  // We capture the form-element id so we can look up the upstream comment.
-  // Then we insert a new sibling <span class="config-comment">...</span> after it.
-  //
-  // Pattern targets:
-  //   id="FOO" ... <span class="field-hint">existing</span>
-  // and replaces with:
+  // Walk the field-rows. For each row we locate its <span class="field-hint">
+  // and that span's REAL end (hints can contain nested <span>s, e.g.
+  // flash-yellow, so "first </span>" is wrong), look up the form element's
+  // id, and insert a sibling right after the hint:
   //   id="FOO" ... <span class="field-hint">existing</span><span class="config-comment">// upstream</span>
   //
-  // We require the form element id and the field-hint to be in the same
-  // ~10 lines (one field-row block). Cross-field collisions are avoided by
-  // anchoring on the FIRST id="..." we see in each row.
-  const ROW_RE = /(<div class="field-row">[\s\S]*?<span class="field-hint">[\s\S]*?<\/span>)/g;
-  html = html.replace(ROW_RE, (rowBlock) => {
-    // Skip if already has config-comment
-    if (rowBlock.includes('class="config-comment"')) {
+  // Idempotent: a row whose hint is already followed by a config-comment (or
+  // that has one before/inside the hint) is left alone. (The old ROW_RE ended at the
+  // hint's </span>, so the config-comment after it was never inside the
+  // matched block and every re-run appended a duplicate.)
+  // A row is bounded by the next field-row, so a row without a hint can't
+  // borrow the next row's hint.
+  const ROW_START = '<div class="field-row">';
+  const HINT_START = '<span class="field-hint">';
+  const COMMENT_START = '<span class="config-comment">';
+  const rowStarts = [];
+  for (let i = html.indexOf(ROW_START); i >= 0; i = html.indexOf(ROW_START, i + 1)) rowStarts.push(i);
+  const inserts = []; // [offset, text], applied back-to-front
+  for (let r = 0; r < rowStarts.length; r++) {
+    const rowStart = rowStarts[r];
+    const rowEnd = r + 1 < rowStarts.length ? rowStarts[r + 1] : html.length;
+    const hintAt = html.indexOf(HINT_START, rowStart);
+    if (hintAt < 0 || hintAt >= rowEnd) continue; // no hint in this row
+    const hintEnd = spanEnd(html, hintAt);
+    if (hintEnd < 0 || hintEnd > rowEnd) continue;
+    if (html.slice(rowStart, hintEnd).includes('class="config-comment"') ||
+        html.slice(hintEnd).trimStart().startsWith(COMMENT_START)) {
       skippedAlreadyEnriched++;
-      return rowBlock;
+      continue;
     }
-    // Find the first id="..." inside this row (the form element)
-    const idMatch = rowBlock.match(/\sid="([A-Z][A-Za-z0-9_]*)"/);
+    // The first id="..." in the row up to the hint is the form element.
+    const idMatch = html.slice(rowStart, hintAt).match(/\sid="([A-Z][A-Za-z0-9_]*)"/);
     if (!idMatch) {
       skippedNoMatch++;
-      return rowBlock;
+      continue;
     }
     const fullId = idMatch[1];
     // Strip mode prefix: SHC_FOO -> FOO, SWS_FOO -> FOO
@@ -154,15 +182,21 @@ function main() {
     if (!comment && lookup !== onstepx) comment = onstepx.get(bareName);
     if (!comment) {
       unmatchedIds.add(fullId);
-      return rowBlock;
+      continue;
     }
-    // Append the new sibling. Use a leading space to keep grid layout calm.
-    const inject = `<span class="config-comment">// ${escapeHtml(comment)}</span>`;
+    inserts.push([hintEnd, `${COMMENT_START}// ${escapeHtml(comment)}</span>`]);
     appended++;
-    return rowBlock.replace(/(<span class="field-hint">[\s\S]*?<\/span>)/, `$1${inject}`);
-  });
+  }
+  for (let k = inserts.length - 1; k >= 0; k--) {
+    const [at, text] = inserts[k];
+    html = html.slice(0, at) + text + html.slice(at);
+  }
 
-  writeFileSync(HTML_PATH, html);
+  if (appended === 0) {
+    console.log('nothing to append — index.html left untouched');
+  } else {
+    writeFileSync(HTML_PATH, html);
+  }
   console.log(`appended:           ${appended}`);
   console.log(`skipped (already):  ${skippedAlreadyEnriched}`);
   console.log(`skipped (no id):    ${skippedNoMatch}`);

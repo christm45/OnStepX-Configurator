@@ -41,17 +41,32 @@ export async function flash(files, log = console.log) {
   if (!bin) throw new Error('missing firmware.bin in bundle');
 
   log('Select the STM32 BOOTLOADER device in the browser prompt…');
-  const device = await navigator.usb.requestDevice({
-    filters: [{ vendorId: DFU_VENDOR, productId: DFU_PRODUCT }],
-  });
+  // err.flashStage tells the UI where a failure came from: 'picker' (the
+  // chooser itself, e.g. SecurityError once the click's activation expired)
+  // vs 'open' (the chosen device could not be opened/claimed — on Windows a
+  // missing WinUSB driver or STM32CubeProgrammer holding it gives
+  // SecurityError "Access denied", which clicking again won't fix).
+  const tag = (e, stage) => { if (e && typeof e === 'object') e.flashStage = stage; return e; };
+  let device;
+  try {
+    device = await navigator.usb.requestDevice({
+      filters: [{ vendorId: DFU_VENDOR, productId: DFU_PRODUCT }],
+    });
+  } catch (e) {
+    throw tag(e, 'picker');
+  }
 
   // Release the device on every path: after a good flash the device leaves DFU
   // and drops off USB, so close() rejects (NotFoundError / NetworkError) — that
   // must not turn a successful flash into an error. On a mid-flash failure we
   // still try to release it so a retry can claim the interface again.
   try {
-    await device.open();
-    if (!device.configuration) await device.selectConfiguration(1);
+    try {
+      await device.open();
+      if (!device.configuration) await device.selectConfiguration(1);
+    } catch (e) {
+      throw tag(e, 'open');
+    }
 
     // Find the DFU interface — DFU class 0xFE, subclass 0x01 (app spec), proto 0x02 (DFU mode)
     let ifaceNum = -1;
@@ -71,8 +86,12 @@ export async function flash(files, log = console.log) {
     }
     if (ifaceNum < 0) throw new Error('no DFU interface found on device');
 
-    await device.claimInterface(ifaceNum);
-    if (altSetting !== 0) await device.selectAlternateInterface(ifaceNum, altSetting);
+    try {
+      await device.claimInterface(ifaceNum);
+      if (altSetting !== 0) await device.selectAlternateInterface(ifaceNum, altSetting);
+    } catch (e) {
+      throw tag(e, 'open');
+    }
 
     const ctx = { device, ifaceNum };
 

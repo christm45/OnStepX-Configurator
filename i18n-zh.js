@@ -831,8 +831,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "一个约 200 行的 JavaScript 函数，由 Cloudflare 在你的浏览器请求时按需运行。它唯一的工作是接收你的",
   "A3144 on PCB":
     "PCB 上的 A3144",
-  "ALIGN_AUTO_HOME or MFLIP_SKIP_HOME issues; mount tries to visit home before goto.":
-    "ALIGN_AUTO_HOME 或 MFLIP_SKIP_HOME 问题；支架在自动寻星前会先尝试回到原点。",
+  "ALIGN_AUTO_HOME or MFLIP_HOME_DEFAULT settings; mount tries to visit home before goto.":
+    "ALIGN_AUTO_HOME 或 MFLIP_HOME_DEFAULT 设置问题；支架在自动寻星前会先尝试回到原点。",
   "ALTAZM - Alt/Az, Dobsonians":
     "ALTAZM - 地平式（Alt/Az）、多布森",
   "ALTAZM_UNL - Unlimited Azimuth":
@@ -3127,8 +3127,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "如果没有原点开关，请将 ALIGN_AUTO_HOME 设为 OFF。",
   "Set DEBUG VERBOSE plus FEATURE1_TEMP DS1820, flash, and read the serial numbers off the serial monitor — then assign each sensor by its own 64-bit serial. (There is no FEATURE_LIST_DS directive in OnStepX.)":
     "设置 DEBUG VERBOSE 以及 FEATURE1_TEMP DS1820，烧录后从串口监视器读取序列号——然后按各自的 64 位序列号分配每个传感器。（OnStepX 中没有 FEATURE_LIST_DS 指令。）",
-  "Set MFLIP_SKIP_HOME to ON for gotos without visiting home.":
-    "将 MFLIP_SKIP_HOME 设为 ON，自动寻星时不经过原点。",
+  "Set MFLIP_HOME_DEFAULT to OFF for gotos without visiting home.":
+    "将 MFLIP_HOME_DEFAULT 设为 OFF，自动寻星时不经过原点。",
   "Set PEC_SENSE to HIGH for Hall sensors.":
     "霍尔传感器请将 PEC_SENSE 设为 HIGH。",
   "Set SERIAL_B_BAUD_DEFAULT to 230400.":
@@ -3711,8 +3711,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "先确认在网页界面中 N/S/E/W 动作正确，再到 ASIAIR 中重新测试。来源：讨论 #68576。",
   "Verify axis limits are correct for your mount.":
     "确认轴限位设置适合您的支架。",
-  "Verify meridian-limit and MFLIP settings; for GEM, set MFLIP_SKIP_HOME appropriately.":
-    "检查子午线限位和 MFLIP 设置；对于赤道仪（GEM），请正确设置 MFLIP_SKIP_HOME。",
+  "Verify meridian-limit and MFLIP settings; for GEM, set MFLIP_HOME_DEFAULT appropriately (OFF skips visiting home, VISIT goes via home, PAUSE waits at home).":
+    "检查子午线限位和 MFLIP 设置；对于赤道仪（GEM），请正确设置 MFLIP_HOME_DEFAULT（OFF 不经过原点，VISIT 经过原点，PAUSE 在原点暂停）。",
   "Verify the COM port appears in Device Manager.":
     "确认设备管理器中出现了该 COM 端口。",
   "Verify the module first:":
@@ -4857,10 +4857,10 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "🧰 Fysetc E4 外壳",
   "🧲 PEC Index Sensors":
     "🧲 PEC 索引传感器",
-  "Leave OFF for normal use. Turn ON (errors and warnings) or VERBOSE (everything) when asked to troubleshoot: OnStepX then prints startup messages on the USB serial port at 9600 baud.":
-    "正常使用时请保持 OFF。排查问题时按要求设为 ON（错误和警告）或 VERBOSE（全部信息）：OnStepX 随后会通过 USB 串口以 9600 波特率输出启动信息。",
-  "Still an Init NV/EEPROM error on main after erasing? Use E4 as the Source ref for now, then set DEBUG to ON (Controller tab), rebuild, and read the Nv lines on the USB serial monitor at 9600 baud.":
-    "擦除后 main 仍然出现 Init NV/EEPROM error？请暂时将 Source ref 设为 E4，然后在 Controller 选项卡中把 DEBUG 设为 ON，重新编译，并在 9600 波特率的 USB 串口监视器中查看 Nv 开头的行。",
+  "Leave OFF for normal use. Turn ON (errors and warnings) or VERBOSE (everything) when asked to troubleshoot: OnStepX then prints startup messages on the USB serial port at the SERIAL_A_BAUD_DEFAULT baud rate (9600 unless changed under Serial Ports). CONSOLE (VT100 debug console) and PROFILER (VT100 task profiler) use the same port and need a terminal program such as PuTTY.":
+    "正常使用时请保持 OFF。排查问题时按要求设为 ON（错误和警告）或 VERBOSE（全部信息）：OnStepX 随后会通过 USB 串口以 SERIAL_A_BAUD_DEFAULT 的波特率（除非在串口部分修改，否则为 9600）输出启动信息。CONSOLE（VT100 调试控制台）和 PROFILER（VT100 任务分析器）使用同一端口，需要 PuTTY 等终端程序。",
+  "Still an Init NV/EEPROM error on main after erasing? Use E4 as the Source ref for now, then set DEBUG to ON (Controller tab), rebuild, and read the Nv lines on the USB serial monitor at the SERIAL_A_BAUD_DEFAULT baud rate (9600 unless changed).":
+    "擦除后 main 仍然出现 Init NV/EEPROM error？请暂时将 Source ref 设为 E4，然后在 Controller 选项卡中把 DEBUG 设为 ON，重新编译，并在 USB 串口监视器中以 SERIAL_A_BAUD_DEFAULT 的波特率（未修改时为 9600）查看 Nv 开头的行。",
   "Serial monitor":
     "串口监视器",
   "Connect":
@@ -4940,4 +4940,18 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "正在烧录…",
   "Flash complete ✓":
     "烧录完成 ✓",
+  "A flash is in progress — wait for it to finish, then connect the monitor.":
+    "正在烧录 — 请等待完成后再连接串口监视器。",
+  "Web Serial is not available in this browser. Use Chrome or Edge on a desktop computer.":
+    "此浏览器不支持 Web Serial。请在电脑上使用 Chrome 或 Edge。",
+  "Build succeeded":
+    "编译成功",
+  "Build failed":
+    "编译失败",
+  "Build cancelled":
+    "编译已取消",
+  "Build timed out":
+    "编译超时",
+  "Build finished":
+    "编译结束",
 });

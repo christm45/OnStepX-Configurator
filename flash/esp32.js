@@ -4,10 +4,11 @@
 // function handles both ESP32 and ESP8266 — only the file layout differs.
 
 // Several CDNs, tried in order. jsDelivr's /+esm build is first because it is
-// a single self-contained bundle served from one host; esm.sh ships a shim
-// that immediately imports three more URLs, so any network that blocks or
-// rate-limits it fails with an unhelpful "Failed to fetch dynamically
-// imported module". Networks/regions that block one CDN rarely block them all.
+// served entirely from one host: its few sub-imports (pako, atob-lite) are
+// further jsDelivr /+esm URLs pinned to exact versions, whereas esm.sh ships a
+// shim that imports more URLs, so any network that blocks or rate-limits it
+// fails with an unhelpful "Failed to fetch dynamically imported module".
+// Networks/regions that block one CDN rarely block them all.
 // Every source must resolve esptool-js's own deps (pako, atob-lite) to EXACT
 // versions: jsDelivr's +esm already does; esm.sh needs ?deps= (its default
 // rewrites them to floating ^ ranges) and ?bundle inlines them into one file.
@@ -90,16 +91,24 @@ export async function flash(files, log = console.log, opts = {}) {
   // library download is started in parallel and awaited after the picker.
   const libPromise = loadEsptool(log);
   libPromise.catch(() => {}); // awaited below; don't flag an early rejection
-  const port = await navigator.serial.requestPort({
-    // Common USB-UART bridges used on ESP32 *and* ESP8266 dev boards
-    // (NodeMCU, Wemos D1, ESP-01, generic modules).
-    filters: [
-      { usbVendorId: 0x10c4 }, // Silicon Labs CP210x / CP2102 (NodeMCU, dev kits)
-      { usbVendorId: 0x1a86 }, // QinHeng CH340/CH341 (cheap modules)
-      { usbVendorId: 0x0403 }, // FTDI FT232 (Wemos, some ESP-01 adapters)
-      { usbVendorId: 0x303a }, // Espressif native USB (ESP32-S2/S3/C3)
-    ],
-  });
+  let port;
+  try {
+    port = await navigator.serial.requestPort({
+      // Common USB-UART bridges used on ESP32 *and* ESP8266 dev boards
+      // (NodeMCU, Wemos D1, ESP-01, generic modules).
+      filters: [
+        { usbVendorId: 0x10c4 }, // Silicon Labs CP210x / CP2102 (NodeMCU, dev kits)
+        { usbVendorId: 0x1a86 }, // QinHeng CH340/CH341 (cheap modules)
+        { usbVendorId: 0x0403 }, // FTDI FT232 (Wemos, some ESP-01 adapters)
+        { usbVendorId: 0x303a }, // Espressif native USB (ESP32-S2/S3/C3)
+      ],
+    });
+  } catch (e) {
+    // Tag it so the UI can tell "picker refused (activation expired)" apart
+    // from a failure to open the chosen port.
+    if (e && typeof e === 'object') e.flashStage = 'picker';
+    throw e;
+  }
   const { ESPLoader, Transport } = await libPromise;
   // tracing=false: true hex-dumps every SLIP packet into the console.
   const transport = new Transport(port, false);
@@ -150,6 +159,12 @@ export async function flash(files, log = console.log, opts = {}) {
           { data: binaryString(files['firmware.bin']), address: 0x10000 },
         ];
 
+    // Overall progress across all files, weighted by size: the per-file %
+    // restarts at 0 for every file, which made the progress bar jump back.
+    const sizes = fileArray.map((f) => f.data.length);
+    const totalSize = sizes.reduce((a, b) => a + b, 0) || 1;
+    const before = sizes.map((_, i) => sizes.slice(0, i).reduce((a, b) => a + b, 0));
+
     const eraseAll = opts.eraseAll === true;
     if (eraseAll) log('Erasing entire flash first (this wipes saved NV/EEPROM settings and takes ~10–30 s)…');
     log(`Writing ${fileArray.length} file${fileArray.length === 1 ? '' : 's'}…`);
@@ -161,8 +176,12 @@ export async function flash(files, log = console.log, opts = {}) {
       eraseAll,
       compress: true,
       reportProgress: (fileIndex, written, total) => {
-        const pct = ((written / total) * 100).toFixed(1);
-        log(`  [${fileIndex + 1}/${fileArray.length}] ${pct}%`);
+        const frac = total > 0 ? Math.min(1, written / total) : 1;
+        const pct = (frac * 100).toFixed(1);
+        const overall = (((before[fileIndex] || 0) + frac * (sizes[fileIndex] || 0)) / totalSize * 100).toFixed(1);
+        log(fileArray.length === 1
+          ? `  [1/1] ${pct}%`
+          : `  [${fileIndex + 1}/${fileArray.length}] ${pct}% (overall ${overall}%)`);
       },
     });
 

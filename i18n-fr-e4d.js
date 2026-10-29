@@ -628,10 +628,10 @@ window.I18N_FR = Object.assign(window.I18N_FR || {}, {
     "(rotateur)",
   "Download":
     "Téléchargez",
-  "Leave OFF for normal use. Turn ON (errors and warnings) or VERBOSE (everything) when asked to troubleshoot: OnStepX then prints startup messages on the USB serial port at 9600 baud.":
-    "Laissez sur OFF en usage normal. Passez sur ON (erreurs et avertissements) ou VERBOSE (tout) quand on vous le demande pour un dépannage : OnStepX affiche alors ses messages de démarrage sur le port série USB à 9600 bauds.",
-  "Still an Init NV/EEPROM error on main after erasing? Use E4 as the Source ref for now, then set DEBUG to ON (Controller tab), rebuild, and read the Nv lines on the USB serial monitor at 9600 baud.":
-    "Toujours une Init NV/EEPROM error sur main après l'effacement ? Utilisez E4 comme Source ref pour l'instant, puis réglez DEBUG sur ON (onglet Controller), recompilez et lisez les lignes Nv dans le moniteur série USB à 9600 bauds.",
+  "Leave OFF for normal use. Turn ON (errors and warnings) or VERBOSE (everything) when asked to troubleshoot: OnStepX then prints startup messages on the USB serial port at the SERIAL_A_BAUD_DEFAULT baud rate (9600 unless changed under Serial Ports). CONSOLE (VT100 debug console) and PROFILER (VT100 task profiler) use the same port and need a terminal program such as PuTTY.":
+    "Laissez sur OFF en usage normal. Passez sur ON (erreurs et avertissements) ou VERBOSE (tout) quand on vous le demande pour un dépannage : OnStepX affiche alors ses messages de démarrage sur le port série USB au débit de SERIAL_A_BAUD_DEFAULT (9600 bauds sauf modification dans Ports série). CONSOLE (console de débogage VT100) et PROFILER (profileur de tâches VT100) utilisent le même port et nécessitent un terminal tel que PuTTY.",
+  "Still an Init NV/EEPROM error on main after erasing? Use E4 as the Source ref for now, then set DEBUG to ON (Controller tab), rebuild, and read the Nv lines on the USB serial monitor at the SERIAL_A_BAUD_DEFAULT baud rate (9600 unless changed).":
+    "Toujours une Init NV/EEPROM error sur main après l'effacement ? Utilisez E4 comme Source ref pour l'instant, puis réglez DEBUG sur ON (onglet Controller), recompilez et lisez les lignes Nv dans le moniteur série USB au débit de SERIAL_A_BAUD_DEFAULT (9600 bauds sauf modification).",
   "Serial monitor":
     "Moniteur série",
   "Connect":
@@ -670,4 +670,18 @@ window.I18N_FR = Object.assign(window.I18N_FR || {}, {
     "Flash en cours…",
   "Flash complete ✓":
     "Flash terminé ✓",
+  "A flash is in progress — wait for it to finish, then connect the monitor.":
+    "Un flash est en cours — attendez la fin, puis connectez le moniteur.",
+  "Web Serial is not available in this browser. Use Chrome or Edge on a desktop computer.":
+    "Web Serial n'est pas disponible dans ce navigateur. Utilisez Chrome ou Edge sur un ordinateur.",
+  "Build succeeded":
+    "Compilation réussie",
+  "Build failed":
+    "Échec de la compilation",
+  "Build cancelled":
+    "Compilation annulée",
+  "Build timed out":
+    "Délai de compilation dépassé",
+  "Build finished":
+    "Compilation terminée",
 });

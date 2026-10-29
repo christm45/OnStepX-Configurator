@@ -105,7 +105,7 @@ export async function pollUntilDone(requestId, onUpdate, { timeoutMs = 25 * 60 *
       if (data.html_url) runUrl = data.html_url;
       if (data.run_id) runRequests.set(String(data.run_id), requestId);
       onUpdate(data);
-      if (data.state === 'completed') return data;
+      if (data.state === 'completed') return await awaitFailureLines(requestId, data);
       if (data.state === 'never_started') {
         throw new Error('build never started — GitHub Actions did not create the run (GitHub queue/dispatch issue). Try again in a few minutes.');
       }
@@ -129,6 +129,31 @@ export async function pollUntilDone(requestId, onUpdate, { timeoutMs = 25 * 60 *
   }
   throw new Error('build timed out — ' +
     (runUrl ? `check the run: ${runUrl}` : 'check the GitHub Actions tab for details'));
+}
+
+// A failed run's job log often isn't downloadable for a few seconds after the
+// run reports completed. The worker then answers completed+failure with no
+// error_lines and logs_pending: true (older workers send no flag — then we
+// return at once, as before). Re-poll a few times to pick the lines up; any
+// error here just returns the best answer we already have.
+const LOG_RETRIES = 4;
+const LOG_RETRY_MS = 5000;
+async function awaitFailureLines(requestId, data) {
+  let best = data;
+  for (let i = 0; i < LOG_RETRIES; i++) {
+    if (!(best.conclusion === 'failure' && best.logs_pending &&
+          !(Array.isArray(best.error_lines) && best.error_lines.length))) break;
+    await sleep(LOG_RETRY_MS);
+    try {
+      const res = await fetch(`${WORKER_URL}/status?${authQuery(requestId)}`);
+      if (!res.ok) continue;
+      const next = await res.json();
+      if (next.state === 'completed') best = next;
+    } catch {
+      // transient — try again on the next round
+    }
+  }
+  return best;
 }
 
 /**

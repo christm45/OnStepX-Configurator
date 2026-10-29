@@ -1,13 +1,26 @@
 # Setting up the online compile + flash service
 
-**Current deployed state** (as of 2026-04-22):
+**Deployment state** (as of 2026-10-29):
 
-| Piece | Status | Location |
+| Piece | Location | Notes |
 |---|---|---|
-| Frontend | ✅ live | https://christm45.github.io/OnStepX-Configurator/ |
-| Build service | ✅ live | https://github.com/christm45/onstepx-build-service |
-| Cloudflare Worker | ✅ live | https://onstepx-build-bridge.craciun-vlad.workers.dev |
-| End-to-end pipeline | ✅ verified | ESP32 build + merged-firmware.bin download |
+| Frontend | https://christm45.github.io/OnStepX-Configurator/ | Live; its `compile.js` sends the per-build token. |
+| Build service | https://github.com/christm45/onstepx-build-service | Live (public repo — see *Exposure* below). |
+| Cloudflare Worker | https://onstepx-build-bridge.craciun-vlad.workers.dev | The deployed Worker predates `cloudflare-worker/worker.js` in this repo (per-build tokens, `never_started`, `error_lines`, charge-before-dispatch rate limit). The repo version has not been deployed yet; the live site works with both. |
+
+The ESP32 build + merged-firmware.bin download path was verified end-to-end
+on the original deployment (2026-04-22). Re-verify after deploying the new
+Worker.
+
+**Exposure (public build repo).** The Worker's per-build token stops *the
+Worker* from handing one user's build to another, but it does not make builds
+private: because `christm45/onstepx-build-service` is public, GitHub serves
+every run's log (including the base64 Config.h workflow input) to anyone, and
+every run's `firmware-<request_id>` artifact — firmware that embeds the user's
+WiFi SSID/password — to any signed-in GitHub user, until the artifact expires.
+The real fix is making the build-service repo **private** (Actions minutes then
+count against the owner's quota instead of being free); keeping
+`retention-days` on the artifact short narrows the window meanwhile.
 
 This doc describes how the three pieces were set up, so you can redeploy or
 replicate on another account.
@@ -44,8 +57,11 @@ browser (index.html)  --POST /compile-->  Cloudflare Worker  --workflow_dispatch
 > [Which copy of build-service wins](#which-copy-of-build-service-wins).
 > The steps here are kept only for standing the service up from scratch.
 
-1. Create a new empty repo on GitHub: **`onstepx-build-service`** (public is
-   fine; public repos get unlimited Actions minutes).
+1. Create a new empty repo on GitHub: **`onstepx-build-service`**. Public
+   gets free Actions minutes, but then every run's log and firmware artifact
+   (with the user's WiFi credentials) is readable via GitHub for the
+   artifact's lifetime (see *Exposure* at the top); private keeps builds
+   confidential at the cost of Actions minutes.
 2. Push the `build-service/` folder from this repo to it:
 
    ```bash
@@ -118,8 +134,11 @@ uses it only when the three App secrets are not all set — but it expires, see
    ```
 
 3. **KV namespace for rate limiting (required).** `wrangler.toml` binds a KV
-   namespace as `RATE_LIMIT` (10 builds/hour/IP, fixed window, charged only
-   on a successful dispatch). Without the binding the limiter is silently
+   namespace as `RATE_LIMIT` (10 builds/hour/IP, fixed window, charged before
+   the dispatch and refunded if it fails). It is best-effort: exact within one
+   Worker isolate, but KV is eventually consistent, so a burst spread across
+   isolates/locations can overshoot somewhat (exact limiting would need a
+   Durable Object, which this Worker doesn't use). Without the binding the limiter is silently
    skipped and `/compile` is an open endpoint. On a fresh account:
    ```bash
    cd cloudflare-worker
@@ -143,8 +162,9 @@ uses it only when the three App secrets are not all set — but it expires, see
    `/firmware` answer 503. `/compile` returns `{request_id, token}`;
    `compile.js` sends the token back on every `/status` and `/firmware`
    call, and the Worker only reports/serves the run whose run-name carries
-   that `request_id`. Firmware embeds WiFi credentials, so this is what
-   stops a guessed `run_id` from downloading someone else's build.
+   that `request_id`, so a guessed `run_id` can't be pulled *through the
+   Worker*. It does not stop GitHub itself from serving the artifact of a
+   public build repo to any signed-in user — see *Exposure* at the top.
 
 5. Deploy:
    ```bash
@@ -263,10 +283,12 @@ index.html matches the env names in `build-service/platformio.ini`.
 doesn't work with the selected MCU. The Worker scrapes the failed job's log
 and the compile log shows up to 30 `error:` / `#error` / `undefined reference`
 lines (credential-looking values redacted); the full log is at the run URL
-(`html_url`) printed above them.
+(`html_url`) printed above them. If GitHub hasn't made the log downloadable
+yet, the Worker answers with `logs_pending: true` and `compile.js` re-polls
+up to 4 × 5 s for the lines.
 
 **Rate limit hit** — the Worker allows 10 builds/hour/IP (fixed one-hour
-window from the first build; failed dispatches aren't charged). `/status` is
+window from the first build; failed dispatches are refunded). `/status` is
 additionally capped at 60 calls/min/IP per Worker isolate.
 
 ## Lessons learned from the initial deployment

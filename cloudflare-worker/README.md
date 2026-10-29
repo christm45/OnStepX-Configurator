@@ -70,16 +70,33 @@ and proxies the firmware artifact back to the browser.
   - `ref`: branch / tag / commit SHA of the chosen project (default `'main'`).
   - `plugins`: OnStepX only — array from `website, elegantota, metrics,
     serialBluetoothConfig, guideRateRheostat, usb`.
-  - Rate limit: 10 successful dispatches/hour/IP (fixed window, KV).
+  - Rate limit: 10 dispatches/hour/IP (fixed window). Charged before the
+    dispatch, refunded if it fails. Exact within one isolate (in-memory
+    check-and-increment); KV carries the count across isolates but is
+    eventually consistent, so a burst spread over several isolates/colos can
+    overshoot. Exact global limiting would need a Durable Object (not used).
 - `GET /status?id=<request_id>&token=<token>` →
-  `{state, run_id?, conclusion?, html_url?, error_lines?}`
+  `{state, run_id?, conclusion?, html_url?, error_lines?, logs_pending?}`
   - `state`: `queued | in_progress | completed`, or `never_started` when no
-    run carrying the request_id appeared within 3 min of dispatch.
+    run carrying the request_id appeared within 3 min of dispatch. Runs are
+    looked up in the newest 100 dispatches; if the run was pushed off that
+    page, by its remembered run id or a runs query limited to the token's
+    creation window.
   - `error_lines`: on `conclusion: failure`, up to 30 compiler/`#error`/link
-    error lines scraped from the failed job's log (credentials redacted).
+    error lines scraped from the failed job's log. On lines whose diagnostic
+    (incl. following source excerpt / "in expansion of macro" notes) mentions
+    PASS/PWD/SSID/PSK/WIFI/SECRET/TOKEN, every quoted value and `#define`
+    value is replaced by `***`.
+  - `logs_pending: true`: failed, but the job log wasn't downloadable yet —
+    poll again (compile.js retries up to 4 × 5 s). Not cached.
   - Cached a few seconds per isolate; 60 calls/min/IP per isolate.
 - `GET /firmware?run_id=<run_id>&id=<request_id>&token=<token>` →
   `application/zip`. Refused unless the run's name carries that request_id.
+  This only stops the *Worker* from serving another user's build: the
+  build-service repo is public, so GitHub itself serves its run logs to anyone
+  and its artifacts (firmware with the user's WiFi credentials) to any
+  signed-in GitHub user until they expire. Making the build repo private is
+  the real fix (costs Actions minutes).
 - `GET /auth-info` → auth mode diagnostics (no secrets).
 
 The token is `<issued-ms>.<HMAC-SHA256(TOKEN_SECRET, "<request_id>.<issued-ms>")>`,

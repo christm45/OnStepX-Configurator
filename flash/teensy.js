@@ -22,7 +22,7 @@
 // Loader instructions. The HalfKay bootloader is in ROM and cannot be bricked
 // by a partial flash — a retry (browser or desktop) always recovers.
 
-import { downloadBlob } from '../compile.js?v=16';
+import { downloadBlob } from '../compile.js?v=17';
 
 const HALFKAY_VID = 0x16C0;
 const HALFKAY_PID = 0x0478;
@@ -151,7 +151,15 @@ async function pickTeensy(log) {
   if (!dev) {
     log('Press the white program button on your Teensy now,');
     log('then pick "Teensy" in the browser dialog.');
-    const picked = await navigator.hid.requestDevice({ filters });
+    let picked;
+    try {
+      picked = await navigator.hid.requestDevice({ filters });
+    } catch (e) {
+      // Tagged so flash() / the UI can tell an expired click activation
+      // (SecurityError from the picker) from a real flashing failure.
+      if (e && typeof e === 'object') e.flashStage = 'picker';
+      throw e;
+    }
     if (!picked || picked.length === 0) {
       const e = new Error('No Teensy selected (bootloader not active, or picker dismissed).');
       e.code = 'USER_CANCELLED';
@@ -314,6 +322,10 @@ export async function flash(files, env, log = console.log) {
       await flashWebHID(files, env, log);
       return { flashed: true };
     } catch (err) {
+      // The picker refused to open because the click's user activation ran
+      // out: nothing is wrong with the board — the user just needs to click
+      // Flash again. Don't bury that under a .hex download.
+      if (err && err.name === 'SecurityError' && err.flashStage === 'picker') throw err;
       const code = err && err.code;
       log('');
       if (code === 'USER_CANCELLED') {

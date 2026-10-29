@@ -2,19 +2,31 @@
 //
 // Endpoints (all CORS-enabled for the configurator origin):
 //   POST /compile      {config, board}  -> {request_id, token}
-//   GET  /status?id=…&token=…           -> {state, run_id?, conclusion?, html_url?, error_lines?}
+//   GET  /status?id=…&token=…           -> {state, run_id?, conclusion?, html_url?, error_lines?, logs_pending?}
 //   GET  /firmware?run_id=…&id=…&token=… -> application/zip (artifact, proxied)
 //   GET  /auth-info                     -> {mode: 'github-app' | 'pat', expires_at?}
 //
 // Access control: /compile hands back an HMAC token bound to the request_id
 // (and its issue time). /status and /firmware refuse to answer without it,
-// and only ever return the run whose run-name carries that request_id — so a
-// guessed run_id can't pull someone else's firmware (which embeds their WiFi
-// credentials), and anonymous polling can't burn the App's API quota.
+// and only ever return the run whose run-name carries that request_id — so
+// THIS WORKER won't hand one user's artifact to another, and anonymous polling
+// can't burn the App's API quota.
+//
+// That is NOT confidentiality of the firmware. The build-service repo
+// (BUILD_OWNER/BUILD_REPO) is public, so GitHub itself serves every run's
+// logs to anyone, and every run's artifacts (firmware-<request_id>.zip, whose
+// firmware embeds the user's WiFi SSID/password and the uploaded Config.h
+// values) to any signed-in GitHub user, for the artifact retention period —
+// no token or worker involved. The real fix is making the build-service repo
+// private (Actions minutes then count against the owner's quota); short
+// artifact retention in build.yml narrows the window.
 //
 // state values from /status: queued | in_progress | completed (GitHub's), plus
 //   never_started — no run carrying this request_id appeared within
 //                   NEVER_STARTED_MS of dispatch (GitHub queue/dispatch issue).
+// A completed+failure answer may carry logs_pending: true — the job log
+// wasn't readable yet (GitHub lags the conclusion by a few seconds); poll
+// again shortly to get error_lines.
 //
 // Auth — TWO modes, App preferred when its secrets are configured:
 //
@@ -45,8 +57,9 @@
 //                    tokens of builds in flight (they just have to recompile).
 //
 // KV (bound in wrangler.toml — required in production):
-//   RATE_LIMIT     — enforces 10 builds/hr/IP (fixed window, charged only on a
-//                    successful dispatch). The code skips it if unbound.
+//   RATE_LIMIT     — enforces 10 builds/hr/IP (fixed window, charged before
+//                    dispatch, refunded if the dispatch fails). The code skips
+//                    it if unbound. Best-effort — see handleCompile.
 
 const ALLOWED_BOARDS = new Set([
   // OnStepX (mount controller) build environments
@@ -82,6 +95,12 @@ const RUNS_CACHE_MS = 4000;          // shared workflow-runs listing
 const FINAL_CACHE_MS = 10 * 60 * 1000; // completed status incl. error_lines
 const STATUS_IP_MAX = 60;            // /status calls per IP per minute (per isolate)
 const MAX_ERROR_LINES = 30;
+const RUNS_PER_PAGE = 100;           // GitHub's maximum for the runs listing
+// Window, around the token's issue time, in which our run must have been
+// created (used for the targeted runs query when the shared listing is full).
+const CREATED_BEFORE_MS = 5 * 60 * 1000;  // clock skew between us and GitHub
+const CREATED_AFTER_MS = 30 * 60 * 1000;  // slow run materialisation
+const TARGETED_MAX_PAGES = 3;
 
 export default {
   async fetch(request, env, ctx) {
@@ -180,46 +199,52 @@ async function handleCompile(request, env) {
   // the result, so don't spend a GitHub Actions run on it.
   if (!env.TOKEN_SECRET) return tokenSecretMissing();
 
-  // Rate limiting — fixed window per IP. Checked here (only requests that will
-  // actually reach GitHub), but charged only AFTER a successful dispatch, so a
-  // GitHub-side failure doesn't eat the caller's budget. The window start is
-  // stored with the count and the KV entry expires at window end; the old
-  // code re-put expirationTtl:3600 on every hit, so a steady user's window
-  // never closed. Check-then-charge can overshoot by a few under concurrent
-  // bursts from one IP — acceptable for an abuse brake.
+  // Rate limiting — fixed window per IP, only for requests that will actually
+  // reach GitHub. The slot is CHARGED BEFORE the dispatch and refunded if the
+  // dispatch fails (so a GitHub-side failure doesn't eat the caller's budget).
+  // The previous check-before / charge-after order let a concurrent burst all
+  // pass the check: 30 parallel requests dispatched 30 runs and left count=1.
   const ip = request.headers.get('CF-Connecting-IP') || 'anon';
-  const rlKey = `rl:${ip}`;
-  let rl = null;
+  let charged = false;
   if (env.RATE_LIMIT) {
-    rl = await readRateWindow(env, rlKey);
-    if (rl.count >= RL_MAX) {
+    const rl = await chargeRateWindow(env, ip);
+    if (!rl.ok) {
       const retryMin = Math.max(1, Math.ceil((rl.start + RL_WINDOW_MS - Date.now()) / 60000));
       return json({ error: `rate limit: max ${RL_MAX} builds/hour — try again in ~${retryMin} min` }, 429);
     }
+    charged = true;
   }
 
   const requestId = crypto.randomUUID();
 
-  const dispatchRes = await ghFetch(
-    env,
-    `/repos/${env.BUILD_OWNER}/${env.BUILD_REPO}/actions/workflows/${WORKFLOW_FILE}/dispatches`,
-    {
-      method: 'POST',
-      body: JSON.stringify({
-        ref: 'main', // which branch of the BUILD-SERVICE repo runs the workflow
-        inputs: {
-          project,                 // 'onstepx' | 'shc' | 'sws' — picks upstream repo
-          config_h: configB64,
-          environment: board,
-          request_id: requestId,
-          onstepx_ref: onstepxRef, // ref of the chosen upstream repo
-          plugins: pluginsCsv,     // comma-separated plugin list (OnStepX only)
-        },
-      }),
-    }
-  );
+  let dispatchRes;
+  try {
+    dispatchRes = await ghFetch(
+      env,
+      `/repos/${env.BUILD_OWNER}/${env.BUILD_REPO}/actions/workflows/${WORKFLOW_FILE}/dispatches`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          ref: 'main', // which branch of the BUILD-SERVICE repo runs the workflow
+          inputs: {
+            project,                 // 'onstepx' | 'shc' | 'sws' — picks upstream repo
+            config_h: configB64,
+            environment: board,
+            request_id: requestId,
+            onstepx_ref: onstepxRef, // ref of the chosen upstream repo
+            plugins: pluginsCsv,     // comma-separated plugin list (OnStepX only)
+          },
+        }),
+      }
+    );
+  } catch (e) {
+    // Network / auth failure: nothing was dispatched, give the slot back.
+    if (charged) await refundRateWindow(env, ip).catch((err) => console.error('rl refund failed', err));
+    throw e;
+  }
 
   if (!dispatchRes.ok) {
+    if (charged) await refundRateWindow(env, ip).catch((e) => console.error('rl refund failed', e));
     const text = await dispatchRes.text();
     return json(
       { error: 'github workflow_dispatch failed', status: dispatchRes.status, detail: text.slice(0, 500) },
@@ -227,18 +252,31 @@ async function handleCompile(request, env) {
     );
   }
 
-  if (env.RATE_LIMIT) {
-    // Re-read so a concurrent dispatch from the same IP isn't overwritten.
-    const cur = await readRateWindow(env, rlKey);
-    await writeRateWindow(env, rlKey, { start: cur.start, count: cur.count + 1 });
-  }
-
   const token = await signToken(env, requestId, Date.now());
   return json({ request_id: requestId, token, state: 'queued' });
 }
 
 // Rate-limit window record: {start: ms epoch, count}. A missing, expired or
-// unparsable record starts a fresh window now.
+// unparsable record starts a fresh window now. The KV entry expires at window
+// end (the old code re-put expirationTtl:3600 on every hit, so a steady user's
+// window never closed).
+//
+// Concurrency. KV has no atomic increment, so the authoritative check-and-
+// increment runs on an in-isolate mirror (rlMirror) with NO await between the
+// check and the increment: concurrent requests from one IP that land on the
+// same isolate (the usual case for a burst from one client) are serialised
+// exactly — a 30-request burst dispatches RL_MAX runs, not 30. KV carries the
+// count across isolates/colos and restarts; the mirror merges it (max) on
+// every charge.
+//
+// Residual risk, accepted for an abuse brake: requests from one IP hitting
+// DIFFERENT isolates or colos concurrently can each see a stale KV value
+// (KV is eventually consistent, up to ~60 s across locations, and last write
+// wins), so such a burst can overshoot RL_MAX by roughly the number of
+// isolates involved. Exact global limiting would need a Durable Object (not
+// configured for this Worker; adding one requires an account-side change).
+const rlMirror = new Map(); // ip -> {start, count}
+
 async function readRateWindow(env, key) {
   const now = Date.now();
   let rec = null;
@@ -250,10 +288,52 @@ async function readRateWindow(env, key) {
 }
 
 async function writeRateWindow(env, key, rec) {
-  // Expire at window end (KV wants >= 60 s in the future).
+  // Expire at window end (KV wants >= 60 s in the future). A failed write
+  // (e.g. KV's 1 write/s/key limit during a burst) is logged, not fatal: the
+  // in-isolate mirror still enforces the limit, KV just lags.
   const end = Math.floor((rec.start + RL_WINDOW_MS) / 1000);
   const minExp = Math.floor(Date.now() / 1000) + 60;
-  await env.RATE_LIMIT.put(key, JSON.stringify(rec), { expiration: Math.max(end, minExp) });
+  try {
+    await env.RATE_LIMIT.put(key, JSON.stringify(rec), { expiration: Math.max(end, minExp) });
+  } catch (e) {
+    console.error('rate-limit KV write failed', e);
+  }
+}
+
+function liveWindow(rec, now) {
+  return rec && now - rec.start < RL_WINDOW_MS ? rec : null;
+}
+
+// Charge one build to this IP's window. Returns {ok, start}.
+async function chargeRateWindow(env, ip) {
+  const key = `rl:${ip}`;
+  const kv = await readRateWindow(env, key);
+  // ---- synchronous from here until the put is issued ----
+  const now = Date.now();
+  let rec = liveWindow(rlMirror.get(ip), now);
+  if (!rec) {
+    rec = { start: kv.start, count: kv.count };
+    rlMirror.set(ip, rec);
+    if (rlMirror.size > 5000) { // bound memory: drop closed windows
+      for (const [k, v] of rlMirror) if (!liveWindow(v, now)) rlMirror.delete(k);
+    }
+  } else if (kv.count > 0) {
+    // Fold in charges other isolates made (KV), keeping our own.
+    rec.start = Math.min(rec.start, kv.start);
+    rec.count = Math.max(rec.count, kv.count);
+  }
+  if (rec.count >= RL_MAX) return { ok: false, start: rec.start };
+  rec.count++;
+  await writeRateWindow(env, key, { start: rec.start, count: rec.count });
+  return { ok: true, start: rec.start };
+}
+
+// Give back the slot charged by chargeRateWindow (dispatch failed).
+async function refundRateWindow(env, ip) {
+  const rec = liveWindow(rlMirror.get(ip), Date.now());
+  if (!rec || rec.count <= 0) return;
+  rec.count--;
+  await writeRateWindow(env, `rl:${ip}`, { start: rec.start, count: rec.count });
 }
 
 // ---------------------------------------------------------------------------
@@ -328,6 +408,7 @@ function runMatches(run, requestId) {
 let runsCache = null;              // { at: ms, runs: [...] }
 const finalStatusCache = new Map(); // requestId -> { at: ms, body }
 const statusIpHits = new Map();     // ip -> { start: ms, count }
+const runIdByRequest = new Map();   // requestId -> run id (see findRun)
 
 function statusIpAllowed(ip) {
   const now = Date.now();
@@ -343,11 +424,16 @@ function statusIpAllowed(ip) {
   return rec.count <= STATUS_IP_MAX;
 }
 
+// GitHub's date-range qualifier wants whole-second ISO timestamps.
+function isoSec(ms) {
+  return new Date(ms).toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
+
 async function listRecentRuns(env) {
   if (runsCache && Date.now() - runsCache.at < RUNS_CACHE_MS) return runsCache.runs;
   const runsRes = await ghFetch(
     env,
-    `/repos/${env.BUILD_OWNER}/${env.BUILD_REPO}/actions/workflows/${WORKFLOW_FILE}/runs?event=workflow_dispatch&per_page=50`
+    `/repos/${env.BUILD_OWNER}/${env.BUILD_REPO}/actions/workflows/${WORKFLOW_FILE}/runs?event=workflow_dispatch&per_page=${RUNS_PER_PAGE}`
   );
   if (!runsRes.ok) {
     const err = new Error('github api error');
@@ -357,6 +443,68 @@ async function listRecentRuns(env) {
   const runsData = await runsRes.json();
   runsCache = { at: Date.now(), runs: runsData.workflow_runs || [] };
   return runsCache.runs;
+}
+
+function rememberRunId(requestId, runId) {
+  runIdByRequest.set(requestId, runId);
+  if (runIdByRequest.size > 2000) runIdByRequest.delete(runIdByRequest.keys().next().value);
+}
+
+function ghApiError(status) {
+  const err = new Error('github api error');
+  err.status = status;
+  return err;
+}
+
+// Find the run whose run-name carries requestId. Returns the run or null.
+// The shared listing (newest RUNS_PER_PAGE dispatches, cached RUNS_CACHE_MS)
+// answers almost every poll. When it doesn't contain our run but is full and
+// doesn't reach back to our dispatch time, the run may simply have been pushed
+// off the first page by newer dispatches (busy service / burst) — then look it
+// up directly: by run id if this isolate already saw it, else by a runs query
+// restricted to the creation window around the token's issue time. Only a
+// miss on that is reported as "not there" (-> queued / never_started).
+async function findRun(env, requestId, issuedMs) {
+  const runs = await listRecentRuns(env);
+  const hit = runs.find((r) => runMatches(r, requestId));
+  if (hit) {
+    rememberRunId(requestId, hit.id);
+    return hit;
+  }
+
+  const knownId = runIdByRequest.get(requestId);
+  if (knownId) {
+    const r = await ghFetch(env, `/repos/${env.BUILD_OWNER}/${env.BUILD_REPO}/actions/runs/${knownId}`);
+    if (r.ok) {
+      const run = await r.json();
+      if (runMatches(run, requestId)) return run;
+    } else if (r.status !== 404) {
+      throw ghApiError(r.status);
+    }
+  }
+
+  const windowStart = issuedMs - CREATED_BEFORE_MS;
+  if (runs.length < RUNS_PER_PAGE) return null; // listing is complete
+  const oldest = Date.parse(runs[runs.length - 1].created_at);
+  if (oldest < windowStart) return null;        // listing reaches back past our dispatch
+
+  const created = `${isoSec(windowStart)}..${isoSec(issuedMs + CREATED_AFTER_MS)}`;
+  for (let page = 1; page <= TARGETED_MAX_PAGES; page++) {
+    const r = await ghFetch(
+      env,
+      `/repos/${env.BUILD_OWNER}/${env.BUILD_REPO}/actions/workflows/${WORKFLOW_FILE}/runs` +
+        `?event=workflow_dispatch&per_page=${RUNS_PER_PAGE}&page=${page}&created=${encodeURIComponent(created)}`
+    );
+    if (!r.ok) throw ghApiError(r.status);
+    const pageRuns = (await r.json()).workflow_runs || [];
+    const run = pageRuns.find((x) => runMatches(x, requestId));
+    if (run) {
+      rememberRunId(requestId, run.id);
+      return run;
+    }
+    if (pageRuns.length < RUNS_PER_PAGE) break;
+  }
+  return null;
 }
 
 async function handleStatus(request, url, env) {
@@ -371,13 +519,12 @@ async function handleStatus(request, url, env) {
   if (cached && Date.now() - cached.at < FINAL_CACHE_MS) return json(cached.body);
 
   // Find the run whose run-name carries our request_id.
-  let runs;
+  let run;
   try {
-    runs = await listRecentRuns(env);
+    run = await findRun(env, requestId, issuedMs);
   } catch (e) {
     return json({ error: 'github api error', status: e.status || 0 }, 502);
   }
-  const run = runs.find((r) => runMatches(r, requestId));
 
   if (!run) {
     if (Date.now() - issuedMs > NEVER_STARTED_MS) {
@@ -400,17 +547,25 @@ async function handleStatus(request, url, env) {
     html_url: run.html_url,
   };
   if (run.status === 'completed') {
+    let cacheable = true;
     if (run.conclusion === 'failure') {
+      let failure;
       try {
-        body.error_lines = await fetchFailureLines(env, run.id);
+        failure = await fetchFailureLines(env, run.id);
       } catch (e) {
         console.error('failure-log fetch failed', e);
-        body.error_lines = [];
+        failure = { readable: false, lines: [] };
+      }
+      body.error_lines = failure.lines;
+      if (!failure.readable) {
+        // GitHub can lag a few seconds behind the conclusion before the job
+        // log is downloadable. Tell the client to poll again, and don't cache
+        // so that poll retries the log. A log that WAS read but had no
+        // matching lines is final and cached (no repeated log downloads).
+        body.logs_pending = true;
+        cacheable = false;
       }
     }
-    // A failure whose log wasn't readable yet (GitHub can lag a few seconds
-    // behind the conclusion) isn't cached, so the next poll retries the log.
-    const cacheable = run.conclusion !== 'failure' || body.error_lines.length > 0;
     if (cacheable) finalStatusCache.set(requestId, { at: Date.now(), body });
     if (finalStatusCache.size > 500) {
       const now = Date.now();
@@ -422,12 +577,15 @@ async function handleStatus(request, url, env) {
 
 // Pull the failed job's log and keep just the lines that explain the failure
 // (compiler errors, #error, link errors, our own ::error:: annotations).
+// Returns {readable, lines}: readable=false when the log couldn't be fetched
+// (yet) — the caller then reports logs_pending instead of a final empty list.
 async function fetchFailureLines(env, runId) {
+  const pending = { readable: false, lines: [] };
   const jobsRes = await ghFetch(env, `/repos/${env.BUILD_OWNER}/${env.BUILD_REPO}/actions/runs/${runId}/jobs`);
-  if (!jobsRes.ok) return [];
+  if (!jobsRes.ok) return pending;
   const jobs = (await jobsRes.json()).jobs || [];
   const job = jobs.find((j) => j.conclusion === 'failure') || jobs[0];
-  if (!job) return [];
+  if (!job) return pending;
 
   // Like the artifact zip: a 302 to a signed URL that must be fetched WITHOUT
   // GitHub's Authorization header.
@@ -447,31 +605,63 @@ async function fetchFailureLines(env, runId) {
   let logText;
   if (redirectRes.status === 302) {
     const loc = redirectRes.headers.get('Location');
-    if (!loc) return [];
+    if (!loc) return pending;
     const logRes = await fetch(loc);
-    if (!logRes.ok) return [];
+    if (!logRes.ok) return pending;
     logText = await logRes.text();
   } else if (redirectRes.ok) {
     logText = await redirectRes.text();
   } else {
-    return [];
+    return pending;
   }
-  return extractErrorLines(logText);
+  return { readable: true, lines: extractErrorLines(logText) };
+}
+
+// Config.h symbols whose values must never be echoed back (WiFi credentials,
+// keys). Matched case-insensitively against a diagnostic and its context.
+const CREDENTIAL_RE = /PASS|PWD|SSID|PSK|WIFI|SECRET|TOKEN/i;
+const DIAG_RE = /error:|#error|\bError\b|undefined reference/;
+// Start of the NEXT diagnostic (ends the current one's context block).
+const NEXT_DIAG_RE = /(error|warning):|^In file included from|^In function|^Compiling |^##\[/;
+const CONTEXT_LINES = 8;
+
+// Redact every value on a line belonging to a credential diagnostic:
+// "…", '…' and gcc's UTF-8 ‘…’ quotes, and whatever follows `#define NAME`.
+// A quoted bare macro name that itself names a credential ('STA_PASSWORD')
+// is kept — it's the useful part of the message, not a secret.
+function redactCredentialLine(line) {
+  const keepName = (q, open, inner, close) =>
+    (/^[A-Z][A-Z0-9_]*$/.test(inner) && CREDENTIAL_RE.test(inner)) ? q : `${open}***${close}`;
+  return line
+    .replace(/(define\s+\w+\s+).*$/, '$1***')
+    .replace(/(")([^"]*)(")/g, keepName)
+    .replace(/(')([^']*)(')/g, keepName)
+    .replace(/(‘)([^’]*)(’)/g, keepName);
 }
 
 function extractErrorLines(logText) {
+  // Strip Actions' "2025-01-01T12:34:56.1234567Z " prefix.
+  const lines = logText.split(/\r?\n/).map((l) =>
+    l.replace(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z\s?/, '').trimEnd());
   const out = [];
   const seen = new Set();
-  for (let line of logText.split(/\r?\n/)) {
-    // Strip Actions' "2025-01-01T12:34:56.1234567Z " prefix.
-    line = line.replace(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z\s?/, '').trimEnd();
-    if (!/error:|#error|\bError\b|undefined reference/.test(line)) continue;
-    // Never echo credentials: compiler diagnostics can quote Config.h lines.
-    if (/PASS|SSID|PSK|WIFI|SECRET|TOKEN/i.test(line)) {
-      line = line
-        .replace(/"[^"]*"/g, '"***"')
-        .replace(/(define\s+\w+\s+)(?!"\*\*\*")\S+/g, '$1***'); // unquoted values
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+    if (!DIAG_RE.test(line)) continue;
+    // Never echo credentials: compiler diagnostics can quote Config.h values.
+    // gcc often reports a bad macro value with no credential keyword on the
+    // error line itself, naming the macro only in the context that follows:
+    //   Config.h:40:30: error: 'hunter2' was not declared in this scope
+    //      40 | #define STA_PASSWORD hunter2
+    //   src/Net.cpp:10:3: note: in expansion of macro 'STA_PASSWORD'
+    // so the source excerpts and "in expansion of / in definition of macro"
+    // notes up to the next diagnostic make the error line sensitive too.
+    let sensitive = CREDENTIAL_RE.test(line);
+    for (let j = i + 1; !sensitive && j < lines.length && j <= i + CONTEXT_LINES; j++) {
+      if (NEXT_DIAG_RE.test(lines[j])) break;
+      if (CREDENTIAL_RE.test(lines[j])) sensitive = true;
     }
+    if (sensitive) line = redactCredentialLine(line);
     if (line.length > 300) line = line.slice(0, 300) + '…';
     if (seen.has(line)) continue;
     seen.add(line);
