@@ -324,7 +324,7 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
   ". The workflow detects the pre-existing":
     ". Workflow-ul detectează directorul preexistent",
   ". OnStepX won't compile with both enabled, so one switch can't be home and limit at once. Use limits only (home switches OFF), home switches with":
-    ". OnStepX nu compilează cu ambele activate, deci un singur limitator nu poate fi simultan origine și limită. Folosiți fie doar limitele (originea pe OFF), fie limitatoare de origine cu",
+    ". OnStepX nu compilează cu ambele activate, deci un singur comutator nu poate servi simultan ca origine și ca limită. Folosiți fie doar limitele (comutatoarele de origine pe OFF), fie comutatoare de origine cu",
   ", or both on separate pins: home on X-MIN, limit on TB (GPIO39) with":
     ", fie ambele pe pini separați: originea pe X-MIN, limita pe TB (GPIO39) cu",
   ". WIFI_STATION = the board JOINS your existing home WiFi/router — best indoors with internet on the same device; find its IP in the serial monitor or your router's client list. Default WiFi password: \"":
@@ -424,7 +424,7 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
   "Resume tracking after a recovery":
     "Reluare urmărire după recuperare",
   "// ON disables limits for 1s to allow gotos outside limits for recovery from overhead (Alt/Azm), horizon, meridian (GEM), and axis1 min/max.":
-    "// ON dezactivează limitele 1 s pentru a permite GOTO în afara limitelor, pentru recuperare din zenit (Alt/Azm), orizont, meridian (GEM) și min/max axa 1.",
+    "// ON dezactivează limitele 1 s pentru a permite GOTO în afara limitelor, pentru recuperarea din limitele de zenit (Alt/Azm), orizont, meridian (GEM) și min/max ale axei 1.",
   "// ON Inverts control for cases where 0V is max brightness.":
     "// ON inversează comanda pentru cazurile în care 0V înseamnă luminozitate maximă.",
   "// ON Powers off 30 seconds after movement stops.":
@@ -854,7 +854,7 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
   "Active LOW for Axis2 home":
     "Activ LOW pentru poziția de origine (home) a Axis2",
   "Needed with the stock E4 Config.h: its LIMIT_SENSE_PIN 34 is X-MIN, the Axis1 home pin, and OnStepX won't compile both on one pin. Or keep limits by moving them to TB: LIMIT_SENSE_PIN 39":
-    "Necesar cu Config.h-ul original E4: LIMIT_SENSE_PIN 34 al său este X-MIN, pinul de origine al Axis1, iar OnStepX refuză să compileze ambele pe același pin. Sau păstrați limitele mutându-le pe TB: LIMIT_SENSE_PIN 39",
+    "Necesar cu Config.h-ul original E4: LIMIT_SENSE_PIN 34 din acesta este X-MIN, pinul de origine al Axis1, iar OnStepX refuză să compileze ambele funcții pe același pin. Sau păstrați limitele mutându-le pe TB: LIMIT_SENSE_PIN 39",
   "Active LOW — short to GND = limit triggered":
     "Activ LOW — scurtcircuit la GND = limitator declanșat",
   "Active LOW — short to GND = limit triggered. Already LOW in the stock E4 Config.h":
@@ -1370,7 +1370,7 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
   "Default Config.h enables TMC2209 for Axis4. For a different driver, change AXIS4_DRIVER_MODEL.":
     "Config.h implicit activează TMC2209 pentru Axis4. Pentru alt driver, modificați AXIS4_DRIVER_MODEL.",
   "The stock E4 Config.h sets LIMIT_SENSE_PIN 34 (X-MIN), which is also AUX3, the Axis1 home pin. OnStepX won't let one AUX pin serve two features: with LIMIT_SENSE on, enabling AXIS1_SENSE_HOME fails the build (AUX3_PIN already in use). For home switches, set LIMIT_SENSE OFF or move the limit to TB with LIMIT_SENSE_PIN 39.":
-    "Config.h-ul original E4 setează LIMIT_SENSE_PIN 34 (X-MIN), care este și AUX3, pinul de origine al Axis1. OnStepX nu permite ca un pin AUX să servească două funcții: cu LIMIT_SENSE activ, activarea AXIS1_SENSE_HOME face compilarea să eșueze (AUX3_PIN deja folosit). Pentru limitatoare de origine, setați LIMIT_SENSE pe OFF sau mutați limita pe TB cu LIMIT_SENSE_PIN 39.",
+    "Config.h-ul original E4 setează LIMIT_SENSE_PIN 34 (X-MIN), care este și AUX3, pinul de origine al Axis1. OnStepX nu permite ca un pin AUX să servească două funcții: cu LIMIT_SENSE activ, activarea AXIS1_SENSE_HOME face compilarea să eșueze (AUX3_PIN deja folosit). Pentru comutatoare de origine, setați LIMIT_SENSE pe OFF sau mutați limita pe TB cu LIMIT_SENSE_PIN 39.",
   "Default E4 Config.h enables WEATHER and TIME_LOCATION_SOURCE even if you lack those devices; the libraries must still be installed.":
     "Config.h implicit pentru E4 activează WEATHER și TIME_LOCATION_SOURCE chiar dacă nu aveți aceste dispozitive; bibliotecile trebuie totuși instalate.",
   "Default driver":
@@ -2216,7 +2216,7 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
   "Limit on X-MIN armed (switch to GND stops motion). Set it OFF before enabling AXIS1_SENSE_HOME — same pin":
     "Limită activă pe X-MIN (contactul la GND oprește mișcarea). Setați-o pe OFF înainte de a activa AXIS1_SENSE_HOME — același pin",
   "Limit switch NO → GND (same pin as Axis1 home — use one or the other)":
-    "Limitator NO → GND (același pin ca originea Axis1 — folosiți unul sau altul)",
+    "Limitator de cursă NO → GND (același pin ca originea Axis1 — folosiți doar unul dintre ele)",
   "Limit switch state":
     "Starea limitatorului de cursă",
   "Load Existing Config.h":
@@ -2716,9 +2716,9 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
   "Paste a":
     "Lipiți un",
   "Remember flip home mode":
-    "Memorare mod origine la întoarcere",
+    "Memorare mod de origine la întoarcere",
   "LIMIT_STRICT no longer exists: current OnStepX refuses to compile a Config.h that defines it at all, so the configurator removes it from imported files (the stock E4 Config.h still carries LIMIT_STRICT OFF). When limits are enforced after power-up now follows the startup authority, set with MOUNT_STARTUP_MODE (SA_AUTO by default, SA_STRICT or SA_PERMISSIVE).":
-    "LIMIT_STRICT nu mai există: OnStepX actual refuză să compileze un Config.h care îl definește, chiar și pe OFF, așa că configuratorul îl elimină din fișierele importate (Config.h-ul original E4 încă conține LIMIT_STRICT OFF). Momentul în care limitele sunt aplicate după pornire depinde acum de autoritatea de pornire, setată cu MOUNT_STARTUP_MODE (SA_AUTO implicit, SA_STRICT sau SA_PERMISSIVE).",
+    "LIMIT_STRICT nu mai există: OnStepX actual refuză să compileze un Config.h care îl definește, indiferent de valoare, așa că configuratorul îl elimină din fișierele importate (Config.h-ul original E4 încă conține LIMIT_STRICT OFF). Momentul în care limitele sunt aplicate după pornire depinde acum de autoritatea de pornire, setată cu MOUNT_STARTUP_MODE (SA_AUTO implicit, SA_STRICT sau SA_PERMISSIVE).",
   "Periodic Error Correction (PEC) compensates for worm-gear imperfections. OnStepX learns the error pattern over one worm rotation and applies real-time correction. Requires a sensor to detect the worm index pulse.":
     "Corecția erorii periodice (PEC) compensează imperfecțiunile angrenajului melcat. OnStepX învață tiparul erorii pe o rotație a melcului și aplică o corecție în timp real. Necesită un senzor pentru detectarea impulsului de index al melcului.",
   "Periodic error correction with Hall sensor":
@@ -2872,7 +2872,7 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
   "Remember coords across power cycles (needs FRAM)":
     "Memorare coordonate între cicluri de alimentare (necesită FRAM)",
   "Allow gotos out of a limit for 1s":
-    "Permite GOTO în afara limitei timp de 1 s",
+    "Permite GOTO-uri de ieșire din limită timp de 1 s",
   "Remember pier side setting":
     "Memorare setare parte a pilonului",
   "Remember slew rate":
@@ -3646,7 +3646,7 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
   "Verify axis limits are correct for your mount.":
     "Verificați că limitele axelor sunt corecte pentru montura dumneavoastră.",
   "Verify meridian-limit and MFLIP settings; for GEM, set MFLIP_HOME_DEFAULT appropriately (OFF skips visiting home, VISIT goes via home, PAUSE waits at home).":
-    "Verificați setările pentru limita de meridian și MFLIP; pentru GEM, setați MFLIP_HOME_DEFAULT corespunzător (OFF evită trecerea prin home, VISIT trece prin home, PAUSE așteaptă în home).",
+    "Verificați setările pentru limita de meridian și MFLIP; pentru GEM, setați MFLIP_HOME_DEFAULT corespunzător (OFF omite trecerea prin origine, VISIT trece prin origine, PAUSE așteaptă în poziția de origine).",
   "Verify the COM port appears in Device Manager.":
     "Verificați că portul COM apare în Manager dispozitive.",
   "Verify the module first:":
@@ -4792,7 +4792,7 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
   "Adafruit BME280 v2.2.2 + Adafruit Sensor v1.1.7 (Arduino Library Manager).":
     "Adafruit BME280 v2.2.2 + Adafruit Sensor v1.1.7 (Arduino Library Manager / managerul de biblioteci).",
   "Leave OFF for normal use. Turn ON (errors and warnings) or VERBOSE (everything) when asked to troubleshoot: OnStepX then prints startup messages on the USB serial port at the SERIAL_A_BAUD_DEFAULT baud rate (9600 unless changed under Serial Ports). CONSOLE (VT100 debug console) and PROFILER (VT100 task profiler) use the same port and need a terminal program such as PuTTY.":
-    "Lăsați pe OFF pentru utilizarea normală. Setați ON (erori și avertismente) sau VERBOSE (totul) atunci când vi se cere pentru depanare: OnStepX afișează atunci mesajele de pornire pe portul serial USB la viteza SERIAL_A_BAUD_DEFAULT (9600 baud dacă nu ați schimbat-o la Porturi seriale). CONSOLE (consolă de depanare VT100) și PROFILER (profilator de sarcini VT100) folosesc același port și necesită un program terminal precum PuTTY.",
+    "Lăsați pe OFF pentru utilizarea normală. Setați ON (erori și avertismente) sau VERBOSE (totul) atunci când vi se cere pentru depanare: OnStepX afișează atunci mesajele de pornire pe portul serial USB la viteza SERIAL_A_BAUD_DEFAULT (9600 baud dacă nu ați schimbat-o la Porturi seriale). CONSOLE (consolă de depanare VT100) și PROFILER (profilator de sarcini VT100) folosesc același port și necesită un program de terminal precum PuTTY.",
   "Still an Init NV/EEPROM error on main after erasing? Use E4 as the Source ref for now, then set DEBUG to ON (Controller tab), rebuild, and read the Nv lines on the USB serial monitor at the SERIAL_A_BAUD_DEFAULT baud rate (9600 unless changed).":
     "Încă o eroare Init NV/EEPROM pe main după ștergere? Folosiți deocamdată E4 ca Source ref, apoi setați DEBUG pe ON (fila Controller), recompilați și citiți liniile Nv în monitorul serial USB la viteza SERIAL_A_BAUD_DEFAULT (9600 baud dacă nu ați schimbat-o).",
   "Serial monitor":
@@ -4909,13 +4909,13 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
   "Copy failed. Use Save .txt instead.":
     "Copierea a eșuat. Folosiți Save .txt.",
   "Flashing…":
-    "Se scrie firmware-ul…",
+    "Programare…",
   "Flash complete ✓":
-    "Scriere firmware terminată ✓",
+    "Programare terminată ✓",
   "A flash is in progress — wait for it to finish, then connect the monitor.":
     "Scrierea firmware-ului este în curs — așteptați să se termine, apoi conectați monitorul.",
   "Web Serial is not available in this browser. Use Chrome or Edge on a desktop computer.":
-    "Web Serial nu este disponibil în acest browser. Folosiți Chrome sau Edge pe un computer.",
+    "Web Serial nu este disponibil în acest browser. Folosiți Chrome sau Edge pe un computer desktop.",
   "Build succeeded":
     "Compilare reușită",
   "Build failed":
@@ -4934,4 +4934,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "Numele rețelei WiFi existente (≤32 caractere). Obligatoriu când STA_ENABLED este true. Se aplică la prima pornire / după NV_WIPE — ulterior modificați-l din interfața web SWS.",
   "OnStepX StallGuard monitor panel (any axis, needs TMC drivers)":
     "Panou de monitorizare StallGuard OnStepX (orice axă, necesită drivere TMC)",
+  "Terrans V5 Pro: SWS runs on the on-board ESP8266 — flash with the board switch on the right":
+    "Terrans V5 Pro: SWS rulează pe ESP8266 integrat — programați cu comutatorul plăcii pe dreapta",
+  "A flash is in progress — wait for it to finish before compiling.":
+    "O programare este în curs — așteptați să se termine înainte de a compila.",
 });

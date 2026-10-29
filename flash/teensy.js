@@ -22,7 +22,7 @@
 // Loader instructions. The HalfKay bootloader is in ROM and cannot be bricked
 // by a partial flash — a retry (browser or desktop) always recovers.
 
-import { downloadBlob } from '../compile.js?v=19';
+import { downloadBlob } from '../compile.js?v=20';
 
 const HALFKAY_VID = 0x16C0;
 const HALFKAY_PID = 0x0478;

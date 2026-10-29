@@ -672,7 +672,7 @@ window.I18N_FR = Object.assign(window.I18N_FR || {}, {
   "A flash is in progress — wait for it to finish, then connect the monitor.":
     "Un flash est en cours — attendez la fin, puis connectez le moniteur.",
   "Web Serial is not available in this browser. Use Chrome or Edge on a desktop computer.":
-    "Web Serial n'est pas disponible dans ce navigateur. Utilisez Chrome ou Edge sur un ordinateur.",
+    "Web Serial n'est pas disponible dans ce navigateur. Utilisez Chrome ou Edge sur un ordinateur de bureau.",
   "Build succeeded":
     "Compilation réussie",
   "Build failed":
@@ -683,4 +683,8 @@ window.I18N_FR = Object.assign(window.I18N_FR || {}, {
     "Délai de compilation dépassé",
   "Build finished":
     "Compilation terminée",
+  "Terrans V5 Pro: SWS runs on the on-board ESP8266 — flash with the board switch on the right":
+    "Terrans V5 Pro : SWS tourne sur l'ESP8266 intégré — flashez avec le sélecteur de la carte à droite",
+  "A flash is in progress — wait for it to finish before compiling.":
+    "Un flash est en cours — attendez la fin avant de compiler.",
 });

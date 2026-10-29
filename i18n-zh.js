@@ -224,7 +224,7 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
   ", its own dedicated pins. The":
     "，有自己专用的引脚。",
   ", putting the limit sense on GPIO34 (X-MIN), the same AUX3 pin as":
-    "，把限位检测放在 GPIO34（X-MIN）上，与以下功能是同一个 AUX3 引脚：",
+    "，把限位检测放在 GPIO34（X-MIN）上，与以下功能同为 AUX3 引脚：",
   ", not":
     "，而不是",
   ", not \"NONE\" — NONE is not a valid OnStepX value and will not compile.":
@@ -334,7 +334,7 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
   ". OnStepX won't compile with both enabled, so one switch can't be home and limit at once. Use limits only (home switches OFF), home switches with":
     "。两者同时启用时 OnStepX 无法编译，因此一个开关不能同时作原点和限位。可选：只用限位（原点开关 OFF）；使用原点开关并设置",
   ", or both on separate pins: home on X-MIN, limit on TB (GPIO39) with":
-    "；或两者分用不同引脚：原点接 X-MIN，限位接 TB（GPIO39），并设置",
+    "；或两者分别使用不同引脚：原点接 X-MIN，限位接 TB（GPIO39），并设置",
   ". WIFI_STATION = the board JOINS your existing home WiFi/router — best indoors with internet on the same device; find its IP in the serial monitor or your router's client list. Default WiFi password: \"":
     "。WIFI_STATION = 主板加入您现有的家庭 WiFi/路由器——适合室内且同一设备需要上网的情况；可在串口监视器或路由器的客户端列表中找到它的 IP。默认 WiFi 密码：\"",
   ". Wait 1–3 min.":
@@ -434,7 +434,7 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
   "Resume tracking after a recovery":
     "恢复后继续跟踪",
   "// ON disables limits for 1s to allow gotos outside limits for recovery from overhead (Alt/Azm), horizon, meridian (GEM), and axis1 min/max.":
-    "// ON 暂停限位 1 秒，允许越限自动寻星，以便从天顶（Alt/Azm）、地平线、子午线（GEM）及 axis1 最小/最大限位中恢复。",
+    "// ON 暂停限位 1 秒，允许在限位之外执行自动寻星，以便从天顶（Alt/Azm）、地平线、子午线（GEM）及 axis1 最小/最大限位中恢复。",
   "// ON Inverts control for cases where 0V is max brightness.":
     "// ON 反转控制，用于 0V 对应最大亮度的情况。",
   "// ON Powers off 30 seconds after movement stops.":
@@ -870,7 +870,7 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
   "Active LOW for Axis2 home":
     "Axis2 原点，低电平有效",
   "Needed with the stock E4 Config.h: its LIMIT_SENSE_PIN 34 is X-MIN, the Axis1 home pin, and OnStepX won't compile both on one pin. Or keep limits by moving them to TB: LIMIT_SENSE_PIN 39":
-    "使用 E4 原厂 Config.h 时必须如此：其 LIMIT_SENSE_PIN 34 就是 X-MIN，即 Axis1 原点引脚，OnStepX 不允许两者共用一个引脚编译。或者把限位移到 TB 以保留限位：LIMIT_SENSE_PIN 39",
+    "使用 E4 原厂 Config.h 时必须如此：其 LIMIT_SENSE_PIN 34 就是 X-MIN，即 Axis1 原点引脚，两者共用一个引脚时 OnStepX 无法编译。或者把限位移到 TB 以保留限位：LIMIT_SENSE_PIN 39",
   "Active LOW — short to GND = limit triggered":
     "低电平有效 — 短接到 GND = 触发限位",
   "Active LOW — short to GND = limit triggered. Already LOW in the stock E4 Config.h":
@@ -2270,7 +2270,7 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
   "Limit Switches":
     "限位开关",
   "Limit on X-MIN armed (switch to GND stops motion). Set it OFF before enabling AXIS1_SENSE_HOME — same pin":
-    "X-MIN 上的限位已启用（开关接 GND 即停止运动）。启用 AXIS1_SENSE_HOME 前请将其设为 OFF——同一引脚",
+    "X-MIN 上的限位已启用（开关接 GND 即停止运动）。启用 AXIS1_SENSE_HOME 前请将其设为 OFF——两者为同一引脚",
   "Limit switch NO → GND (same pin as Axis1 home — use one or the other)":
     "限位开关 NO → GND（与 Axis1 原点同一引脚——二者择一）",
   "Limit switch state":
@@ -2932,7 +2932,7 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
   "Remember coords across power cycles (needs FRAM)":
     "断电后保持坐标记忆（需要 FRAM）",
   "Allow gotos out of a limit for 1s":
-    "允许在 1 秒内越限自动寻星",
+    "允许在 1 秒内通过自动寻星脱离限位",
   "Remember pier side setting":
     "记住镜筒侧（pier side）设置",
   "Remember slew rate":
@@ -3716,7 +3716,7 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
   "Verify axis limits are correct for your mount.":
     "确认轴限位设置适合您的支架。",
   "Verify meridian-limit and MFLIP settings; for GEM, set MFLIP_HOME_DEFAULT appropriately (OFF skips visiting home, VISIT goes via home, PAUSE waits at home).":
-    "检查子午线限位和 MFLIP 设置；对于赤道仪（GEM），请正确设置 MFLIP_HOME_DEFAULT（OFF 不经过原点，VISIT 经过原点，PAUSE 在原点暂停）。",
+    "检查子午线限位和 MFLIP 设置；对于赤道仪（GEM），请正确设置 MFLIP_HOME_DEFAULT（OFF 不经过原点，VISIT 经过原点，PAUSE 在原点等待）。",
   "Verify the COM port appears in Device Manager.":
     "确认设备管理器中出现了该 COM 端口。",
   "Verify the module first:":
@@ -4862,9 +4862,9 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
   "🧲 PEC Index Sensors":
     "🧲 PEC 索引传感器",
   "Leave OFF for normal use. Turn ON (errors and warnings) or VERBOSE (everything) when asked to troubleshoot: OnStepX then prints startup messages on the USB serial port at the SERIAL_A_BAUD_DEFAULT baud rate (9600 unless changed under Serial Ports). CONSOLE (VT100 debug console) and PROFILER (VT100 task profiler) use the same port and need a terminal program such as PuTTY.":
-    "正常使用时请保持 OFF。排查问题时按要求设为 ON（错误和警告）或 VERBOSE（全部信息）：OnStepX 随后会通过 USB 串口以 SERIAL_A_BAUD_DEFAULT 的波特率（除非在串口部分修改，否则为 9600）输出启动信息。CONSOLE（VT100 调试控制台）和 PROFILER（VT100 任务分析器）使用同一端口，需要 PuTTY 等终端程序。",
+    "正常使用时请保持 OFF。排查问题时按要求设为 ON（错误和警告）或 VERBOSE（全部信息）：OnStepX 随后会通过 USB 串口以 SERIAL_A_BAUD_DEFAULT 的波特率（除非在「串口」部分修改，否则为 9600）输出启动信息。CONSOLE（VT100 调试控制台）和 PROFILER（VT100 任务分析器）使用同一端口，需要 PuTTY 等终端程序。",
   "Still an Init NV/EEPROM error on main after erasing? Use E4 as the Source ref for now, then set DEBUG to ON (Controller tab), rebuild, and read the Nv lines on the USB serial monitor at the SERIAL_A_BAUD_DEFAULT baud rate (9600 unless changed).":
-    "擦除后 main 仍然出现 Init NV/EEPROM error？请暂时将 Source ref 设为 E4，然后在 Controller 选项卡中把 DEBUG 设为 ON，重新编译，并在 USB 串口监视器中以 SERIAL_A_BAUD_DEFAULT 的波特率（未修改时为 9600）查看 Nv 开头的行。",
+    "擦除后 main 仍然出现 Init NV/EEPROM error？请暂时将「源代码引用」设为 E4，然后在「控制器」选项卡中把 DEBUG 设为 ON，重新编译，并在 USB 串口监视器中以 SERIAL_A_BAUD_DEFAULT 的波特率（未修改时为 9600）查看 Nv 开头的行。",
   "Serial monitor":
     "串口监视器",
   "Connect":
@@ -4878,7 +4878,7 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
   "Save .txt":
     "保存 .txt",
   "Shows what the board prints on its USB port, for example the OnStepX startup messages when DEBUG is ON or VERBOSE (Controller tab). Close NINA, ASCOM and any other program using the port first.":
-    "显示主板通过 USB 端口输出的内容，例如在 DEBUG 设为 ON 或 VERBOSE（Controller 选项卡）时 OnStepX 的启动信息。请先关闭 NINA、ASCOM 以及其他占用该端口的程序。",
+    "显示主板通过 USB 端口输出的内容，例如在 DEBUG 设为 ON 或 VERBOSE（「控制器」选项卡）时 OnStepX 的启动信息。请先关闭 NINA、ASCOM 以及其他占用该端口的程序。",
   // Short labels (axis / pin / board names) — added to match the French key set.
   "Axis2":
     "Axis2",
@@ -4919,13 +4919,13 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
   "FYSETC E4 Wiki":
     "FYSETC E4 Wiki",
   "FYSETC E4 wiki":
-    "FYSETC E4 官方 wiki",
+    "FYSETC E4 wiki",
   // Same strings as the pgT() variants in index.html (serial monitor / compile /
   // flash progress), so i18n.js can map JS-written translations back to English.
   "Starting…":
     "正在启动…",
   "Waiting for runner":
-    "等待构建服务器",
+    "等待运行器",
   "Compiling":
     "正在编译",
   "Fetching firmware":
@@ -4933,13 +4933,13 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
   "Build complete ✓":
     "编译完成 ✓",
   "Disconnect":
-    "断开",
+    "断开连接",
   "Connected. Waiting for data…":
     "已连接，等待数据…",
   "Copied.":
     "已复制。",
   "Copy failed. Use Save .txt instead.":
-    "复制失败，请改用 Save .txt。",
+    "复制失败，请改用「保存 .txt」。",
   "Flashing…":
     "正在烧录…",
   "Flash complete ✓":
@@ -4947,7 +4947,7 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
   "A flash is in progress — wait for it to finish, then connect the monitor.":
     "正在烧录 — 请等待完成后再连接串口监视器。",
   "Web Serial is not available in this browser. Use Chrome or Edge on a desktop computer.":
-    "此浏览器不支持 Web Serial。请在电脑上使用 Chrome 或 Edge。",
+    "此浏览器不支持 Web Serial。请在桌面电脑上使用 Chrome 或 Edge。",
   "Build succeeded":
     "编译成功",
   "Build failed":
@@ -4966,4 +4966,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "您现有 WiFi 网络的名称（≤32 个字符）。STA_ENABLED 为 true 时必填。仅在首次启动或 NV_WIPE 后写入——之后请在 SWS 网页界面中修改。",
   "OnStepX StallGuard monitor panel (any axis, needs TMC drivers)":
     "OnStepX StallGuard 监控面板（任意轴，需要 TMC 驱动）",
+  "Terrans V5 Pro: SWS runs on the on-board ESP8266 — flash with the board switch on the right":
+    "Terrans V5 Pro：SWS 运行在板载 ESP8266 上——烧录时将板上开关拨到右侧",
+  "A flash is in progress — wait for it to finish before compiling.":
+    "正在烧录——请等待完成后再编译。",
 });
