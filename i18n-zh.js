@@ -427,8 +427,12 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "// ON 在待机时保持支架电机驱动器启用。",
   "// ON Flashes proportional to rate of movement or solid on for slews.":
     "// ON 按运动速率成比例闪烁，快速转动时常亮。",
-  "// ON Goto directly to the destination without visiting home position.":
-    "// ON 直接自动寻星（GOTO）到目标，不经过原点位置。",
+  "// OFF goes directly; VISIT passes through home; PAUSE waits at home.":
+    "// OFF 直接前往；VISIT 经过原点；PAUSE 在原点等待。",
+  "Resume tracking after a recovery":
+    "恢复后继续跟踪",
+  "// ON disables limits for 1s to allow gotos outside limits for recovery from overhead (Alt/Azm), horizon, meridian (GEM), and axis1 min/max.":
+    "// ON 暂停限位 1 秒，允许越限自动寻星，以便从天顶（Alt/Azm）、地平线、子午线（GEM）及 axis1 最小/最大限位中恢复。",
   "// ON Inverts control for cases where 0V is max brightness.":
     "// ON 反转控制，用于 0V 对应最大亮度的情况。",
   "// ON Powers off 30 seconds after movement stops.":
@@ -439,8 +443,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "// ON 断电重启后记住自动中天翻转设置。",
   "// ON Remember automatic sync setting across power cycles.":
     "// ON 断电重启后记住自动同步设置。",
-  "// ON Remember meridian flip pause at home setting across power cycles.":
-    "// ON 断电重启后记住「中天翻转时在原点暂停」设置。",
+  "// ON Remember meridian flip home mode setting across power cycles.":
+    "// ON 断电重启后记住中天翻转的原点模式设置。",
   "// ON Remember preferred pier side setting across power cycles.":
     "// ON 断电重启后记住首选镜筒侧设置。",
   "// ON Remember reticle brightness across power cycles.":
@@ -457,8 +461,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "// ON 反转运动方向，也可改为反接线来纠正。",
   "// ON Start with automatic meridian flips enabled.":
     "// ON 启动时启用自动中天翻转。",
-  "// ON Start with meridian flip pause at home enabed.":
-    "// ON 启动时启用「中天翻转时在原点暂停」。",
+  "// ON automatically enable tracking on limit recovery.":
+    "// ON 越限恢复时自动启用跟踪。",
   "// ON Start with tracking enabled.":
     "// ON 启动时启用跟踪。",
   "// ON Upload ESP8266 WiFi firmware through SERIAL_B with :ESPFLASH# cmd.":
@@ -611,8 +615,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "// n。时间限制 n=0..120 秒。设为 0 表示禁用。",
   "// n. Where n= -90..-360 (degrees.) Minimum \"Hour Angle\" or Azimuth.":
     "// n。其中 n= -90..-360（度。）最小「时角」或方位角。",
-  "// n. Where n= 0..90 (degrees.) Allow sync/reset only within this +/-range.":
-    "// n。其中 n= 0..90（度。）仅在此 +/- 范围内允许同步/重置。",
+  "// n. Where n= 0..30 (degrees.) Allow sync/reset only within this +/-range.":
+    "// n。其中 n= 0..30（度。）仅在此 +/- 范围内允许同步/重置。",
   "// n. Where n= 0..90 (degrees.) Maximum allowed Declination or Altitude.":
     "// n。其中 n= 0..90（度。）允许的最大赤纬或高度。",
   "// n. Where n= 90.. 360 (degrees.) Maximum \"Hour Angle\" or Azimuth.":
@@ -2537,8 +2541,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "E4 上为 OFF——需自行定义 ONE_WIRE_PIN（仅限 GPIO21/22）",
   "OFF or 0..255 brightness":
     "OFF 或 0..255 亮度",
-  "OFF or 0..90 degrees":
-    "OFF 或 0..90 度",
+  "OFF or 0..30 degrees":
+    "OFF 或 0..30 度",
   "OFF or mA":
     "OFF 或 mA",
   "OFF or mA for slew current":
@@ -2763,8 +2767,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "您现有 WiFi 网络的密码",
   "Paste a":
     "粘贴一个",
-  "Pause at home during flip":
-    "中天翻转时在原点暂停",
+  "Remember flip home mode":
+    "记住翻转原点模式",
   "Per Config.h: OFF disables limits until an unpark goto or a sync; ON enables them at startup (the defaults file adds \"if date/time are set\"). The stock E4 Config.h ships OFF.":
     "根据 Config.h：OFF 会禁用限位，直到执行一次解除停放的 GOTO 或同步；ON 则在启动时启用（默认值文件补充说明「如果已设置日期/时间」）。原厂 E4 Config.h 默认为 OFF。",
   "Periodic Error Correction (PEC) compensates for worm-gear imperfections. OnStepX learns the error pattern over one worm rotation and applies real-time correction. Requires a sensor to detect the worm index pulse.":
@@ -2923,8 +2927,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "记住补偿设置",
   "Remember coords across power cycles (needs FRAM)":
     "断电后保持坐标记忆（需要 FRAM）",
-  "Remember pause setting":
-    "记住暂停设置",
+  "Allow gotos out of a limit for 1s":
+    "允许在 1 秒内越限自动寻星",
   "Remember pier side setting":
     "记住镜筒侧（pier side）设置",
   "Remember slew rate":
@@ -3179,8 +3183,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "用于 W5100/W5500 以太网扩展板的六个十六进制字节。WIFI 模式下忽略。",
   "Skip final goto phase for alignment stars":
     "跳过校准星的最终自动寻星阶段",
-  "Skip home during meridian flip":
-    "中天翻转时跳过原点",
+  "Meridian flip home waypoint":
+    "中天翻转的原点途经方式",
   "Sleeve":
     "套筒（Sleeve）",
   "Sleeve is ground, as on every brand here. Many modern Sony bodies use Multi-terminal (USB) instead of a 2.5mm jack — check the manual.":
@@ -4871,4 +4875,69 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "保存 .txt",
   "Shows what the board prints on its USB port, for example the OnStepX startup messages when DEBUG is ON or VERBOSE (Controller tab). Close NINA, ASCOM and any other program using the port first.":
     "显示主板通过 USB 端口输出的内容，例如在 DEBUG 设为 ON 或 VERBOSE（Controller 选项卡）时 OnStepX 的启动信息。请先关闭 NINA、ASCOM 以及其他占用该端口的程序。",
+  // Short labels (axis / pin / board names) — added to match the French key set.
+  "Axis2":
+    "Axis2",
+  "Axis4":
+    "Axis4",
+  "NV_2416 — 2KB I2C EEPROM @ 0x50":
+    "NV_2416 — 2KB I2C EEPROM（地址 0x50）",
+  "NV_2432 — 4KB I2C EEPROM @ 0x50":
+    "NV_2432 — 4KB I2C EEPROM（地址 0x50）",
+  "NV_2464 — 8KB I2C EEPROM @ 0x50":
+    "NV_2464 — 8KB I2C EEPROM（地址 0x50）",
+  "NV_MB85RC256 — 32KB I2C FRAM @ 0x50":
+    "NV_MB85RC256 — 32KB I2C FRAM（地址 0x50）",
+  "STM32 BlackPill F411CE (and MaxSTM3)":
+    "STM32 BlackPill F411CE（及 MaxSTM3）",
+  "Esc":
+    "Esc",
+  "USB JTAG/serial debug unit":
+    "USB JTAG/串口调试单元",
+  "Axis2 DIR":
+    "Axis2 DIR",
+  "Axis2 STEP":
+    "Axis2 STEP",
+  "Axis3/Axis5 DIR":
+    "Axis3/Axis5 DIR",
+  "Axis3/Axis5 STEP":
+    "Axis3/Axis5 STEP",
+  "Axis4 DIR":
+    "Axis4 DIR",
+  "Axis4 STEP":
+    "Axis4 STEP",
+  "DS3231 + AT24C32 EEPROM":
+    "DS3231 + AT24C32 EEPROM",
+  "E4 wiki":
+    "E4 wiki",
+  "I2C GPS":
+    "I2C GPS",
+  "FYSETC E4 Wiki":
+    "FYSETC E4 Wiki",
+  "FYSETC E4 wiki":
+    "FYSETC E4 官方 wiki",
+  // Same strings as the pgT() variants in index.html (serial monitor / compile /
+  // flash progress), so i18n.js can map JS-written translations back to English.
+  "Starting…":
+    "正在启动…",
+  "Waiting for runner":
+    "等待构建服务器",
+  "Compiling":
+    "正在编译",
+  "Fetching firmware":
+    "正在获取固件",
+  "Build complete ✓":
+    "编译完成 ✓",
+  "Disconnect":
+    "断开",
+  "Connected. Waiting for data…":
+    "已连接，等待数据…",
+  "Copied.":
+    "已复制。",
+  "Copy failed. Use Save .txt instead.":
+    "复制失败，请改用 Save .txt。",
+  "Flashing…":
+    "正在烧录…",
+  "Flash complete ✓":
+    "烧录完成 ✓",
 });

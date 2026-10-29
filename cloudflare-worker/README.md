@@ -15,7 +15,10 @@ and proxies the firmware artifact back to the browser.
 2. Edit `wrangler.toml` and set `BUILD_OWNER`, `BUILD_REPO`, `ALLOWED_ORIGIN`
    to match your setup.
 
-3. Create a fine-grained GitHub Personal Access Token:
+3. GitHub credentials. **Production: GitHub App** — follow
+   [`GITHUB_APP_SETUP.md`](GITHUB_APP_SETUP.md) and set `GH_APP_ID`,
+   `GH_APP_PRIVATE_KEY`, `GH_APP_INSTALLATION_ID`. Fallback (used only when
+   those three aren't all set) — a fine-grained Personal Access Token:
    - GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token
    - **Repository access**: only the build-service repo
    - **Repository permissions**:
@@ -29,31 +32,60 @@ and proxies the firmware artifact back to the browser.
    # paste the token when prompted
    ```
 
-4. (Optional) Enable rate limiting:
+4. Set the token-signing secret (**required** — fail-closed, `/compile`,
+   `/status` and `/firmware` answer 503 without it):
    ```bash
-   wrangler kv:namespace create RATE_LIMIT
+   openssl rand -hex 32 | wrangler secret put TOKEN_SECRET
+   ```
+
+5. Rate-limit KV namespace (**required**; already bound in `wrangler.toml` —
+   only needed on a fresh account):
+   ```bash
+   wrangler kv namespace create RATE_LIMIT
    # paste the returned id into wrangler.toml under [[kv_namespaces]]
    ```
 
-5. Deploy:
+6. Deploy (AFTER the site version that sends the token is live and the Pages cache
+   has expired, ~10 min — an old cached page against the new Worker gets 403 at /status):
    ```bash
    wrangler deploy
    ```
 
-6. Note the deployed URL (something like
+7. Note the deployed URL (something like
    `https://onstepx-build-bridge.<your-subdomain>.workers.dev`).
    Put this URL in `compile.js` in the configurator repo as `WORKER_URL`.
 
 ## Endpoints
 
-- `POST /compile` — body `{config, board, ref?, project?}` → `{request_id}`
-  - `project`: `'onstepx'` (default) or `'shc'`. Picks `hjd1964/OnStepX`
-    vs `hjd1964/SmartHandController` as the upstream source.
-  - `board`: PlatformIO env. OnStepX: `esp32 | teensy40 | teensy41 |
-    blackpill_f411`. SHC: `shc_esp32 | shc_teensy40 | shc_teensy32`.
+- `POST /compile` — body `{config, board, ref?, project?, plugins?}` →
+  `{request_id, token, state: 'queued'}`
+  - `project`: `'onstepx'` (default), `'shc'` or `'sws'`. Picks
+    `hjd1964/OnStepX`, `hjd1964/SmartHandController` or
+    `hjd1964/SmartWebServer` as the upstream source; must match the board
+    prefix (`shc_*` → shc, `sws_*` → sws, everything else → onstepx).
+  - `board`: PlatformIO env (`ALLOWED_BOARDS` in `worker.js`).
+    OnStepX: `esp32 | teensy32 | teensy40 | teensy41 | blackpill_f411 |
+    f446_fysetc_s6 | skr_pro_f407`. SHC: `shc_esp32 | shc_teensy40 |
+    shc_teensy32`. SWS: `sws_esp32 | sws_esp8266`.
   - `ref`: branch / tag / commit SHA of the chosen project (default `'main'`).
-- `GET /status?id=<request_id>` → `{state, run_id?, conclusion?}`
-- `GET /firmware?run_id=<run_id>` → `application/zip`
+  - `plugins`: OnStepX only — array from `website, elegantota, metrics,
+    serialBluetoothConfig, guideRateRheostat, usb`.
+  - Rate limit: 10 successful dispatches/hour/IP (fixed window, KV).
+- `GET /status?id=<request_id>&token=<token>` →
+  `{state, run_id?, conclusion?, html_url?, error_lines?}`
+  - `state`: `queued | in_progress | completed`, or `never_started` when no
+    run carrying the request_id appeared within 3 min of dispatch.
+  - `error_lines`: on `conclusion: failure`, up to 30 compiler/`#error`/link
+    error lines scraped from the failed job's log (credentials redacted).
+  - Cached a few seconds per isolate; 60 calls/min/IP per isolate.
+- `GET /firmware?run_id=<run_id>&id=<request_id>&token=<token>` →
+  `application/zip`. Refused unless the run's name carries that request_id.
+- `GET /auth-info` → auth mode diagnostics (no secrets).
+
+The token is `<issued-ms>.<HMAC-SHA256(TOKEN_SECRET, "<request_id>.<issued-ms>")>`,
+valid 24 h. Runs are matched by `req=<request_id>` in the run name / display
+title, which the workflow sets as
+`onstepx-build req=<uuid> env=<env> project=<project>`.
 
 ## Local dev
 

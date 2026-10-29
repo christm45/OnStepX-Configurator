@@ -22,6 +22,7 @@
 
   var STORE_KEY = 'cfgLang';
   var EN_TEXT = '__i18nEnText';          // per-text-node cache of the English original
+  var EN_OUT = '__i18nOutText';          // per-text-node record of what the engine last wrote
   var EN_ATTR = '__i18nEnAttr_';         // per-element cache of an attribute's English original
   var SKIP_TAGS = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, CANVAS: 1, CODE: 1, PRE: 1, TEXTAREA: 1, OPTION: 0 };
   var ATTRS = ['title', 'placeholder', 'aria-label'];
@@ -56,23 +57,65 @@
      turn misses into hits; it never merges two distinct entries. */
   function key(s) { return s.trim().replace(/\s+/g, ' '); }
 
-  /* ---- translate a single text node in place (cache English on first touch) */
+  /* ---- recover the English original of a string ----------------------------
+     The engine caches each node's English text on first touch. But text can be
+     written by page JS while another language is active (pgT() picks the
+     French/Chinese/Romanian variant itself, e.g. the serial monitor's
+     "Déconnecter" button), and caching that as "English" would strand it in
+     that language after switching back. So if a string is not a known English
+     key but IS a known translation, map it back to its English key. The
+     reverse maps are built lazily, once per dictionary (the dictionaries are
+     all loaded before this file and never change afterwards). */
+  var rev = {};
+  function revMap(code) {
+    if (rev[code]) return rev[code];
+    var m = Object.create(null), g = LANGS[code].dict, d = g ? window[g] : null;
+    if (d) for (var k in d) {
+      var v = d[k];
+      if (typeof v !== 'string') continue;
+      v = key(v);
+      // Skip fragments too short to identify (")" or "are" also occur as
+      // plain English text nodes) unless they are clearly non-English.
+      if (v === k || (v.length < 4 && !/[^\u0000-\u007f]/.test(v))) continue;
+      if (!(v in m)) m[v] = k;
+    }
+    return (rev[code] = m);
+  }
+  function isEnglishKey(k) {
+    for (var c in LANGS) { var g = LANGS[c].dict; if (g && window[g] && window[g][k] !== undefined) return true; }
+    return false;
+  }
+  // Only the active language can have been written by page JS (pgT() picks
+  // the variant for the current language), so only its dictionary is reversed.
+  function englishOf(s) {
+    if (s == null || !LANGS[lang].dict) return s;
+    var k = key(s);
+    if (!k || isEnglishKey(k)) return s;
+    var en = revMap(lang)[k];
+    return en !== undefined ? /^\s*/.exec(s)[0] + en + /\s*$/.exec(s)[0] : s;
+  }
+
+  /* ---- translate a single text node in place --------------------------------
+     EN_TEXT caches the English original; EN_OUT remembers what we last wrote.
+     If the live value no longer matches EN_OUT, page JS has changed the text
+     since, so the cache is stale: re-derive the original from the new value. */
   function tText(node) {
-    if (node[EN_TEXT] === undefined) node[EN_TEXT] = node.nodeValue;
+    if (node[EN_TEXT] === undefined || node.nodeValue !== node[EN_OUT]) node[EN_TEXT] = englishOf(node.nodeValue);
     var orig = node[EN_TEXT];
     var d = dict();
-    if (!d) { if (node.nodeValue !== orig) node.nodeValue = orig; return; }
-    var k = key(orig);
-    if (!k) return;
-    var fr = d[k];
     var next = orig;
-    if (fr !== undefined) {
-      // The key is collapsed, so it is not a literal substring of orig — put
-      // the node's own leading/trailing whitespace back around the translation
-      // instead, or neighbouring inline tags would run into the words.
-      next = /^\s*/.exec(orig)[0] + fr + /\s*$/.exec(orig)[0];
+    var k = key(orig);
+    if (d && k) {
+      var fr = d[k];
+      if (fr !== undefined) {
+        // The key is collapsed, so it is not a literal substring of orig — put
+        // the node's own leading/trailing whitespace back around the translation
+        // instead, or neighbouring inline tags would run into the words.
+        next = /^\s*/.exec(orig)[0] + fr + /\s*$/.exec(orig)[0];
+      }
     }
     if (node.nodeValue !== next) node.nodeValue = next;
+    node[EN_OUT] = next;
   }
 
   function skipParent(p) {
@@ -97,14 +140,16 @@
   }
 
   function tAttr(el, attr) {
-    var sk = EN_ATTR + attr;
-    if (el[sk] === undefined) el[sk] = el.getAttribute(attr);
+    var sk = EN_ATTR + attr, ok = sk + '_out';
+    var cur = el.getAttribute(attr);
+    if (el[sk] === undefined || cur !== el[ok]) el[sk] = englishOf(cur);
     var orig = el[sk];
-    if (orig == null) return;
+    if (orig == null) { el[ok] = cur; return; }
     var d = dict();
     var fr = d ? d[key(orig)] : undefined;
     var next = (fr !== undefined) ? fr : orig;
-    if (el.getAttribute(attr) !== next) el.setAttribute(attr, next);
+    if (cur !== next) el.setAttribute(attr, next);
+    el[ok] = next;
   }
 
   function walkAttrs(root) {
@@ -139,27 +184,48 @@
     try { localStorage.setItem(STORE_KEY, lang); } catch (e) {}
     document.documentElement.lang = LANGS[lang].html;
     apply(document.body);
+    flushOwnMutations();
     updateButtons();
     if (typeof window.afterI18nApply === 'function') window.afterI18nApply();
   }
 
-  /* ---- auto-translate dynamically inserted content (E4 guide, output, etc.) */
+  /* ---- auto-translate dynamic content (E4 guide, output, etc.) --------------
+     Watches inserted nodes, in-place text edits (node.nodeValue = …) and the
+     translated attributes. The engine's own writes also queue records; those
+     are dropped with takeRecords() so a language switch over the whole page
+     doesn't re-walk it, and re-processing one would be a no-op anyway (tText /
+     tAttr only write when the value differs). */
   var observer = null;
-  function startObserver() {
-    if (observer || !window.MutationObserver || !document.body) return;
-    observer = new MutationObserver(function (muts) {
-      if (lang === 'en') return;            // nothing to do; new nodes are already English
-      for (var i = 0; i < muts.length; i++) {
-        var added = muts[i].addedNodes;
+  function onMutations(muts) {
+    if (lang === 'en') return;            // nothing to do; new content is already English
+    for (var i = 0; i < muts.length; i++) {
+      var m = muts[i];
+      if (m.type === 'childList') {
+        var added = m.addedNodes;
         for (var j = 0; j < added.length; j++) {
           var node = added[j];
-          if (node.nodeType === 1) apply(node);
+          if (!node.isConnected) continue;
+          if (node.nodeType === 1) { if (!skipParent(node)) apply(node); }
           else if (node.nodeType === 3 && !skipParent(node.parentNode)) tText(node);
         }
+      } else if (m.type === 'characterData') {
+        var t = m.target;
+        if (t.nodeType === 3 && t.isConnected && t.nodeValue.trim() && !skipParent(t.parentNode)) tText(t);
+      } else if (m.type === 'attributes') {
+        if (m.target.isConnected && !skipParent(m.target)) tAttr(m.target, m.attributeName);
       }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
+    }
+    observer.takeRecords();
   }
+  function startObserver() {
+    if (observer || !window.MutationObserver || !document.body) return;
+    observer = new MutationObserver(onMutations);
+    observer.observe(document.body, {
+      childList: true, characterData: true, subtree: true,
+      attributes: true, attributeFilter: ATTRS
+    });
+  }
+  function flushOwnMutations() { if (observer) observer.takeRecords(); }
 
   function init() {
     document.documentElement.lang = LANGS[lang].html;
@@ -178,7 +244,13 @@
     set: set,
     init: init,
     // Translate one string with the active dictionary (English passthrough).
-    t: function (s) { var d = dict(); return (d && d[s] !== undefined) ? d[s] : s; },
+    // Keyed like the DOM walker (trimmed, whitespace collapsed).
+    t: function (s) {
+      var d = dict();
+      if (!d || s == null) return s;
+      var v = d[key(String(s))];
+      return v !== undefined ? v : s;
+    },
     get lang() { return lang; }
   };
 

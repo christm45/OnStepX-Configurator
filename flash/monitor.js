@@ -28,6 +28,11 @@ export function createMonitor({ onLine, onStatus, onError }) {
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+  // Per the Web Serial spec these are recoverable: the current readable stream
+  // errors, but port.readable is replaced by a fresh stream and the port stays
+  // open. Anything else (NetworkError = device lost, etc.) is fatal.
+  const NON_FATAL_READ_ERRORS = new Set(['FramingError', 'BreakError', 'BufferOverrunError', 'ParityError']);
+
   async function pump() {
     const decoder = new TextDecoder();
     let buf = '';
@@ -37,26 +42,45 @@ export function createMonitor({ onLine, onStatus, onError }) {
       if (buf) { onLine(buf); buf = ''; }
     };
     try {
-      for (;;) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        if (!value) continue;
-        clearTimeout(idle);
-        buf += decoder.decode(value, { stream: true });
-        if (lastWasCR && buf.startsWith('\n')) buf = buf.slice(1);
-        lastWasCR = false;
-        let nl;
-        while ((nl = buf.search(/\r\n|\n|\r/)) !== -1) {
-          onLine(buf.slice(0, nl));
-          const term = buf.startsWith('\r\n', nl) ? 2 : 1;
-          lastWasCR = term === 1 && buf[nl] === '\r' && nl + 1 === buf.length;
-          buf = buf.slice(nl + term);
+      // One pass per readable stream; a non-fatal error swaps in a new one.
+      while (port && port.readable && !closing) {
+        reader = port.readable.getReader();
+        let stop = false;
+        try {
+          for (;;) {
+            const { value, done } = await reader.read();
+            if (done) { stop = true; break; } // cancelled by our own disconnect
+            if (!value) continue;
+            clearTimeout(idle);
+            buf += decoder.decode(value, { stream: true });
+            if (lastWasCR && buf.startsWith('\n')) buf = buf.slice(1);
+            lastWasCR = false;
+            let nl;
+            while ((nl = buf.search(/\r\n|\n|\r/)) !== -1) {
+              onLine(buf.slice(0, nl));
+              const term = buf.startsWith('\r\n', nl) ? 2 : 1;
+              lastWasCR = term === 1 && buf[nl] === '\r' && nl + 1 === buf.length;
+              buf = buf.slice(nl + term);
+            }
+            if (buf) idle = setTimeout(flushPartial, IDLE_FLUSH_MS);
+          }
+        } catch (e) {
+          // A cancelled reader (our own disconnect) is not an error; a lost device is.
+          if (closing) {
+            stop = true;
+          } else if (e && NON_FATAL_READ_ERRORS.has(e.name)) {
+            // Usually a baud-rate mismatch or line noise: note it and keep reading.
+            flushPartial();
+            onLine(`WRN: serial ${e.name} (${e.message || 'line error'}) — data may be garbled; check the baud rate. Continuing…`);
+          } else {
+            onError(`Serial read stopped: ${(e && e.message) || e}`);
+            stop = true;
+          }
+        } finally {
+          try { reader.releaseLock(); } catch (_) { /* already released */ }
         }
-        if (buf) idle = setTimeout(flushPartial, IDLE_FLUSH_MS);
+        if (stop) break;
       }
-    } catch (e) {
-      // A cancelled reader (our own disconnect) is not an error; a lost device is.
-      if (!closing) onError(`Serial read stopped: ${e.message || e}`);
     } finally {
       clearTimeout(idle);
       flushPartial();
@@ -100,7 +124,6 @@ export function createMonitor({ onLine, onStatus, onError }) {
     }
     port = chosen;
     closing = false;
-    reader = port.readable.getReader();
     readLoop = pump().then(() => { if (!closing && port) teardown(); });
     port.addEventListener('disconnect', () => { if (port) { closing = true; teardown(); } });
     onStatus(true);

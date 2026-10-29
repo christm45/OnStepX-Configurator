@@ -21,6 +21,12 @@ id = "cd340337f654418084edc4e7235a0707"
 
 # Secrets (do NOT put these here — use `wrangler secret put`):
 #
+# Required in every mode:
+#   TOKEN_SECRET  — random key for the per-build access tokens that /status and
+#                   /firmware demand. Generate with `openssl rand -hex 32`, then
+#                   `wrangler secret put TOKEN_SECRET`. Fail-closed: if unset,
+#                   /compile, /status and /firmware answer 503.
+#
 # Mode A: GitHub App (recommended, no rotation needed) — set ALL THREE:
 #   GH_APP_ID              — numeric App ID from the App's settings page
 #   GH_APP_PRIVATE_KEY     — PKCS#8 PEM ("BEGIN PRIVATE KEY"). Convert from

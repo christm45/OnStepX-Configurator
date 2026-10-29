@@ -62,17 +62,145 @@ const PINMAPS_NO_TMC_UART = {
 };
 const TMC_UART_DRIVERS = new Set(['TMC2208', 'TMC2209', 'TMC2225', 'TMC2226']);
 
-// PINMAPs whose Pins.<Board>.h auto-assigns STATUS_LED_PIN and
-// STATUS_BUZZER_PIN to the SAME GPIO. OnStepX's Validate.h hard-errors at
-// compile time if both STATUS_LED and STATUS_BUZZER are ON for these
-// boards. The user has to pick one.
-//   MaxESP3: STATUS_LED_PIN = STATUS_BUZZER_PIN = AUX8_PIN
-//   MaxESP4: STATUS_LED_PIN = STATUS_BUZZER_PIN = 12
-//   FYSETC_E4: STATUS_LED_PIN = STATUS_BUZZER_PIN = AUX8_PIN
-//   TERRANS_V5PRO: inherits MaxESP3's layout — both land on AUX8_PIN (GPIO25)
-const PINMAPS_LED_BUZZER_SHARED_PIN = new Set([
-  'MaxESP3', 'MaxESP4', 'FYSETC_E4', 'TERRANS_V5PRO',
-]);
+// Multi-purpose AUX pin knowledge, transcribed from upstream OnStepX
+// src/pinmaps/Pins.<Board>.h. `aux` lists the AUXn_PIN numbers the board
+// defines (anything else is OFF via Pins.defaults.h). Every other key names a
+// role pin that src/pinmaps/Validate.h compares against an AUX pin, and gives
+// the AUX number it resolves to (the pins are compared by value, so e.g.
+// MaxSTM's AXIS1_M3_PIN PA6 counts as AUX1). Roles on a non-AUX GPIO are
+// simply absent: upstream never checks them, so e.g. MaxESP4's STATUS_LED and
+// STATUS_BUZZER both on GPIO12 is NOT an error.
+//   M3: {axis: aux} for AXISn_M3_PIN (checked against AXISn_DRIVER_STATUS)
+//   m3UnlessAxis4PowerDown: Pins.MaxESP3.h only defines AXIS1/2_M3_PIN when
+//                           AXIS4_POWER_DOWN != ON.
+const MAXSTM_AUX = {
+  aux: [0, 1, 2, 3, 4, 5, 6, 7, 8],
+  MOUNT_LED: 0, STATUS_LED: 0, RETICLE_LED: 8, PPS_SENSE: 2, LIMIT_SENSE: 7,
+  AXIS1_HOME: 3, AXIS2_HOME: 4, M3: { 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 },
+};
+const MINIPCB_AUX = {
+  aux: [0, 1, 2, 3, 4],               // AUX5 (DAC A14) only on Teensy 3.2
+  MOUNT_LED: 0, STATUS_LED: 0, RETICLE_LED: 4, LIMIT_SENSE: 3,
+  AXIS1_HOME: 3, AXIS2_HOME: 4, ADDON_GPIO0: 1, ADDON_RESET: 2, M3: { 1: 1, 2: 2 },
+};
+export const PINMAP_AUX = {
+  MaxESP3: {
+    aux: [2, 3, 4, 7, 8],
+    MOUNT_LED: 8, STATUS_LED: 8, RETICLE_LED: 8, STATUS_BUZZER: 8,
+    PPS_SENSE: 7, LIMIT_SENSE: 7, AXIS1_HOME: 3, AXIS2_HOME: 4,
+    ADDON_RESET: 2, M3: { 1: 2, 2: 2 }, m3UnlessAxis4PowerDown: true,
+  },
+  // Terrans V5 Pro: the inline pin block is Pins.MaxESP3.h with AUX2_PIN -1
+  // (GPIO4 is AXIS1 DIR), so ADDON_RESET / AXISn_M3 resolve to OFF.
+  TERRANS_V5PRO: {
+    aux: [3, 4, 7, 8],
+    MOUNT_LED: 8, STATUS_LED: 8, RETICLE_LED: 8, STATUS_BUZZER: 8,
+    PPS_SENSE: 7, LIMIT_SENSE: 7, AXIS1_HOME: 3, AXIS2_HOME: 4,
+  },
+  MaxESP4: {
+    aux: [2, 3, 4, 5, 6, 7, 8],
+    RETICLE_LED: 8, PPS_SENSE: 7, LIMIT_SENSE: 7, AXIS1_HOME: 3, AXIS2_HOME: 4,
+  },
+  CNC3: {
+    aux: [2, 3, 4, 7, 8],
+    MOUNT_LED: 8, STATUS_LED: 8, RETICLE_LED: 8,
+    PPS_SENSE: 7, LIMIT_SENSE: 7, AXIS1_HOME: 3, AXIS2_HOME: 4,
+    ADDON_RESET: 2, M3: { 1: 2, 2: 2 },
+  },
+  // AUX7_PIN is SPARE_RX_PIN, which is OFF with the onboard TMC2209 UART drivers.
+  FYSETC_E4: {
+    aux: [3, 4, 5, 6, 8],
+    MOUNT_LED: 8, STATUS_LED: 8, RETICLE_LED: 8, STATUS_BUZZER: 8,
+    AXIS1_HOME: 3, AXIS2_HOME: 4,
+  },
+  MaxPCB4: MAXSTM_AUX,
+  MaxSTM3: MAXSTM_AUX,
+  MaxSTM3I: MAXSTM_AUX,
+  MiniPCB: MINIPCB_AUX,
+  MiniPCB2: MINIPCB_AUX,
+  // AUX pins are the FAN/HEATER outputs, which no role pin shares.
+  FYSETC_S6: { aux: [1, 2, 3, 4, 5, 6, 7] },
+  FYSETC_S6_2: { aux: [1, 2, 3, 4, 5, 6, 7] },
+  BTT_SKR_PRO: { aux: [1, 2, 3, 4, 5] },
+};
+
+const isOn = (v) => v !== undefined && v !== null && v !== '' && v !== 'OFF';
+
+/**
+ * Replays upstream src/pinmaps/Validate.h's AUX pin bookkeeping (the
+ * AUXn_PIN_IN_USE chain, in upstream's order) and returns the #errors it would
+ * fire, as [{id, message}]. Boards not in PINMAP_AUX return [].
+ */
+export function auxPinConflicts(values) {
+  const board = PINMAP_AUX[values.PINMAP];
+  if (!board) return [];
+  const out = [];
+  const inUse = new Set();
+  const has = (n) => board.aux.includes(n);
+  const on = (role, n) => board[role] === n;
+  // One upstream "#if role on AUXn && enabled { #ifdef AUXn_IN_USE #error; #define AUXn_IN_USE }" step.
+  const claim = (n, id, what, markAs = n) => {
+    if (inUse.has(n)) {
+      out.push({ id, message:
+        `${what} enabled but AUX${n}_PIN is already in use on PINMAP=${values.PINMAP} — OnStepX's ` +
+        `pinmap Validate.h refuses to compile ("choose one feature on AUX${n}_PIN"). ` +
+        `Turn one of the features sharing AUX${n}_PIN OFF.` });
+    }
+    inUse.add(markAs);
+  };
+  const m3 = (values.AXIS4_POWER_DOWN === 'ON' && board.m3UnlessAxis4PowerDown) ? {} : (board.M3 || {});
+  const driverStatusAxis = (n) => [1, 2, 3, 4, 5].find((a) => m3[a] === n && isOn(values[`AXIS${a}_DRIVER_STATUS`]));
+  const espFlash = isOn(values.SERIAL_B_ESP_FLASHING);
+  const reticle = (n, nestedStatusLed) => {
+    if (!(on('RETICLE_LED', n) && isOn(values.RETICLE_LED_DEFAULT))) return;
+    if (nestedStatusLed && on('STATUS_LED', n) && isOn(values.STATUS_LED)) {
+      out.push({ id: 'RETICLE_LED_DEFAULT', message:
+        `RETICLE_LED_DEFAULT and STATUS_LED can't both be enabled on PINMAP=${values.PINMAP} — both use AUX${n}_PIN ` +
+        `and OnStepX's pinmap Validate.h refuses to compile. Set one of them OFF.` });
+    }
+    claim(n, 'RETICLE_LED_DEFAULT', 'RETICLE_LED_DEFAULT');
+  };
+
+  if (has(0) && on('MOUNT_LED', 0) && isOn(values.STATUS_MOUNT_LED)) claim(0, 'STATUS_MOUNT_LED', 'STATUS_MOUNT_LED');
+
+  if (has(1)) {
+    if (on('ADDON_GPIO0', 1) && espFlash) claim(1, 'SERIAL_B_ESP_FLASHING', 'SERIAL_B_ESP_FLASHING');
+    const a = driverStatusAxis(1);
+    if (a) claim(1, `AXIS${a}_DRIVER_STATUS`, 'AXISn_DRIVER_STATUS');
+  }
+  if (has(2)) {
+    // Upstream marks AUX1 (not AUX2) in use here; mirrored as-is.
+    if (on('ADDON_RESET', 2) && espFlash) claim(2, 'SERIAL_B_ESP_FLASHING', 'SERIAL_B_ESP_FLASHING', 1);
+    const a = driverStatusAxis(2);
+    if (a) claim(2, `AXIS${a}_DRIVER_STATUS`, 'AXISn_DRIVER_STATUS');
+  }
+  if (has(3)) {
+    if (on('AXIS1_HOME', 3) && isOn(values.AXIS1_SENSE_HOME)) claim(3, 'AXIS1_SENSE_HOME', 'AXIS1_SENSE_HOME');
+    if (on('LIMIT_SENSE', 3) && isOn(values.LIMIT_SENSE)) claim(3, 'LIMIT_SENSE', 'LIMIT_SENSE');
+    reticle(3, true);
+  }
+  if (has(4)) {
+    if (on('AXIS2_HOME', 4) && isOn(values.AXIS2_SENSE_HOME)) claim(4, 'AXIS2_SENSE_HOME', 'AXIS2_SENSE_HOME');
+    reticle(4, false);
+  }
+  if (has(7)) {
+    if (on('LIMIT_SENSE', 7) && isOn(values.LIMIT_SENSE)) claim(7, 'LIMIT_SENSE', 'LIMIT_SENSE');
+    if (on('PPS_SENSE', 7) && isOn(values.TIME_LOCATION_PPS_SENSE)) claim(7, 'TIME_LOCATION_PPS_SENSE', 'TIME_LOCATION_PPS_SENSE');
+  }
+  if (has(8)) {
+    if (on('MOUNT_LED', 8) && isOn(values.STATUS_MOUNT_LED)) claim(8, 'STATUS_MOUNT_LED', 'STATUS_MOUNT_LED');
+    reticle(8, true);
+    if (on('STATUS_BUZZER', 8) && isOn(values.STATUS_BUZZER)) claim(8, 'STATUS_BUZZER', 'STATUS_BUZZER');
+  }
+  // FEATUREn_PIN AUX -> AUXn_PIN substitution (only when the purpose is set
+  // and the board defines AUXn_PIN; otherwise src/Validate.h rejects AUX).
+  for (let n = 1; n <= 8; n++) {
+    if (values[`FEATURE${n}_PIN`] === 'AUX' && isOn(values[`FEATURE${n}_PURPOSE`]) && has(n)) {
+      claim(n, `FEATURE${n}_PIN`, `FEATURE${n}_PIN AUX`);
+    }
+  }
+  return out;
+}
 
 // PINMAPs whose Pins.<Board>.h defines SERIAL_GPS itself (when the user
 // hasn't). Everything else needs SERIAL_GPS in Config.h for a GPS build.
@@ -144,7 +272,11 @@ export const DRIVER_MICROSTEPS = {
   SERVO_TMC5160: null,
 };
 
-export const MOUNT_TYPES_COMMON = ['GEM', 'FORK', 'FORK_ALT', 'ALTAZM'];
+// Every MOUNT_TYPE in upstream src/Constants.h (MOUNT_TYPE_FIRST..LAST), which
+// src/Validate.h accepts. ALTALT is a valid subtype the form doesn't offer.
+export const MOUNT_TYPES_COMMON = [
+  'GEM', 'FORK', 'ALTAZM', 'ALTALT', 'GEM_TA', 'GEM_TAC', 'FORK_TA', 'FORK_TAC', 'ALTAZM_UNL',
+];
 
 /**
  * values: {id: value, ...} — a snapshot of relevant form fields.
@@ -268,6 +400,16 @@ export function validateConfig(values) {
     }
   }
 
+  // src/Validate.h: static_assert(AXISn_LIMIT_SYNC == OFF || (>= 0 && <= 30)).
+  for (const id of ['AXIS1_LIMIT_SYNC', 'AXIS2_LIMIT_SYNC']) {
+    const v = (values[id] ?? '').toString().trim();
+    if (v === '' || v === 'OFF') continue;
+    const n = Number(v);
+    if (!Number.isFinite(n) || n < 0 || n > 30) {
+      add('error', id, `${id}=${v} is invalid — OnStepX's Validate.h only accepts OFF or 0 to 30 (degrees).`);
+    }
+  }
+
   // STATUS_LED + STATUS_BUZZER pin-sharing: on the boards in
   // PINMAPS_LED_BUZZER_SHARED_PIN, OnStepX's Validate.h fires
   //   #error "Configuration (Config.h): STATUS_BUZZER enabled but AUX8_PIN
@@ -313,14 +455,11 @@ export function validateConfig(values) {
     }
   }
 
-  if (PINMAPS_LED_BUZZER_SHARED_PIN.has(values.PINMAP) &&
-      values.STATUS_LED && values.STATUS_LED !== 'OFF' &&
-      values.STATUS_BUZZER && values.STATUS_BUZZER !== 'OFF') {
-    add('error', 'STATUS_BUZZER',
-      `On PINMAP=${values.PINMAP} the pinmap routes STATUS_LED and STATUS_BUZZER to the same GPIO. ` +
-      `OnStepX's Validate.h refuses to compile with both ON. Set either STATUS_LED=OFF or ` +
-      `STATUS_BUZZER=OFF on the Controller tab.`);
-  }
+  // AUX pin sharing (STATUS_MOUNT_LED / RETICLE_LED / STATUS_BUZZER on AUX8,
+  // LIMIT_SENSE / PPS on AUX7, home switches, FEATUREn_PIN AUX, ...): replay
+  // upstream src/pinmaps/Validate.h against the board's pin map. Note that
+  // STATUS_LED + STATUS_BUZZER alone is never an error upstream.
+  for (const c of auxPinConflicts(values)) add('error', c.id, c.message);
 
   // Plugins that require WiFi: if any are ticked but SERIAL_RADIO is OFF /
   // BLUETOOTH, the plugin's own Validate.h fires (e.g. for "website":
@@ -430,17 +569,55 @@ export function validateConfig(values) {
     }
   }
 
-  // FEATURE*_PIN = AUX is rejected by OnStepX's current Validate.h
-  // (AUX is defined as -4, and the check `!= OFF && < 0` fires the #error
-  // before Features.cpp's runtime AUX substitution ever runs). Catch this
-  // before the compile round-trip.
+  // Goto microsteps — src/Validate.h (per axis):
+  //   #if AXISn_DRIVER_MICROSTEPS_GOTO != OFF && (_GOTO < 1 || _GOTO >= AXISn_DRIVER_MICROSTEPS) #error
+  //   #if AXISn_DRIVER_MICROSTEPS == OFF && AXISn_DRIVER_MICROSTEPS_GOTO != OFF                  #error
+  //   SERVO_TMC2209/SERVO_TMC5160: MICROSTEPS must be 256 and _GOTO must be OFF                 #error
+  for (const axis of [1, 2, 3, 4, 5]) {
+    const msKey = `AXIS${axis}_DRIVER_MICROSTEPS`;
+    const goKey = `AXIS${axis}_DRIVER_MICROSTEPS_GOTO`;
+    const ms = values[msKey];
+    const go = values[goKey];
+    const model = values[`AXIS${axis}_DRIVER_MODEL`];
+    if (model === 'SERVO_TMC2209' || model === 'SERVO_TMC5160') {
+      if ((ms && ms !== '256') || (go && go !== 'OFF')) {
+        add('error', ms && ms !== '256' ? msKey : goKey,
+          `AXIS${axis}_DRIVER_MODEL=${model} requires ${msKey}=256 and ${goKey}=OFF — OnStepX's Validate.h refuses anything else.`);
+      }
+      continue;
+    }
+    if (!go || go === 'OFF') continue;
+    if (!ms || ms === 'OFF') {
+      add('error', goKey,
+        `${goKey}=${go} can't be used while ${msKey} is OFF — OnStepX's Validate.h refuses to compile. Set ${goKey}=OFF.`);
+      continue;
+    }
+    const g = Number(go);
+    const t = Number(ms);
+    if (Number.isFinite(g) && Number.isFinite(t) && (g < 1 || g >= t)) {
+      add('error', goKey,
+        `${goKey}=${go} must be lower than ${msKey}=${ms} (OnStepX's Validate.h requires 1 to < ${msKey}). ` +
+        `Set ${goKey}=OFF, or a value below ${ms}.`);
+    }
+  }
+
+  // FEATUREn_PIN = AUX: src/pinmaps/Validate.h rewrites it to AUXn_PIN when
+  // FEATUREn_PURPOSE != OFF and the board defines AUXn_PIN. Otherwise AUX (-4)
+  // survives to src/Validate.h, whose `FEATUREn_PIN != OFF && < 0` check
+  // #errors. Boards we have no pin knowledge for are left to the compiler.
+  const auxBoard = PINMAP_AUX[values.PINMAP];
   for (let i = 1; i <= 8; i++) {
     const key = `FEATURE${i}_PIN`;
-    const v = values[key];
-    if (v === 'AUX') {
-      add('error', key,
-        `${key}=AUX isn't accepted by OnStepX main — pick OFF or a real pin number ` +
-        `(or one of the board's AUXn_PIN aliases, e.g. AUX${i}_PIN).`);
+    if (values[key] !== 'AUX') continue;
+    if (!isOn(values[`FEATURE${i}_PURPOSE`])) {
+      add('warn', key,
+        `${key}=AUX while FEATURE${i}_PURPOSE is OFF — OnStepX only maps AUX to AUX${i}_PIN for an enabled ` +
+        `feature, so this fails to compile ("Setting ${key} unknown"). Set ${key}=OFF or pick a purpose.`);
+    } else if (auxBoard && !auxBoard.aux.includes(i)) {
+      add('warn', key,
+        `${key}=AUX, but PINMAP=${values.PINMAP} doesn't define AUX${i}_PIN, so OnStepX can't map it and the ` +
+        `build fails ("Setting ${key} unknown"). Use a real pin number instead` +
+        `${auxBoard.aux.length ? ` (this board's AUX pins: ${auxBoard.aux.map((n) => 'AUX' + n).join(', ')})` : ''}.`);
     }
   }
 

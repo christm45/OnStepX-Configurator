@@ -160,7 +160,7 @@ window.I18N_FR = Object.assign(window.I18N_FR || {}, {
   "you have the mount tracking, using the hand controller, not in Config.h.": "vous avez réglé le suivi de la monture en utilisant la raquette, pas dans Config.h.",
   "— A4988 won't do 256, DRV8825 maxes at 32, etc.": "— le A4988 ne fait pas 256, le DRV8825 plafonne à 32, etc.",
   "— BTT SKR PRO V1.2.": "— BTT SKR PRO V1.2.",
-  "— MaxESP3, MaxESP4, FYSETC_E4, Terrans Industry V5 Pro (⚠ support under test), CNC3 (WeMos D1 R32 — deprecated), generic dev boards.": "— MaxESP3, MaxESP4, FYSETC_E4, CNC3 (WeMos D1 R32 — déprécié), cartes de dev génériques.",
+  "— MaxESP3, MaxESP4, FYSETC_E4, Terrans Industry V5 Pro (⚠ support under test), CNC3 (WeMos D1 R32 — deprecated), generic dev boards.": "— MaxESP3, MaxESP4, FYSETC_E4, Terrans Industry V5 Pro (⚠ support en test), CNC3 (WeMos D1 R32 — déprécié), cartes de dev génériques.",
   "— MaxPCB4.": "— MaxPCB4.",
   "— MaxSTM3.": "— MaxSTM3.",
   "— MiniPCB v1 (embed-in-mount) and MiniPCB v2 (stand-alone case).": "— MiniPCB v1 (intégrée dans la monture) et MiniPCB v2 (boîtier autonome).",

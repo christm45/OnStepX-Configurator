@@ -211,7 +211,7 @@ window.I18N_FR = Object.assign(window.I18N_FR || {}, {
   "— board-level settings:": "— réglages au niveau de la carte :",
   "— drop your Config.h in,": "— déposez-y votre Config.h,",
   "— e.g. Teensy 4.1 native Ethernet — hand-edit the generated Config.h on the Output tab: add": "— ex. Ethernet natif du Teensy 4.1 — éditez à la main le Config.h généré dans l'onglet Sortie : ajoutez",
-  "— every PINMAP is pinned to a specific MCU family in the validator. Current map: MaxESP3/MaxESP4/FYSETC_E4/TERRANS_V5PRO →": "— chaque PINMAP est rattaché à une famille de MCU précise dans le validateur. Correspondance actuelle : MaxESP3/MaxESP4/FYSETC_E4 →",
+  "— every PINMAP is pinned to a specific MCU family in the validator. Current map: MaxESP3/MaxESP4/FYSETC_E4/TERRANS_V5PRO →": "— chaque PINMAP est rattaché à une famille de MCU précise dans le validateur. Correspondance actuelle : MaxESP3/MaxESP4/FYSETC_E4/TERRANS_V5PRO →",
   "— if your Config.h has a non-empty field whose name contains": "— si votre Config.h a un champ non vide dont le nom contient",
   "— it's a normal folder of": "— c'est un dossier normal de fichiers",
   "— motor current (mA) for TMC drivers. Start low, raise only as needed. Too high = hot driver, skipped steps, burned stepper.": "— courant moteur (mA) pour les drivers TMC. Commencez bas, augmentez seulement au besoin. Trop élevé = driver chaud, pas manqués, moteur grillé.",

@@ -5,9 +5,9 @@ SmartWebServer `Config.h` files, extracts the inline `// OFF, ON Reverses ...`
 style comment from each `#define` line, and injects it next to the matching
 form-field hint in `index.html` of the configurator repo.
 
-This script is **not** a runtime dependency of the build service — it lives here
-because the build service is the natural workshop for tooling that touches both
-upstream sources and the configurator HTML.
+This script is an offline dev tool — **not** part of the build service or the
+site at runtime. (It used to live in `build-service/`; it moved here because it
+has nothing to do with compiling firmware.)
 
 ## What it produces
 
@@ -25,43 +25,40 @@ in a green monospace italic underneath the regular hint.
 
 ## Inputs
 
-Hard-coded paths inside the script:
+Paths come from CLI flags, then env vars, then defaults:
 
-| Source | Path | Purpose |
-|---|---|---|
-| OnStepX `Config.h` | `C:/Users/Bogdan/Desktop/OnStepX-github configurator/OnStepX/Config.h` | Drives Controller / Axis* / Mount / Rotator / Focuser / Auxiliary tabs |
-| OnStepX `Extended.config.h` | same dir | Extra OnStepX defines |
-| SWS `Config.h` | `C:/Users/Bogdan/AppData/Local/Temp/sws_ref/Config.h` | Drives SWS-prefixed fields |
-| SWS `Extended.config.h` | same dir | Network credentials block (AP_*, STA_*, MAC, NV_WIPE, …) |
-| SHC `Config.h` | `C:/Users/Bogdan/AppData/Local/Temp/sws_ref/SHC_Config.h` | Drives SHC-prefixed fields |
-| SHC `Extended.config.h` | same dir | Extra SHC defines |
-| Target HTML | `C:/Users/Bogdan/Desktop/OnStepX-github configurator/index.html` | Patched in place |
+| Source | Flag / env var | Default | Purpose |
+|---|---|---|---|
+| OnStepX `Config.h` + `Extended.config.h` | `--onstepx DIR` / `ONSTEPX_DIR` | `../OnStepX` (a clone next to this repo) | Drives Controller / Axis* / Mount / Rotator / Focuser / Auxiliary tabs |
+| SWS `Config.h` + `Extended.config.h` | `--ref DIR` / `HINTS_REF_DIR` | `<os tmpdir>/sws_ref` | SWS-prefixed fields, network credentials block (AP_*, STA_*, MAC, NV_WIPE, …) |
+| SHC `SHC_Config.h` + `SHC_Extended.config.h` | same `--ref DIR` | same | SHC-prefixed fields |
+| Target HTML | `--html FILE` / `CONFIGURATOR_HTML` | this repo's `index.html` | Patched in place |
 
-The Windows-style absolute paths are deliberate (this is christm45's local dev
-setup). Adjust the constants at the top of the script for other machines.
+A missing source file only prints a warning (`! could not read …`), so check
+the `loaded:` counts in the output.
 
 ## Refreshing the upstream copies
 
 ```bash
-# OnStepX is checked into a long-lived clone next to the configurator
-git -C "/c/Users/Bogdan/Desktop/OnStepX-github configurator/OnStepX" pull
+# OnStepX: a long-lived clone (default location: next to this repo)
+git -C ../OnStepX pull
 
-# SWS + SHC live in a temp dir; refresh with curl
-mkdir -p /tmp/sws_ref
-curl -fsSL https://raw.githubusercontent.com/hjd1964/SmartWebServer/main/Config.h          -o /tmp/sws_ref/Config.h
-curl -fsSL https://raw.githubusercontent.com/hjd1964/SmartWebServer/main/Extended.config.h -o /tmp/sws_ref/Extended.config.h
-curl -fsSL https://raw.githubusercontent.com/hjd1964/SmartHandController/main/Config.h          -o /tmp/sws_ref/SHC_Config.h
-curl -fsSL https://raw.githubusercontent.com/hjd1964/SmartHandController/main/Extended.config.h -o /tmp/sws_ref/SHC_Extended.config.h
+# SWS + SHC: any directory, passed with --ref
+REF=./.hints_ref; mkdir -p "$REF"
+curl -fsSL https://raw.githubusercontent.com/hjd1964/SmartWebServer/main/Config.h          -o "$REF/Config.h"
+curl -fsSL https://raw.githubusercontent.com/hjd1964/SmartWebServer/main/Extended.config.h -o "$REF/Extended.config.h"
+curl -fsSL https://raw.githubusercontent.com/hjd1964/SmartHandController/main/Config.h          -o "$REF/SHC_Config.h"
+curl -fsSL https://raw.githubusercontent.com/hjd1964/SmartHandController/main/Extended.config.h -o "$REF/SHC_Extended.config.h"
 ```
 
-(The MSYS `/tmp/...` path resolves to `C:/Users/Bogdan/AppData/Local/Temp/...`
-which is what Node sees — that mismatch is why the script's path constants
-use the Windows form, not `/tmp/...`.)
+(On Windows/MSYS, prefer a relative or Windows-style `--ref` path over
+`/tmp/...`: MSYS `/tmp` is not the path Node sees.)
 
 ## Run
 
 ```bash
-node enrich_hints.mjs
+node tools/enrich_hints.mjs --ref ./.hints_ref
+# or: node tools/enrich_hints.mjs --onstepx /path/to/OnStepX --ref /path/to/ref --html index.html
 ```
 
 Expected output:
@@ -102,15 +99,10 @@ script only touches rows lacking the class).
 ## Verifying
 
 ```bash
-cd "/c/Users/Bogdan/Desktop/OnStepX-github configurator"
 # count enriched rows (should track total #defines in upstream)
 grep -c 'class="config-comment"' index.html
-# parse-check both <script> blocks
-awk 'NR>=3679 && NR<=4663' index.html > /tmp/c1.js && node --check /tmp/c1.js
-awk 'NR>=4667 && NR<=6371' index.html > /tmp/c2.js && node --check /tmp/c2.js
+# parse-check every inline <script> block
+node tools/check-syntax.mjs
 # div-tag balance
 grep -oE '<div|</div>' index.html | sort | uniq -c
 ```
-
-(Line ranges drift as the file grows — re-locate `<script>` / `</script>` if
-the parse-check splits across the boundary.)

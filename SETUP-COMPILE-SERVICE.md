@@ -60,8 +60,8 @@ browser (index.html)  --POST /compile-->  Cloudflare Worker  --workflow_dispatch
 3. In the GitHub repo, open **Settings → Actions → General** and make sure
    "Allow all actions" is enabled.
 
-4. Test the workflow manually: go to **Actions → "Build OnStepX" → Run
-   workflow**. You'll need:
+4. Test the workflow manually: go to **Actions → "Build OnStep firmware" →
+   Run workflow**. You'll need:
    - `config_h`: base64 of any valid Config.h (try `cat Config.h | base64 -w0`)
    - `environment`: `esp32`
    - `request_id`: any UUID, e.g. `00000000-0000-0000-0000-000000000001`
@@ -71,9 +71,21 @@ browser (index.html)  --POST /compile-->  Cloudflare Worker  --workflow_dispatch
 
 ---
 
-## Step 2 — Create the GitHub Personal Access Token
+## Step 2 — GitHub credentials for the Worker
 
-The Worker needs a PAT to dispatch the workflow and read the artifact.
+The Worker needs GitHub credentials to dispatch the workflow, poll its runs,
+read failed-job logs and download the artifact.
+
+**Production method: GitHub App** (what the live Worker runs — no expiry, no
+rotation). Follow [`cloudflare-worker/GITHUB_APP_SETUP.md`](cloudflare-worker/GITHUB_APP_SETUP.md):
+create an App installed only on `onstepx-build-service` with repository
+permissions *Actions: Read and write*, *Contents: Read-only*, *Metadata:
+Read-only*, then store `GH_APP_ID`, `GH_APP_PRIVATE_KEY` (PKCS#8 PEM) and
+`GH_APP_INSTALLATION_ID` as Worker secrets.
+
+**Fallback: fine-grained Personal Access Token** (still supported; the Worker
+uses it only when the three App secrets are not all set — but it expires, see
+[Renewing the GitHub PAT](#renewing-the-github-pat-no-longer-applicable)):
 
 1. Go to **GitHub → Settings → Developer settings → Personal access tokens
    → Fine-grained tokens → Generate new token**.
@@ -85,7 +97,7 @@ The Worker needs a PAT to dispatch the workflow and read the artifact.
      - *Contents*: **Read-only**
      - *Metadata*: **Read-only** (required by default)
    - **Expiration**: up to you (90 days is a reasonable default).
-3. Copy the token. You'll paste it in the next step.
+3. Copy the token; store it as `GITHUB_TOKEN` in the next step.
 
 ---
 
@@ -105,14 +117,36 @@ The Worker needs a PAT to dispatch the workflow and read the artifact.
    ALLOWED_ORIGIN = "https://christm45.github.io"
    ```
 
-3. Store the PAT as a secret:
+3. **KV namespace for rate limiting (required).** `wrangler.toml` binds a KV
+   namespace as `RATE_LIMIT` (10 builds/hour/IP, fixed window, charged only
+   on a successful dispatch). Without the binding the limiter is silently
+   skipped and `/compile` is an open endpoint. On a fresh account:
    ```bash
    cd cloudflare-worker
-   wrangler secret put GITHUB_TOKEN
-   # paste the PAT when prompted
+   wrangler kv namespace create RATE_LIMIT
+   # put the returned id into wrangler.toml under [[kv_namespaces]]
    ```
 
-4. Deploy:
+4. Store the secrets:
+   ```bash
+   cd cloudflare-worker
+   # Required: keys the per-build access tokens /status and /firmware demand.
+   openssl rand -hex 32 | wrangler secret put TOKEN_SECRET
+   # GitHub App mode (production):
+   wrangler secret put GH_APP_ID
+   wrangler secret put GH_APP_PRIVATE_KEY < app.pem
+   wrangler secret put GH_APP_INSTALLATION_ID
+   # ...or PAT fallback instead:
+   # wrangler secret put GITHUB_TOKEN
+   ```
+   `TOKEN_SECRET` is fail-closed: without it `/compile`, `/status` and
+   `/firmware` answer 503. `/compile` returns `{request_id, token}`;
+   `compile.js` sends the token back on every `/status` and `/firmware`
+   call, and the Worker only reports/serves the run whose run-name carries
+   that `request_id`. Firmware embeds WiFi credentials, so this is what
+   stops a guessed `run_id` from downloading someone else's build.
+
+5. Deploy:
    ```bash
    wrangler deploy
    ```
@@ -120,10 +154,19 @@ The Worker needs a PAT to dispatch the workflow and read the artifact.
    Output includes the Worker URL, e.g.
    `https://onstepx-build-bridge.christm45.workers.dev`. **Copy this URL.**
 
-5. Quick check — open the URL in a browser. You should see:
+6. Quick check — open the URL in a browser. You should see:
    ```json
    { "ok": true, "service": "onstepx-build-bridge" }
    ```
+   and `GET /auth-info` should report `"mode": "github-app"` and
+   `"token_secret_set": true`.
+
+**Deploy order when the Worker/site protocol changes** (e.g. the token
+introduction): push the site first, wait for the GitHub Pages cache to expire
+(~10 min), then deploy the Worker. A new page against the old Worker works
+(the old Worker ignores the empty token); an old, cached page against the new
+Worker dispatches a build, charges the rate limit, and then gets 403 at
+`/status` — so the Worker must go last.
 
 ---
 
@@ -197,20 +240,34 @@ git push
 **CORS error in browser console** — `ALLOWED_ORIGIN` in `wrangler.toml`
 doesn't match your Pages origin. Fix it and redeploy the Worker.
 
-**`github workflow_dispatch failed` status 403** — PAT is missing
-`Actions: Read and write` permission on the build-service repo.
+**`github workflow_dispatch failed` status 403** — the App installation (or
+PAT) is missing `Actions: Read and write` permission on the build-service repo.
+
+**`TOKEN_SECRET is not set` (503)** — run
+`openssl rand -hex 32 | wrangler secret put TOKEN_SECRET` in `cloudflare-worker/`.
+
+**`status check failed (403): invalid or expired token`** — the page and the
+Worker disagree on the protocol (deploy order) or `TOKEN_SECRET` was rotated
+mid-build. Reload the page and compile again.
+
+**"build never started — GitHub Actions did not create the run"** — the
+dispatch was accepted but no run carrying the request_id appeared within
+3 minutes. Usually a GitHub Actions incident (https://www.githubstatus.com);
+retry later.
 
 **Build fails with "unsupported environment"** — the frontend sent a board
 string that the workflow doesn't recognize. Check that `COMPILE_ENV` in
 index.html matches the env names in `build-service/platformio.ini`.
 
 **Build fails with compile errors** — your Config.h has an option that
-doesn't work with the selected MCU. Check the build log at the URL the
-Worker prints (`html_url` in `compileLog`).
+doesn't work with the selected MCU. The Worker scrapes the failed job's log
+and the compile log shows up to 30 `error:` / `#error` / `undefined reference`
+lines (credential-looking values redacted); the full log is at the run URL
+(`html_url`) printed above them.
 
-**Rate limit hit** — by default the Worker allows 10 builds/hour/IP once you
-create the optional KV namespace. Remove the rate limit by commenting out
-the `[[kv_namespaces]]` block in `wrangler.toml` and redeploying.
+**Rate limit hit** — the Worker allows 10 builds/hour/IP (fixed one-hour
+window from the first build; failed dispatches aren't charged). `/status` is
+additionally capped at 60 calls/min/IP per Worker isolate.
 
 ## Lessons learned from the initial deployment
 

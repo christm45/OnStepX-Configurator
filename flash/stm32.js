@@ -10,7 +10,8 @@
 //      BOOT0 header — centre + right pin = boot to DFU.)
 //   2. Click "Flash STM32" → browser shows the DFU device picker.
 //   3. We download firmware.bin to 0x08000000.
-//   4. Detach → user taps NRST (or unplugs) to run the app.
+//   4. Detach → user sets BOOT0 low (remove jumper on SKR PRO) and taps NRST
+//      (or power-cycles) to run the app.
 
 const DFU_VENDOR = 0x0483;
 const DFU_PRODUCT = 0xdf11;
@@ -44,69 +45,82 @@ export async function flash(files, log = console.log) {
     filters: [{ vendorId: DFU_VENDOR, productId: DFU_PRODUCT }],
   });
 
-  await device.open();
-  if (!device.configuration) await device.selectConfiguration(1);
+  // Release the device on every path: after a good flash the device leaves DFU
+  // and drops off USB, so close() rejects (NotFoundError / NetworkError) — that
+  // must not turn a successful flash into an error. On a mid-flash failure we
+  // still try to release it so a retry can claim the interface again.
+  try {
+    await device.open();
+    if (!device.configuration) await device.selectConfiguration(1);
 
-  // Find the DFU interface — DFU class 0xFE, subclass 0x01 (app spec), proto 0x02 (DFU mode)
-  let ifaceNum = -1;
-  let altSetting = 0;
-  for (const cfg of device.configurations) {
-    for (const iface of cfg.interfaces) {
-      for (const alt of iface.alternates) {
-        if (alt.interfaceClass === 0xfe && alt.interfaceSubclass === 0x01) {
-          ifaceNum = iface.interfaceNumber;
-          altSetting = alt.alternateSetting;
-          break;
+    // Find the DFU interface — DFU class 0xFE, subclass 0x01 (app spec), proto 0x02 (DFU mode)
+    let ifaceNum = -1;
+    let altSetting = 0;
+    for (const cfg of device.configurations) {
+      for (const iface of cfg.interfaces) {
+        for (const alt of iface.alternates) {
+          if (alt.interfaceClass === 0xfe && alt.interfaceSubclass === 0x01) {
+            ifaceNum = iface.interfaceNumber;
+            altSetting = alt.alternateSetting;
+            break;
+          }
         }
+        if (ifaceNum >= 0) break;
       }
       if (ifaceNum >= 0) break;
     }
-    if (ifaceNum >= 0) break;
-  }
-  if (ifaceNum < 0) throw new Error('no DFU interface found on device');
+    if (ifaceNum < 0) throw new Error('no DFU interface found on device');
 
-  await device.claimInterface(ifaceNum);
-  if (altSetting !== 0) await device.selectAlternateInterface(ifaceNum, altSetting);
+    await device.claimInterface(ifaceNum);
+    if (altSetting !== 0) await device.selectAlternateInterface(ifaceNum, altSetting);
 
-  const ctx = { device, ifaceNum };
+    const ctx = { device, ifaceNum };
 
-  log(`Connected. Erasing + writing ${bin.length} bytes to 0x${FLASH_BASE.toString(16)}…`);
+    log(`Connected. Erasing + writing ${bin.length} bytes to 0x${FLASH_BASE.toString(16)}…`);
 
-  // Abort any prior state
-  await classOut(ctx, DFU_ABORT, 0, new Uint8Array(0)).catch(() => {});
-  await waitIdle(ctx, log);
+    // Abort any prior state
+    await classOut(ctx, DFU_ABORT, 0, new Uint8Array(0)).catch(() => {});
+    await waitIdle(ctx, log);
 
-  // Erase the sectors we're about to write. Simplest path: "mass erase"
-  // (DfuSe erase with no address = whole chip). STM32F411 has 8 sectors.
-  // Per-page erase would be faster but "set address + erase" is universally supported.
-  await eraseRange(ctx, FLASH_BASE, bin.length, log);
+    // Erase the sectors we're about to write. Simplest path: "mass erase"
+    // (DfuSe erase with no address = whole chip). STM32F411 has 8 sectors.
+    // Per-page erase would be faster but "set address + erase" is universally supported.
+    await eraseRange(ctx, FLASH_BASE, bin.length, log);
 
-  // Set base address, then write in TRANSFER_SIZE chunks starting at blockNum=2.
-  // (DfuSe: block 0 = command, block 1 reserved, block N>=2 writes at addr+((N-2)*xfer).)
-  await setAddress(ctx, FLASH_BASE);
-  await waitIdle(ctx, log);
+    // Set base address, then write in TRANSFER_SIZE chunks starting at blockNum=2.
+    // (DfuSe: block 0 = command, block 1 reserved, block N>=2 writes at addr+((N-2)*xfer).)
+    await setAddress(ctx, FLASH_BASE);
+    await waitIdle(ctx, log);
 
-  const total = bin.length;
-  let written = 0;
-  let blockNum = 2;
-  while (written < total) {
-    const chunk = bin.subarray(written, Math.min(written + TRANSFER_SIZE, total));
-    await classOut(ctx, DFU_DNLOAD, blockNum, chunk);
-    await waitIdle(ctx, null);
-    written += chunk.length;
-    blockNum++;
-    if (blockNum % 8 === 0) {
-      log(`  wrote ${written}/${total} (${((written / total) * 100).toFixed(1)}%)`);
+    const total = bin.length;
+    let written = 0;
+    let blockNum = 2;
+    while (written < total) {
+      const chunk = bin.subarray(written, Math.min(written + TRANSFER_SIZE, total));
+      await classOut(ctx, DFU_DNLOAD, blockNum, chunk);
+      await waitIdle(ctx, null);
+      written += chunk.length;
+      blockNum++;
+      if (blockNum % 8 === 0) {
+        log(`  wrote ${written}/${total} (${((written / total) * 100).toFixed(1)}%)`);
+      }
     }
+    log(`  wrote ${total}/${total} (100%)`);
+
+    // Zero-length DNLOAD = "manifestation phase" → leave DFU. The device may
+    // detach before ACKing, so a failure here is not a failed flash.
+    try {
+      await classOut(ctx, DFU_DNLOAD, 0, new Uint8Array(0));
+      await waitIdle(ctx, null);
+    } catch {}
+  } finally {
+    try { await device.close(); } catch { /* already gone (left DFU / unplugged) */ }
   }
-  log(`  wrote ${total}/${total} (100%)`);
 
-  // Zero-length DNLOAD = "manifestation phase" → leave DFU
-  await classOut(ctx, DFU_DNLOAD, 0, new Uint8Array(0));
-  try { await waitIdle(ctx, null); } catch {}
-
-  await device.close();
-  log('Flash complete. Tap NRST on the board to run the application.');
+  log('Flash complete. To run the new firmware: set BOOT0 low first — release the BOOT0');
+  log('button, or REMOVE the BOOT0 jumper (SKR PRO) / move the S6 BOOT0 jumper back to');
+  log('its normal (non-DFU) position — then tap NRST (or power-cycle). With BOOT0 still');
+  log('high the board just re-enters the bootloader.');
 }
 
 // ---------------------------------------------------------------------------

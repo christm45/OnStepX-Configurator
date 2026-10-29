@@ -62,7 +62,7 @@
 #define AXIS1_REVERSE                     ON       // OFF,    ON Reverses movement direction, or reverse wiring instead to correct.   <-Often
 #define AXIS1_LIMIT_MIN                   -180     // -180,   n. Where n= -90..-360 (degrees.) Minimum "Hour Angle" or Azimuth.        Adjust
 #define AXIS1_LIMIT_MAX                   180      // 180,    n. Where n=  90.. 360 (degrees.) Maximum "Hour Angle" or Azimuth.        Adjust
-#define AXIS1_LIMIT_SYNC                  OFF      // OFF,    n. Where n= 0..90 (degrees.) Allow sync/reset only within this +/-range. Option
+#define AXIS1_LIMIT_SYNC                  OFF      // OFF,    n. Where n= 0..30 (degrees.) Allow sync/reset only within this +/-range. Option
 
 #define AXIS1_DRIVER_MICROSTEPS           32       // OFF,    n. Microstep mode when tracking.                                        <-Req'd
 #define AXIS1_DRIVER_MICROSTEPS_GOTO      OFF      // OFF,    n. Microstep mode used during slews. OFF uses _DRIVER_MICROSTEPS.        Option
@@ -90,7 +90,7 @@
 #define AXIS2_REVERSE                     ON       // OFF,    ON Reverses movement direction, or reverse wiring instead to correct.   <-Often
 #define AXIS2_LIMIT_MIN                   -90      // -90,    n. Where n=-90..0 (degrees.) Minimum allowed Declination or Altitude.    Infreq
 #define AXIS2_LIMIT_MAX                   90       // 90,     n. Where n= 0..90 (degrees.) Maximum allowed Declination or Altitude.    Infreq
-#define AXIS2_LIMIT_SYNC                  OFF      // OFF,    n. Where n= 0..90 (degrees.) Allow sync/reset only within this +/-range. Option
+#define AXIS2_LIMIT_SYNC                  OFF      // OFF,    n. Where n= 0..30 (degrees.) Allow sync/reset only within this +/-range. Option
 
 #define AXIS2_DRIVER_MICROSTEPS           32       // OFF,    n. Microstep mode when tracking.                                        <-Req'd
 #define AXIS2_DRIVER_MICROSTEPS_GOTO      OFF      // OFF,    n. Microstep mode used during slews. OFF uses _DRIVER_MICROSTEPS.        Option
@@ -140,6 +140,9 @@
 
 // LIMITS ------------------------------------------------------ see https://onstep.groups.io/g/main/wiki/Configuration_Mount#LIMITS
 #define LIMIT_SENSE                       OFF      // OFF,    HIGH or LOW state on limit sense switch stops movement.                  Option
+#define LIMIT_RECOVERY                    OFF      // OFF,    disables limits for 1s to allow gotos outside limits for recovery from   Option
+                                          //         overhead (Alt/Azm), horizon, meridian (GEM), and axis1 min/max.
+#define LIMIT_RECOVERY_WITH_TRACKING      OFF      // OFF,    automatically enable tracking on limit recovery                          Option
 
 // PARKING ---------------------------------------------------- see https://onstep.groups.io/g/main/wiki/Configuration_Mount#PARKING
 #define PARK_SENSE                        OFF      // OFF,    HIGH or LOW state indicates mount is in the park orientation.            Option
@@ -167,11 +170,11 @@
 #define GOTO_OFFSET_ALIGN                 OFF      // OFF,    ON skips final goto phase for align stars.                               Option
 
 // PIER SIDE BEHAVIOUR --------------------------------------- see https://onstep.groups.io/g/main/wiki/Configuration_Mount#PIERSIDE
-#define MFLIP_SKIP_HOME                   OFF      // OFF,    ON Goto directly to destination without visiting home position.         Option
+#define MFLIP_HOME_DEFAULT                VISIT    // VISIT,  OFF, VISIT, PAUSE Select meridian flip home waypoint behavior.           Option
+                                          //         OFF goes directly; VISIT passes through home; PAUSE waits at home.
+#define MFLIP_HOME_MEMORY                 OFF      // OFF,    ON Remember meridian flip home mode setting across power cycles.         Option
 #define MFLIP_AUTOMATIC_DEFAULT           OFF      // OFF,    ON Start with automatic meridian flips enabled.                          Option
 #define MFLIP_AUTOMATIC_MEMORY            ON       // OFF,    ON Remember automatic meridian flip setting across power cycles.         Option
-#define MFLIP_PAUSE_HOME_DEFAULT          OFF      // OFF,    ON Start with meridian flip pause at home enabled.                       Infreq
-#define MFLIP_PAUSE_HOME_MEMORY           OFF      // OFF,    ON Remember meridian flip pause at home setting across power cycles.     Infreq
 
 #define PIER_SIDE_SYNC_CHANGE_SIDES       OFF      // OFF,    ON Allows sync to change pier side, for GEM mounts.                      Option
 #define PIER_SIDE_PREFERRED_DEFAULT       BEST     // BEST,   BEST, EAST, WEST, or AUTOMATIC.                                        Option
@@ -250,7 +253,7 @@
 #define FEATURE1_PURPOSE                  OFF      // OFF,    SWITCH, MOMENTARY_SWITCH, ANALOG_OUT, DEW_HEATER, INTERVALOMETER.        Option
 #define FEATURE1_NAME                     "FEATURE1" // "FE..", Name of feature being controlled.                                        Adjust
 #define FEATURE1_TEMP                     OFF      // OFF,    THERMISTOR or n. Where n is the ds18b20 s/n. For DEW_HEATER temperature. Adjust
-#define FEATURE1_PIN                      OFF      // OFF,    OFF or a valid GPIO pin number. (AUX sentinel is NOT accepted.)         Adjust
+#define FEATURE1_PIN                      OFF      // OFF,    AUX for auxiliary pin, n. Where n is the pin#.                           Adjust
 #define FEATURE1_VALUE_DEFAULT            OFF      // OFF,    ON, n. Where n=0..255 for ANALOG_OUT purpose.                            Adjust
 #define FEATURE1_VALUE_MEMORY             OFF      // OFF,    ON remembers state across power cycles.                                 Adjust
 #define FEATURE1_ON_STATE                 HIGH     // HIGH,   LOW to invert so "ON" is 0V and "OFF" is Vcc (3.3V usually.)             Adjust
@@ -258,7 +261,7 @@
 #define FEATURE2_PURPOSE                  OFF      // OFF,    SWITCH, MOMENTARY_SWITCH, ANALOG_OUT, DEW_HEATER, INTERVALOMETER.        Option
 #define FEATURE2_NAME                     "FEATURE2" // "FE..", Name of feature being controlled.                                        Adjust
 #define FEATURE2_TEMP                     OFF      // OFF,    THERMISTOR or n. Where n is the ds18b20 s/n. For DEW_HEATER temperature. Adjust
-#define FEATURE2_PIN                      OFF      // OFF,    OFF or a valid GPIO pin number. (AUX sentinel is NOT accepted.)         Adjust
+#define FEATURE2_PIN                      OFF      // OFF,    AUX for auxiliary pin, n. Where n is the pin#.                           Adjust
 #define FEATURE2_VALUE_DEFAULT            OFF      // OFF,    ON, n. Where n=0..255 for ANALOG_OUT purpose.                            Adjust
 #define FEATURE2_VALUE_MEMORY             OFF      // OFF,    ON remembers state across power cycles.                                 Adjust
 #define FEATURE2_ON_STATE                 HIGH     // HIGH,   LOW to invert so "ON" is 0V and "OFF" is Vcc (3.3V usually.)             Adjust
@@ -266,7 +269,7 @@
 #define FEATURE3_PURPOSE                  OFF      // OFF,    SWITCH, MOMENTARY_SWITCH, ANALOG_OUT, DEW_HEATER, INTERVALOMETER.        Option
 #define FEATURE3_NAME                     "FEATURE3" // "FE..", Name of feature being controlled.                                        Adjust
 #define FEATURE3_TEMP                     OFF      // OFF,    THERMISTOR or n. Where n is the ds18b20 s/n. For DEW_HEATER temperature. Adjust
-#define FEATURE3_PIN                      OFF      // OFF,    OFF or a valid GPIO pin number. (AUX sentinel is NOT accepted.)         Adjust
+#define FEATURE3_PIN                      OFF      // OFF,    AUX for auxiliary pin, n. Where n is the pin#.                           Adjust
 #define FEATURE3_VALUE_DEFAULT            OFF      // OFF,    ON, n. Where n=0..255 for ANALOG_OUT purpose.                            Adjust
 #define FEATURE3_VALUE_MEMORY             OFF      // OFF,    ON remembers state across power cycles.                                 Adjust
 #define FEATURE3_ON_STATE                 HIGH     // HIGH,   LOW to invert so "ON" is 0V and "OFF" is Vcc (3.3V usually.)             Adjust
@@ -274,7 +277,7 @@
 #define FEATURE4_PURPOSE                  OFF      // OFF,    SWITCH, MOMENTARY_SWITCH, ANALOG_OUT, DEW_HEATER, INTERVALOMETER.        Option
 #define FEATURE4_NAME                     "FEATURE4" // "FE..", Name of feature being controlled.                                        Adjust
 #define FEATURE4_TEMP                     OFF      // OFF,    THERMISTOR or n. Where n is the ds18b20 s/n. For DEW_HEATER temperature. Adjust
-#define FEATURE4_PIN                      OFF      // OFF,    OFF or a valid GPIO pin number. (AUX sentinel is NOT accepted.)         Adjust
+#define FEATURE4_PIN                      OFF      // OFF,    AUX for auxiliary pin, n. Where n is the pin#.                           Adjust
 #define FEATURE4_VALUE_DEFAULT            OFF      // OFF,    ON, n. Where n=0..255 for ANALOG_OUT purpose.                            Adjust
 #define FEATURE4_VALUE_MEMORY             OFF      // OFF,    ON remembers state across power cycles.                                 Adjust
 #define FEATURE4_ON_STATE                 HIGH     // HIGH,   LOW to invert so "ON" is 0V and "OFF" is Vcc (3.3V usually.)             Adjust
@@ -282,7 +285,7 @@
 #define FEATURE5_PURPOSE                  OFF      // OFF,    SWITCH, MOMENTARY_SWITCH, ANALOG_OUT, DEW_HEATER, INTERVALOMETER.        Option
 #define FEATURE5_NAME                     "FEATURE5" // "FE..", Name of feature being controlled.                                        Adjust
 #define FEATURE5_TEMP                     OFF      // OFF,    THERMISTOR or n. Where n is the ds18b20 s/n. For DEW_HEATER temperature. Adjust
-#define FEATURE5_PIN                      OFF      // OFF,    OFF or a valid GPIO pin number. (AUX sentinel is NOT accepted.)         Adjust
+#define FEATURE5_PIN                      OFF      // OFF,    AUX for auxiliary pin, n. Where n is the pin#.                           Adjust
 #define FEATURE5_VALUE_DEFAULT            OFF      // OFF,    ON, n. Where n=0..255 for ANALOG_OUT purpose.                            Adjust
 #define FEATURE5_VALUE_MEMORY             OFF      // OFF,    ON remembers state across power cycles.                                 Adjust
 #define FEATURE5_ON_STATE                 HIGH     // HIGH,   LOW to invert so "ON" is 0V and "OFF" is Vcc (3.3V usually.)             Adjust
@@ -290,7 +293,7 @@
 #define FEATURE6_PURPOSE                  OFF      // OFF,    SWITCH, MOMENTARY_SWITCH, ANALOG_OUT, DEW_HEATER, INTERVALOMETER.        Option
 #define FEATURE6_NAME                     "FEATURE6" // "FE..", Name of feature being controlled.                                        Adjust
 #define FEATURE6_TEMP                     OFF      // OFF,    THERMISTOR or n. Where n is the ds18b20 s/n. For DEW_HEATER temperature. Adjust
-#define FEATURE6_PIN                      OFF      // OFF,    OFF or a valid GPIO pin number. (AUX sentinel is NOT accepted.)         Adjust
+#define FEATURE6_PIN                      OFF      // OFF,    AUX for auxiliary pin, n. Where n is the pin#.                           Adjust
 #define FEATURE6_VALUE_DEFAULT            OFF      // OFF,    ON, n. Where n=0..255 for ANALOG_OUT purpose.                            Adjust
 #define FEATURE6_VALUE_MEMORY             OFF      // OFF,    ON remembers state across power cycles.                                 Adjust
 #define FEATURE6_ON_STATE                 HIGH     // HIGH,   LOW to invert so "ON" is 0V and "OFF" is Vcc (3.3V usually.)             Adjust
@@ -298,7 +301,7 @@
 #define FEATURE7_PURPOSE                  OFF      // OFF,    SWITCH, MOMENTARY_SWITCH, ANALOG_OUT, DEW_HEATER, INTERVALOMETER.        Option
 #define FEATURE7_NAME                     "FEATURE7" // "FE..", Name of feature being controlled.                                        Adjust
 #define FEATURE7_TEMP                     OFF      // OFF,    THERMISTOR or n. Where n is the ds18b20 s/n. For DEW_HEATER temperature. Adjust
-#define FEATURE7_PIN                      OFF      // OFF,    OFF or a valid GPIO pin number. (AUX sentinel is NOT accepted.)         Adjust
+#define FEATURE7_PIN                      OFF      // OFF,    AUX for auxiliary pin, n. Where n is the pin#.                           Adjust
 #define FEATURE7_VALUE_DEFAULT            OFF      // OFF,    ON, n. Where n=0..255 for ANALOG_OUT purpose.                            Adjust
 #define FEATURE7_VALUE_MEMORY             OFF      // OFF,    ON remembers state across power cycles.                                 Adjust
 #define FEATURE7_ON_STATE                 HIGH     // HIGH,   LOW to invert so "ON" is 0V and "OFF" is Vcc (3.3V usually.)             Adjust
@@ -306,7 +309,7 @@
 #define FEATURE8_PURPOSE                  OFF      // OFF,    SWITCH, MOMENTARY_SWITCH, ANALOG_OUT, DEW_HEATER, INTERVALOMETER.        Option
 #define FEATURE8_NAME                     "FEATURE8" // "FE..", Name of feature being controlled.                                        Adjust
 #define FEATURE8_TEMP                     OFF      // OFF,    THERMISTOR or n. Where n is the ds18b20 s/n. For DEW_HEATER temperature. Adjust
-#define FEATURE8_PIN                      OFF      // OFF,    OFF or a valid GPIO pin number. (AUX sentinel is NOT accepted.)         Adjust
+#define FEATURE8_PIN                      OFF      // OFF,    AUX for auxiliary pin, n. Where n is the pin#.                           Adjust
 #define FEATURE8_VALUE_DEFAULT            OFF      // OFF,    ON, n. Where n=0..255 for ANALOG_OUT purpose.                            Adjust
 #define FEATURE8_VALUE_MEMORY             OFF      // OFF,    ON remembers state across power cycles.                                 Adjust
 #define FEATURE8_ON_STATE                 HIGH     // HIGH,   LOW to invert so "ON" is 0V and "OFF" is Vcc (3.3V usually.)             Adjust

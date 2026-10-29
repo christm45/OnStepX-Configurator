@@ -1,10 +1,20 @@
 // OnStepX build-service bridge — Cloudflare Worker
 //
 // Endpoints (all CORS-enabled for the configurator origin):
-//   POST /compile      {config, board}  -> {request_id}
-//   GET  /status?id=…                   -> {state, run_id?, conclusion?}
-//   GET  /firmware?run_id=…             -> application/zip (artifact, proxied)
+//   POST /compile      {config, board}  -> {request_id, token}
+//   GET  /status?id=…&token=…           -> {state, run_id?, conclusion?, html_url?, error_lines?}
+//   GET  /firmware?run_id=…&id=…&token=… -> application/zip (artifact, proxied)
 //   GET  /auth-info                     -> {mode: 'github-app' | 'pat', expires_at?}
+//
+// Access control: /compile hands back an HMAC token bound to the request_id
+// (and its issue time). /status and /firmware refuse to answer without it,
+// and only ever return the run whose run-name carries that request_id — so a
+// guessed run_id can't pull someone else's firmware (which embeds their WiFi
+// credentials), and anonymous polling can't burn the App's API quota.
+//
+// state values from /status: queued | in_progress | completed (GitHub's), plus
+//   never_started — no run carrying this request_id appeared within
+//                   NEVER_STARTED_MS of dispatch (GitHub queue/dispatch issue).
 //
 // Auth — TWO modes, App preferred when its secrets are configured:
 //
@@ -28,8 +38,15 @@
 //   BUILD_REPO     — name of the build-service repo (e.g. onstepx-build-service)
 //   ALLOWED_ORIGIN — the Pages origin (e.g. https://christm45.github.io)
 //
-// Optional:
-//   RATE_LIMIT     — a KV namespace binding; if present, enforces 10 builds/hr/IP
+// Required secret:
+//   TOKEN_SECRET   — random string (e.g. `openssl rand -hex 32`) keying the
+//                    request tokens. Fail-closed: without it /compile, /status
+//                    and /firmware all return 503. Rotating it invalidates
+//                    tokens of builds in flight (they just have to recompile).
+//
+// KV (bound in wrangler.toml — required in production):
+//   RATE_LIMIT     — enforces 10 builds/hr/IP (fixed window, charged only on a
+//                    successful dispatch). The code skips it if unbound.
 
 const ALLOWED_BOARDS = new Set([
   // OnStepX (mount controller) build environments
@@ -50,6 +67,22 @@ function envProject(board) {
 const MAX_CONFIG_BYTES = 200_000;
 const WORKFLOW_FILE = 'build.yml';
 
+// /compile rate limit: RL_MAX dispatches per RL_WINDOW_MS fixed window per IP.
+const RL_MAX = 10;
+const RL_WINDOW_MS = 60 * 60 * 1000;
+// Tokens outlive the build by a margin, but not the 1-day artifact retention.
+const TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+// workflow_dispatch normally materialises a run within seconds. If nothing
+// carrying our request_id shows up in this long, report never_started rather
+// than letting the client poll "queued" until its timeout.
+const NEVER_STARTED_MS = 3 * 60 * 1000;
+// In-isolate caches (see handleStatus). KV is deliberately not used for these:
+// its free-tier write quota (1k/day) would be exhausted by status polling.
+const RUNS_CACHE_MS = 4000;          // shared workflow-runs listing
+const FINAL_CACHE_MS = 10 * 60 * 1000; // completed status incl. error_lines
+const STATUS_IP_MAX = 60;            // /status calls per IP per minute (per isolate)
+const MAX_ERROR_LINES = 30;
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -64,7 +97,7 @@ export default {
         return withCors(await handleCompile(request, env), cors);
       }
       if (request.method === 'GET' && url.pathname === '/status') {
-        return withCors(await handleStatus(url, env), cors);
+        return withCors(await handleStatus(request, url, env), cors);
       }
       if (request.method === 'GET' && url.pathname === '/firmware') {
         return withCors(await handleFirmware(url, env), cors);
@@ -143,15 +176,26 @@ async function handleCompile(request, env) {
     return json({ error: 'config (base64) exceeds workflow_dispatch input limit' }, 413);
   }
 
-  // Optional rate limiting — only requests that will actually start a build.
+  // Fail closed: without TOKEN_SECRET the caller could never poll or download
+  // the result, so don't spend a GitHub Actions run on it.
+  if (!env.TOKEN_SECRET) return tokenSecretMissing();
+
+  // Rate limiting — fixed window per IP. Checked here (only requests that will
+  // actually reach GitHub), but charged only AFTER a successful dispatch, so a
+  // GitHub-side failure doesn't eat the caller's budget. The window start is
+  // stored with the count and the KV entry expires at window end; the old
+  // code re-put expirationTtl:3600 on every hit, so a steady user's window
+  // never closed. Check-then-charge can overshoot by a few under concurrent
+  // bursts from one IP — acceptable for an abuse brake.
+  const ip = request.headers.get('CF-Connecting-IP') || 'anon';
+  const rlKey = `rl:${ip}`;
+  let rl = null;
   if (env.RATE_LIMIT) {
-    const ip = request.headers.get('CF-Connecting-IP') || 'anon';
-    const key = `rl:${ip}`;
-    const current = parseInt((await env.RATE_LIMIT.get(key)) || '0', 10);
-    if (current >= 10) {
-      return json({ error: 'rate limit: max 10 builds/hour' }, 429);
+    rl = await readRateWindow(env, rlKey);
+    if (rl.count >= RL_MAX) {
+      const retryMin = Math.max(1, Math.ceil((rl.start + RL_WINDOW_MS - Date.now()) / 60000));
+      return json({ error: `rate limit: max ${RL_MAX} builds/hour — try again in ~${retryMin} min` }, 429);
     }
-    await env.RATE_LIMIT.put(key, String(current + 1), { expirationTtl: 3600 });
   }
 
   const requestId = crypto.randomUUID();
@@ -183,53 +227,284 @@ async function handleCompile(request, env) {
     );
   }
 
-  return json({ request_id: requestId, state: 'queued' });
+  if (env.RATE_LIMIT) {
+    // Re-read so a concurrent dispatch from the same IP isn't overwritten.
+    const cur = await readRateWindow(env, rlKey);
+    await writeRateWindow(env, rlKey, { start: cur.start, count: cur.count + 1 });
+  }
+
+  const token = await signToken(env, requestId, Date.now());
+  return json({ request_id: requestId, token, state: 'queued' });
+}
+
+// Rate-limit window record: {start: ms epoch, count}. A missing, expired or
+// unparsable record starts a fresh window now.
+async function readRateWindow(env, key) {
+  const now = Date.now();
+  let rec = null;
+  try { rec = JSON.parse((await env.RATE_LIMIT.get(key)) || 'null'); } catch { rec = null; }
+  if (!rec || typeof rec.start !== 'number' || now - rec.start >= RL_WINDOW_MS) {
+    return { start: now, count: 0 };
+  }
+  return { start: rec.start, count: Number(rec.count) || 0 };
+}
+
+async function writeRateWindow(env, key, rec) {
+  // Expire at window end (KV wants >= 60 s in the future).
+  const end = Math.floor((rec.start + RL_WINDOW_MS) / 1000);
+  const minExp = Math.floor(Date.now() / 1000) + 60;
+  await env.RATE_LIMIT.put(key, JSON.stringify(rec), { expiration: Math.max(end, minExp) });
+}
+
+// ---------------------------------------------------------------------------
+// Request tokens: "<issuedMs>.<base64url HMAC-SHA256(TOKEN_SECRET, requestId.issuedMs)>"
+
+function tokenSecretMissing() {
+  return json(
+    { error: 'compile service misconfigured: TOKEN_SECRET is not set (wrangler secret put TOKEN_SECRET)' },
+    503
+  );
+}
+
+async function hmacKey(env) {
+  return crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(env.TOKEN_SECRET),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign', 'verify']
+  );
+}
+
+async function signToken(env, requestId, issuedMs) {
+  const key = await hmacKey(env);
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${requestId}.${issuedMs}`));
+  return `${issuedMs}.${base64UrlEncode(new Uint8Array(sig))}`;
+}
+
+// Returns the token's issue time (ms) if valid for this requestId, else null.
+// crypto.subtle.verify does the constant-time comparison.
+async function verifyToken(env, requestId, token) {
+  if (typeof token !== 'string') return null;
+  const m = /^(\d{10,16})\.([A-Za-z0-9_-]{20,})$/.exec(token);
+  if (!m) return null;
+  const issuedMs = Number(m[1]);
+  if (!(Date.now() - issuedMs < TOKEN_TTL_MS) || issuedMs > Date.now() + 60_000) return null;
+  let sig;
+  try {
+    sig = base64ToBytes(m[2].replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (m[2].length % 4)) % 4));
+  } catch {
+    return null;
+  }
+  const key = await hmacKey(env);
+  const ok = await crypto.subtle.verify('HMAC', key, sig, new TextEncoder().encode(`${requestId}.${issuedMs}`));
+  return ok ? issuedMs : null;
+}
+
+const REQUEST_ID_RE = /^[0-9a-fA-F-]{8,64}$/;
+
+// Common gate for /status and /firmware. Returns {requestId, issuedMs} or a Response.
+async function authorizeRequest(url, env) {
+  if (!env.TOKEN_SECRET) return tokenSecretMissing();
+  const requestId = url.searchParams.get('id') || url.searchParams.get('request_id');
+  if (!requestId || !REQUEST_ID_RE.test(requestId)) return json({ error: 'id param required' }, 400);
+  const issuedMs = await verifyToken(env, requestId, url.searchParams.get('token'));
+  if (issuedMs === null) return json({ error: 'invalid or expired token' }, 403);
+  return { requestId, issuedMs };
+}
+
+// The workflow's run-name is "onstepx-build req=<uuid> env=<env> project=<p>".
+// Runs list `name` and `display_title` both carry it; match either.
+function runMatches(run, requestId) {
+  const needle = `req=${requestId}`;
+  return (typeof run.name === 'string' && run.name.includes(needle)) ||
+    (typeof run.display_title === 'string' && run.display_title.includes(needle));
 }
 
 // ---------------------------------------------------------------------------
 
-async function handleStatus(url, env) {
-  const requestId = url.searchParams.get('id') || url.searchParams.get('request_id');
-  if (!requestId) return json({ error: 'id param required' }, 400);
+// In-isolate caches. Each Worker isolate has its own; that's fine — they only
+// exist to collapse bursts of polling into one GitHub call.
+let runsCache = null;              // { at: ms, runs: [...] }
+const finalStatusCache = new Map(); // requestId -> { at: ms, body }
+const statusIpHits = new Map();     // ip -> { start: ms, count }
 
-  // Find the run whose run-name contains our request_id.
-  // The workflow sets: run-name: "onstepx-build req=<uuid> env=<env>"
+function statusIpAllowed(ip) {
+  const now = Date.now();
+  const rec = statusIpHits.get(ip);
+  if (!rec || now - rec.start >= 60_000) {
+    statusIpHits.set(ip, { start: now, count: 1 });
+    if (statusIpHits.size > 5000) { // bound memory: drop expired entries
+      for (const [k, v] of statusIpHits) if (now - v.start >= 60_000) statusIpHits.delete(k);
+    }
+    return true;
+  }
+  rec.count++;
+  return rec.count <= STATUS_IP_MAX;
+}
+
+async function listRecentRuns(env) {
+  if (runsCache && Date.now() - runsCache.at < RUNS_CACHE_MS) return runsCache.runs;
   const runsRes = await ghFetch(
     env,
-    `/repos/${env.BUILD_OWNER}/${env.BUILD_REPO}/actions/workflows/${WORKFLOW_FILE}/runs?event=workflow_dispatch&per_page=30`
+    `/repos/${env.BUILD_OWNER}/${env.BUILD_REPO}/actions/workflows/${WORKFLOW_FILE}/runs?event=workflow_dispatch&per_page=50`
   );
-  if (!runsRes.ok) return json({ error: 'github api error', status: runsRes.status }, 502);
+  if (!runsRes.ok) {
+    const err = new Error('github api error');
+    err.status = runsRes.status;
+    throw err;
+  }
   const runsData = await runsRes.json();
+  runsCache = { at: Date.now(), runs: runsData.workflow_runs || [] };
+  return runsCache.runs;
+}
 
-  const run = (runsData.workflow_runs || []).find(
-    (r) => typeof r.name === 'string' && r.name.includes(requestId)
-  );
+async function handleStatus(request, url, env) {
+  const ip = request.headers.get('CF-Connecting-IP') || 'anon';
+  if (!statusIpAllowed(ip)) return json({ error: 'too many status requests — slow down' }, 429);
+
+  const auth = await authorizeRequest(url, env);
+  if (auth instanceof Response) return auth;
+  const { requestId, issuedMs } = auth;
+
+  const cached = finalStatusCache.get(requestId);
+  if (cached && Date.now() - cached.at < FINAL_CACHE_MS) return json(cached.body);
+
+  // Find the run whose run-name carries our request_id.
+  let runs;
+  try {
+    runs = await listRecentRuns(env);
+  } catch (e) {
+    return json({ error: 'github api error', status: e.status || 0 }, 502);
+  }
+  const run = runs.find((r) => runMatches(r, requestId));
 
   if (!run) {
+    if (Date.now() - issuedMs > NEVER_STARTED_MS) {
+      return json({
+        request_id: requestId,
+        state: 'never_started',
+        detail: 'GitHub accepted the dispatch but no workflow run appeared — GitHub Actions queue/dispatch issue.',
+      });
+    }
     return json({ state: 'queued', request_id: requestId });
   }
 
   // status: queued | in_progress | completed
   // conclusion (only when completed): success | failure | cancelled | skipped | ...
-  return json({
+  const body = {
     request_id: requestId,
     state: run.status,
     conclusion: run.conclusion,
     run_id: run.id,
     html_url: run.html_url,
-  });
+  };
+  if (run.status === 'completed') {
+    if (run.conclusion === 'failure') {
+      try {
+        body.error_lines = await fetchFailureLines(env, run.id);
+      } catch (e) {
+        console.error('failure-log fetch failed', e);
+        body.error_lines = [];
+      }
+    }
+    // A failure whose log wasn't readable yet (GitHub can lag a few seconds
+    // behind the conclusion) isn't cached, so the next poll retries the log.
+    const cacheable = run.conclusion !== 'failure' || body.error_lines.length > 0;
+    if (cacheable) finalStatusCache.set(requestId, { at: Date.now(), body });
+    if (finalStatusCache.size > 500) {
+      const now = Date.now();
+      for (const [k, v] of finalStatusCache) if (now - v.at >= FINAL_CACHE_MS) finalStatusCache.delete(k);
+    }
+  }
+  return json(body);
+}
+
+// Pull the failed job's log and keep just the lines that explain the failure
+// (compiler errors, #error, link errors, our own ::error:: annotations).
+async function fetchFailureLines(env, runId) {
+  const jobsRes = await ghFetch(env, `/repos/${env.BUILD_OWNER}/${env.BUILD_REPO}/actions/runs/${runId}/jobs`);
+  if (!jobsRes.ok) return [];
+  const jobs = (await jobsRes.json()).jobs || [];
+  const job = jobs.find((j) => j.conclusion === 'failure') || jobs[0];
+  if (!job) return [];
+
+  // Like the artifact zip: a 302 to a signed URL that must be fetched WITHOUT
+  // GitHub's Authorization header.
+  const token = await getAuthToken(env);
+  const redirectRes = await fetch(
+    `https://api.github.com/repos/${env.BUILD_OWNER}/${env.BUILD_REPO}/actions/jobs/${job.id}/logs`,
+    {
+      method: 'GET',
+      redirect: 'manual',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'User-Agent': 'onstepx-build-bridge',
+      },
+    }
+  );
+  let logText;
+  if (redirectRes.status === 302) {
+    const loc = redirectRes.headers.get('Location');
+    if (!loc) return [];
+    const logRes = await fetch(loc);
+    if (!logRes.ok) return [];
+    logText = await logRes.text();
+  } else if (redirectRes.ok) {
+    logText = await redirectRes.text();
+  } else {
+    return [];
+  }
+  return extractErrorLines(logText);
+}
+
+function extractErrorLines(logText) {
+  const out = [];
+  const seen = new Set();
+  for (let line of logText.split(/\r?\n/)) {
+    // Strip Actions' "2025-01-01T12:34:56.1234567Z " prefix.
+    line = line.replace(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z\s?/, '').trimEnd();
+    if (!/error:|#error|\bError\b|undefined reference/.test(line)) continue;
+    // Never echo credentials: compiler diagnostics can quote Config.h lines.
+    if (/PASS|SSID|PSK|WIFI|SECRET|TOKEN/i.test(line)) {
+      line = line
+        .replace(/"[^"]*"/g, '"***"')
+        .replace(/(define\s+\w+\s+)(?!"\*\*\*")\S+/g, '$1***'); // unquoted values
+    }
+    if (line.length > 300) line = line.slice(0, 300) + '…';
+    if (seen.has(line)) continue;
+    seen.add(line);
+    out.push(line);
+    if (out.length >= MAX_ERROR_LINES) break;
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------
 
 async function handleFirmware(url, env) {
+  const auth = await authorizeRequest(url, env);
+  if (auth instanceof Response) return auth;
+  const { requestId } = auth;
+
   const runId = url.searchParams.get('run_id');
   if (!runId || !/^\d+$/.test(runId)) return json({ error: 'run_id param required' }, 400);
+
+  // The run must be the one this token's request_id dispatched — otherwise a
+  // valid token for one build could fetch any other run's firmware.
+  const runRes = await ghFetch(env, `/repos/${env.BUILD_OWNER}/${env.BUILD_REPO}/actions/runs/${runId}`);
+  if (runRes.status === 404) return json({ error: 'run not found' }, 404);
+  if (!runRes.ok) return json({ error: 'github api error', status: runRes.status }, 502);
+  if (!runMatches(await runRes.json(), requestId)) {
+    return json({ error: 'run does not belong to this request' }, 403);
+  }
 
   const artRes = await ghFetch(env, `/repos/${env.BUILD_OWNER}/${env.BUILD_REPO}/actions/runs/${runId}/artifacts`);
   if (!artRes.ok) return json({ error: 'github api error', status: artRes.status }, 502);
   const artData = await artRes.json();
-  const artifact = (artData.artifacts || []).find((a) => a.name.startsWith('firmware-'));
+  // The workflow names the artifact firmware-<request_id>.
+  const artifact = (artData.artifacts || []).find((a) => a.name === `firmware-${requestId}`);
   if (!artifact) return json({ error: 'no firmware artifact on this run' }, 404);
 
   // GitHub's artifact /zip endpoint returns a 302 to a short-lived pre-signed
@@ -444,12 +719,14 @@ async function handleAuthInfo(env) {
       app_id: String(env.GH_APP_ID),
       installation_id: String(env.GH_APP_INSTALLATION_ID),
       installation_token_expires_at: expiresAt,
+      token_secret_set: Boolean(env.TOKEN_SECRET),
       error,
     });
   }
   return json({
     mode: 'pat',
     pat_set: Boolean(env.GITHUB_TOKEN),
+    token_secret_set: Boolean(env.TOKEN_SECRET),
     note: 'Switch to GitHub App mode by setting GH_APP_ID + GH_APP_PRIVATE_KEY + GH_APP_INSTALLATION_ID.',
   });
 }

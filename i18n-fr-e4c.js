@@ -51,7 +51,7 @@ window.I18N_FR = Object.assign(window.I18N_FR || {}, {
   "Motor output on the Z-AXIS. Axis3 and Axis5 share these pins — only one may be enabled.": "Sortie moteur sur l'axe Z. L'Axe3 et l'Axe5 partagent ces broches — un seul peut être activé.",
   "Wire the rotator OR the Focuser2 stepper coils.": "Câblez les bobines du rotateur OU celles du Focuser2.",
   "MOT E — Focuser1 motor output (Axis4)": "MOT E — sortie moteur Focuser1 (Axe4)",
-  "Motor output for Focuser1 on the E0-AXIS.": "Sortie moteur pour le Focuser1 sur l'axe E0.",
+  "Motor output for Focuser1 on the E0-AXIS.": "Sortie moteur pour le Focuser1 sur E0-AXIS.",
   "Wire the Focuser1 stepper coils.": "Câblez les bobines du moteur Focuser1.",
   "Focuser1 stepper coils to MOT E.": "Bobines du moteur Focuser1 vers MOT E.",
 

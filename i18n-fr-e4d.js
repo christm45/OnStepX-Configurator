@@ -87,9 +87,9 @@ window.I18N_FR = Object.assign(window.I18N_FR || {}, {
   "Axis3 — shares MOT-Z with Axis5, see the Focuser section":
     "Axis3 — partage MOT-Z avec l'Axis5, voir la section Focuseur",
   "Axis4 DIR":
-    "DIR Axis4",
+    "DIR Axe4",
   "Axis4 STEP":
-    "STEP Axis4",
+    "STEP Axe4",
   "Axis4 is the MOT-E (E0-AXIS) output and uses dedicated pins (GPIO16 STEP, GPIO17 DIR) — no pin-sharing conflicts. Enabled as TMC2209 in the stock E4 Config.h.":
     "Axis4 est la sortie MOT-E (E0-AXIS) et utilise des broches dédiées (GPIO16 STEP, GPIO17 DIR) — aucun conflit de partage de broches. Activé en TMC2209 dans le Config.h d'origine du E4.",
   "Axis5 shares STEP/DIR pins with Axis3 (rotator). Only one can be active at a time. Enabled as TMC2209 in the stock E4 Config.h.":
@@ -646,4 +646,28 @@ window.I18N_FR = Object.assign(window.I18N_FR || {}, {
     "Enregistrer .txt",
   "Shows what the board prints on its USB port, for example the OnStepX startup messages when DEBUG is ON or VERBOSE (Controller tab). Close NINA, ASCOM and any other program using the port first.":
     "Affiche ce que la carte envoie sur son port USB, par exemple les messages de démarrage d'OnStepX quand DEBUG est sur ON ou VERBOSE (onglet Controller). Fermez d'abord NINA, ASCOM et tout autre programme qui utilise le port.",
+  // Same strings as the pgT() variants in index.html (serial monitor / compile /
+  // flash progress), so i18n.js can map JS-written translations back to English.
+  "Starting…":
+    "Démarrage…",
+  "Waiting for runner":
+    "En attente du runner",
+  "Compiling":
+    "Compilation",
+  "Fetching firmware":
+    "Récupération du firmware",
+  "Build complete ✓":
+    "Compilation terminée ✓",
+  "Disconnect":
+    "Déconnecter",
+  "Connected. Waiting for data…":
+    "Connecté. En attente de données…",
+  "Copied.":
+    "Copié.",
+  "Copy failed. Use Save .txt instead.":
+    "Copie impossible. Utilisez Save .txt.",
+  "Flashing…":
+    "Flash en cours…",
+  "Flash complete ✓":
+    "Flash terminé ✓",
 });

@@ -37,19 +37,17 @@ export const PINMAP_TO_ENV = {
   BTT_SKR_PRO: 'skr_pro_f407',
 };
 
-export const ENV_LABELS = {
-  esp32: 'ESP32',
-  teensy32: 'Teensy 3.2',
-  teensy40: 'Teensy 4.0',
-  teensy41: 'Teensy 4.1 / MaxPCB4',
-  blackpill_f411: 'STM32 BlackPill F411CE',
-  f446_fysetc_s6: 'STM32F446VE / FYSETC S6',
-  skr_pro_f407: 'STM32F407 / BTT SKR PRO V1.2',
-};
-
 // ==========================================================================
 // Compile flow
 // ==========================================================================
+
+// request_id -> access token issued by the worker's /compile. /status and
+// /firmware refuse requests without it. Kept here (not returned to callers)
+// so startCompile/pollUntilDone/fetchFirmware keep their simple signatures.
+const requestTokens = new Map();
+// run_id -> request_id, learned while polling, so fetchFirmware(runId) can
+// present the right token.
+const runRequests = new Map();
 
 /**
  * Kick off a compile. Returns a request_id.
@@ -68,37 +66,82 @@ export async function startCompile(configText, board, ref = 'main', project = 'o
     throw new Error(`compile request failed (${res.status}): ${err.error || 'unknown'}`);
   }
   const data = await res.json();
+  if (data.token) requestTokens.set(data.request_id, data.token);
   return data.request_id;
+}
+
+function authQuery(requestId) {
+  const token = requestTokens.get(requestId) || '';
+  return `id=${encodeURIComponent(requestId)}&token=${encodeURIComponent(token)}`;
 }
 
 /**
  * Poll status until the workflow run completes (or we time out).
- * onUpdate({state, conclusion?, run_id?}) fires on every poll.
- * Resolves with the final {state, conclusion, run_id} on completion.
+ * onUpdate({state, conclusion?, run_id?, html_url?}) fires on every poll.
+ * Resolves with the final {state, conclusion, run_id, html_url, error_lines?}
+ * on completion (error_lines: compiler errors scraped from a failed run).
+ *
+ * Default timeout covers the workflow's 15-min job timeout plus ~10 min of
+ * runner queueing. Transient failures (network, 5xx, 429) are retried with
+ * backoff; MAX_STATUS_FAILURES in a row gives up.
  */
-export async function pollUntilDone(requestId, onUpdate, { timeoutMs = 10 * 60 * 1000 } = {}) {
+const MAX_STATUS_FAILURES = 6;
+export async function pollUntilDone(requestId, onUpdate, { timeoutMs = 25 * 60 * 1000 } = {}) {
   const start = Date.now();
   let intervalMs = 3000;
+  let failures = 0;
+  let lastError = '';
+  let runUrl = null;
   while (Date.now() - start < timeoutMs) {
-    const res = await fetch(`${WORKER_URL}/status?id=${encodeURIComponent(requestId)}`);
-    if (!res.ok) throw new Error(`status check failed (${res.status})`);
-    const data = await res.json();
-    onUpdate(data);
-    if (data.state === 'completed') return data;
-    await sleep(intervalMs);
-    // Back off a little after the first minute
-    if (Date.now() - start > 60_000 && intervalMs < 6000) intervalMs = 6000;
+    let res = null;
+    try {
+      res = await fetch(`${WORKER_URL}/status?${authQuery(requestId)}`);
+    } catch (err) {
+      lastError = err.message || String(err); // network error — retryable
+    }
+    if (res && res.ok) {
+      failures = 0;
+      const data = await res.json();
+      if (data.html_url) runUrl = data.html_url;
+      if (data.run_id) runRequests.set(String(data.run_id), requestId);
+      onUpdate(data);
+      if (data.state === 'completed') return data;
+      if (data.state === 'never_started') {
+        throw new Error('build never started — GitHub Actions did not create the run (GitHub queue/dispatch issue). Try again in a few minutes.');
+      }
+      await sleep(intervalMs);
+      // Back off a little after the first minute
+      if (Date.now() - start > 60_000 && intervalMs < 6000) intervalMs = 6000;
+      continue;
+    }
+    if (res && res.status < 500 && res.status !== 429) {
+      // 4xx (bad/expired token, bad id) won't fix itself.
+      const err = await res.json().catch(() => ({}));
+      throw new Error(`status check failed (${res.status}): ${err.error || res.statusText}`);
+    }
+    if (res) lastError = `HTTP ${res.status}`;
+    failures++;
+    if (failures >= MAX_STATUS_FAILURES) {
+      throw new Error(`status check failed ${failures} times in a row (${lastError})` +
+        (runUrl ? ` — check the run: ${runUrl}` : ''));
+    }
+    await sleep(Math.min(intervalMs * 2 ** failures, 30_000));
   }
-  throw new Error('build timed out — check the GitHub Actions tab for details');
+  throw new Error('build timed out — ' +
+    (runUrl ? `check the run: ${runUrl}` : 'check the GitHub Actions tab for details'));
 }
 
 /**
  * Fetch firmware artifact as {filename: Uint8Array, ...} by unpacking the zip
  * returned by the worker.
  */
-export async function fetchFirmware(runId) {
-  const res = await fetch(`${WORKER_URL}/firmware?run_id=${encodeURIComponent(runId)}`);
-  if (!res.ok) throw new Error(`firmware download failed (${res.status})`);
+export async function fetchFirmware(runId, requestId = runRequests.get(String(runId))) {
+  if (!requestId) throw new Error('firmware download failed: unknown run (no request_id/token for it)');
+  const res = await fetch(`${WORKER_URL}/firmware?run_id=${encodeURIComponent(runId)}&${authQuery(requestId)}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(`firmware download failed (${res.status})${err.error ? ': ' + err.error : ''}`);
+  }
   const zipBuf = new Uint8Array(await res.arrayBuffer());
   return unzipArtifact(zipBuf);
 }

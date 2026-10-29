@@ -858,7 +858,7 @@
   }
   .design-chip:hover { background: var(--link-border); color: #fff; }
 </style>
-<link rel="stylesheet" href="e4-guide.css?v=15">
+<link rel="stylesheet" href="e4-guide.css?v=16">
 
 <div style="display:flex;align-items:stretch;gap:8px;max-width:820px;margin:0 auto 16px;">
   <div class="mode-switch" role="tablist" aria-label="Project selector" style="flex:1;margin:0;">
@@ -1051,9 +1051,9 @@
     <div class="field-row">
       <label class="field-label">Axis1 GOTO Microsteps</label>
       <select id="calc_a1_goto_us" onchange="calcSlew()">
-        <option value="0">OFF (same as tracking)</option>
+        <option value="0" selected>OFF (same as tracking)</option>
         <option value="1">1</option><option value="2">2</option><option value="4">4</option>
-        <option value="8" selected>8</option><option value="16">16</option>
+        <option value="8">8</option><option value="16">16</option>
         <option value="32">32</option><option value="64">64</option>
       </select>
       <span class="field-hint">During slews, lower microsteps = faster but coarser</span>
@@ -1467,7 +1467,7 @@
     <div class="field-row">
       <label class="field-label">AXIS1_LIMIT_SYNC <span class="hint-tag hint-option">Option</span></label>
       <input type="text" id="AXIS1_LIMIT_SYNC" value="OFF">
-      <span class="field-hint">OFF or 0..90 degrees</span><span class="config-comment">// n. Where n= 0..90 (degrees.) Allow sync/reset only within this +/-range.</span>
+      <span class="field-hint">OFF or 0..30 degrees</span><span class="config-comment">// n. Where n= 0..30 (degrees.) Allow sync/reset only within this +/-range.</span>
     </div>
   </div>
   <div class="section">
@@ -1485,9 +1485,9 @@
     <div class="field-row">
       <label class="field-label">AXIS1_DRIVER_MICROSTEPS_GOTO <span class="hint-tag hint-option">Option</span></label>
       <select id="AXIS1_DRIVER_MICROSTEPS_GOTO">
-        <option value="OFF">OFF (uses tracking)</option>
+        <option value="OFF" selected>OFF (uses tracking)</option>
         <option value="1">1</option><option value="2">2</option><option value="4">4</option>
-        <option value="8" selected>8</option><option value="16">16</option><option value="32">32</option>
+        <option value="8">8</option><option value="16">16</option><option value="32">32</option>
         <option value="64">64</option><option value="128">128</option><option value="256">256</option>
       </select>
       <span class="field-hint">Microstep mode for slewing</span><span class="config-comment">// n. Microstep mode used during slews. OFF uses _DRIVER_MICROSTEPS.</span>
@@ -1595,18 +1595,18 @@
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_LIMIT_MIN <span class="hint-tag hint-infreq">Infreq</span></label>
-      <input type="number" id="AXIS2_LIMIT_MIN" value="0" min="-90" max="0">
+      <input type="number" id="AXIS2_LIMIT_MIN" value="-90" min="-90" max="0">
       <span class="field-hint">-90..0 degrees</span><span class="config-comment">// n. Where n=-90..0 (degrees.) Minimum allowed Declination or Altitude.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_LIMIT_MAX <span class="hint-tag hint-infreq">Infreq</span></label>
-      <input type="number" id="AXIS2_LIMIT_MAX" value="80" min="0" max="90">
+      <input type="number" id="AXIS2_LIMIT_MAX" value="90" min="0" max="90">
       <span class="field-hint">0..90 degrees</span><span class="config-comment">// n. Where n= 0..90 (degrees.) Maximum allowed Declination or Altitude.</span>
     </div>
     <div class="field-row">
       <label class="field-label">AXIS2_LIMIT_SYNC <span class="hint-tag hint-option">Option</span></label>
       <input type="text" id="AXIS2_LIMIT_SYNC" value="OFF">
-      <span class="field-hint">OFF or 0..90 degrees</span><span class="config-comment">// n. Where n= 0..90 (degrees.) Allow sync/reset only within this +/-range.</span>
+      <span class="field-hint">OFF or 0..30 degrees</span><span class="config-comment">// n. Where n= 0..30 (degrees.) Allow sync/reset only within this +/-range.</span>
     </div>
   </div>
   <div class="section">
@@ -1624,8 +1624,8 @@
     <div class="field-row">
       <label class="field-label">AXIS2_DRIVER_MICROSTEPS_GOTO <span class="hint-tag hint-option">Option</span></label>
       <select id="AXIS2_DRIVER_MICROSTEPS_GOTO">
-        <option value="OFF">OFF</option><option value="1">1</option><option value="2">2</option>
-        <option value="4">4</option><option value="8" selected>8</option><option value="16">16</option>
+        <option value="OFF" selected>OFF</option><option value="1">1</option><option value="2">2</option>
+        <option value="4">4</option><option value="8">8</option><option value="16">16</option>
         <option value="32">32</option><option value="64">64</option>
         <option value="128">128</option><option value="256">256</option>
       </select>
@@ -1856,6 +1856,16 @@
       <span class="field-hint">Limit switch state</span><span class="config-comment">// HIGH or LOW state on limit sense switch stops movement.</span>
     </div>
     <div class="field-row">
+      <label class="field-label">LIMIT_RECOVERY <span class="hint-tag hint-option">Option</span></label>
+      <select id="LIMIT_RECOVERY"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
+      <span class="field-hint">Allow gotos out of a limit for 1s</span><span class="config-comment">// ON disables limits for 1s to allow gotos outside limits for recovery from overhead (Alt/Azm), horizon, meridian (GEM), and axis1 min/max.</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">LIMIT_RECOVERY_WITH_TRACKING <span class="hint-tag hint-option">Option</span></label>
+      <select id="LIMIT_RECOVERY_WITH_TRACKING"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
+      <span class="field-hint">Resume tracking after a recovery</span><span class="config-comment">// ON automatically enable tracking on limit recovery.</span>
+    </div>
+    <div class="field-row">
       <label class="field-label">PARK_SENSE <span class="hint-tag hint-option">Option</span></label>
       <select id="PARK_SENSE"><option value="OFF" selected>OFF</option><option value="HIGH">HIGH</option><option value="LOW">LOW</option></select>
       <span class="field-hint">Park orientation sensor</span><span class="config-comment">// HIGH or LOW state indicates mount is in the park orientation.</span>
@@ -1956,9 +1966,14 @@
   <div class="section">
     <div class="section-title">Pier Side &amp; Alignment</div>
     <div class="field-row">
-      <label class="field-label">MFLIP_SKIP_HOME <span class="hint-tag hint-option">Option</span></label>
-      <select id="MFLIP_SKIP_HOME"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Skip home during meridian flip</span><span class="config-comment">// ON Goto directly to the destination without visiting home position.</span>
+      <label class="field-label">MFLIP_HOME_DEFAULT <span class="hint-tag hint-option">Option</span></label>
+      <select id="MFLIP_HOME_DEFAULT"><option value="OFF">OFF</option><option value="VISIT" selected>VISIT</option><option value="PAUSE">PAUSE</option></select>
+      <span class="field-hint">Meridian flip home waypoint</span><span class="config-comment">// OFF goes directly; VISIT passes through home; PAUSE waits at home.</span>
+    </div>
+    <div class="field-row">
+      <label class="field-label">MFLIP_HOME_MEMORY <span class="hint-tag hint-option">Option</span></label>
+      <select id="MFLIP_HOME_MEMORY"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
+      <span class="field-hint">Remember flip home mode</span><span class="config-comment">// ON Remember meridian flip home mode setting across power cycles.</span>
     </div>
     <div class="field-row">
       <label class="field-label">MFLIP_AUTOMATIC_DEFAULT <span class="hint-tag hint-option">Option</span></label>
@@ -1969,16 +1984,6 @@
       <label class="field-label">MFLIP_AUTOMATIC_MEMORY <span class="hint-tag hint-option">Option</span></label>
       <select id="MFLIP_AUTOMATIC_MEMORY"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
       <span class="field-hint">Remember auto flip setting</span><span class="config-comment">// ON Remember automatic meridian flip setting across power cycles.</span>
-    </div>
-    <div class="field-row">
-      <label class="field-label">MFLIP_PAUSE_HOME_DEFAULT <span class="hint-tag hint-infreq">Infreq</span></label>
-      <select id="MFLIP_PAUSE_HOME_DEFAULT"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Pause at home during flip</span><span class="config-comment">// ON Start with meridian flip pause at home enabed.</span>
-    </div>
-    <div class="field-row">
-      <label class="field-label">MFLIP_PAUSE_HOME_MEMORY <span class="hint-tag hint-infreq">Infreq</span></label>
-      <select id="MFLIP_PAUSE_HOME_MEMORY"><option value="OFF" selected>OFF</option><option value="ON">ON</option></select>
-      <span class="field-hint">Remember pause setting</span><span class="config-comment">// ON Remember meridian flip pause at home setting across power cycles.</span>
     </div>
     <div class="field-row">
       <label class="field-label">PIER_SIDE_SYNC_CHANGE_SIDES <span class="hint-tag hint-option">Option</span></label>
@@ -4138,12 +4143,9 @@ function buildFeatures() {
     {n:5, purpose:'OFF', name:'FEATURE5', pin:'OFF', onState:'HIGH'},
     {n:6, purpose:'OFF', name:'FEATURE6', pin:'OFF', onState:'HIGH'},
     {n:7, purpose:'OFF', name:'FEATURE7', pin:'OFF', onState:'HIGH'},
-    // Feature 8 used to default to INTERVALOMETER + PIN=AUX. OnStepX's current
-    // Validate.h rejects FEATURE*_PIN=AUX (the AUX sentinel is -4, and the
-    // check `FEATURE*_PIN != OFF && FEATURE*_PIN < 0` fires the #error
-    // before Features.cpp's AUX -> auxPins[n] substitution ever runs).
-    // Safe cross-board default is OFF; users who want an intervalometer
-    // can set PURPOSE=INTERVALOMETER and PIN to a real GPIO pin number.
+    // Feature 8 used to default to INTERVALOMETER + PIN=AUX. AUX only works
+    // where the board defines AUX8_PIN (src/pinmaps/Validate.h maps it), so
+    // the safe cross-board default is OFF. AUX itself is still accepted.
     {n:8, purpose:'OFF', name:'FEATURE8', pin:'OFF', onState:'HIGH'},
   ];
   let html = '';
@@ -4220,6 +4222,30 @@ function applyCalcMicrosteps(driverId, raw) {
     el.dispatchEvent(new Event('change', { bubbles: true }));
   }
 }
+// OnStepX Validate.h: AXISn_DRIVER_MICROSTEPS_GOTO must be OFF or 1 .. <
+// AXISn_DRIVER_MICROSTEPS (and OFF when MICROSTEPS is OFF). When the tracking
+// mode is lowered to or below the goto mode, drop the goto override to OFF
+// rather than leave a guaranteed compile error behind. A goto value the user
+// picks directly is left alone — preflight reports it.
+function keepGotoMicrostepsValid(axis) {
+  const ms = document.getElementById(`AXIS${axis}_DRIVER_MICROSTEPS`);
+  const go = document.getElementById(`AXIS${axis}_DRIVER_MICROSTEPS_GOTO`);
+  if (!ms || !go || go.value === 'OFF') return;
+  const track = ms.value === 'OFF' ? 0 : Number(ms.value);
+  if (Number(go.value) < track) return;
+  const old = go.value;
+  go.value = 'OFF';
+  if (axis === 1) {
+    const calc = document.getElementById('calc_a1_goto_us');
+    if (calc) calc.value = '0';
+  }
+  showStatus?.(`AXIS${axis}_DRIVER_MICROSTEPS_GOTO ${old} is not below AXIS${axis}_DRIVER_MICROSTEPS ${ms.value} — set to OFF.`);
+  go.dispatchEvent(new Event('change', { bubbles: true }));
+}
+document.addEventListener('change', (e) => {
+  const m = /^AXIS([1-9])_DRIVER_MICROSTEPS$/.exec(e.target?.id || '');
+  if (m) keepGotoMicrostepsValid(Number(m[1]));
+});
 // AXIS1 (RA/Az) steps-per-degree from motor steps × microsteps × worm × pulley.
 // Writes the result into both the calculator readout and AXIS1_STEPS_PER_DEGREE,
 // mirrors the chosen microsteps into AXIS1_DRIVER_MICROSTEPS, then refreshes the
@@ -4293,7 +4319,14 @@ function calcSlew() {
 
   // Account for microstep switching during GOTO/slew
   const trackingUs = parseFloat(document.getElementById('calc_a1_microsteps').value) || 32;
-  const gotoUsVal = parseFloat(document.getElementById('calc_a1_goto_us').value) || 0;
+  let gotoUsVal = parseFloat(document.getElementById('calc_a1_goto_us').value) || 0;
+  // OnStepX Validate.h: _GOTO must be OFF or 1 .. < _DRIVER_MICROSTEPS. A goto
+  // mode at or above the tracking mode is a compile error, so fall back to OFF.
+  if (gotoUsVal > 0 && gotoUsVal >= trackingUs) {
+    document.getElementById('calc_a1_goto_us').value = '0';
+    showStatus?.(`Axis1 GOTO microsteps ${gotoUsVal} must be lower than the tracking microsteps (${trackingUs}) — set to OFF (same as tracking).`);
+    gotoUsVal = 0;
+  }
   const gotoUs = gotoUsVal > 0 ? gotoUsVal : trackingUs;
   const usRatio = gotoUs / trackingUs; // <1 means fewer steps during slew (faster)
   // Mirror the Calculator's GOTO-microsteps choice into AXIS1_DRIVER_MICROSTEPS_GOTO.
@@ -4809,15 +4842,20 @@ function syncGpsSerialBlock(text) {
 
 // Extended.config.h re-#defines DEBUG (OFF) and SERIAL_DEBUG_BAUD (230400)
 // unconditionally, after Config.h's own DEBUG line, so the Controller-tab
-// choice would be silently lost. These lines re-apply it after the include;
-// the debug baud stays equal to SERIAL_A_BAUD_DEFAULT (9600) since both share
-// the USB UART. Empty when DEBUG is OFF.
+// choice would be silently lost. These lines re-apply it after the include.
+// SERIAL_DEBUG is left at Extended.config.h's `Serial`, which is the SERIAL_A
+// port on every board this page targets, and upstream says that when the two
+// share a port they must run the same baud ("set both to the same ... baud
+// rate"). So the debug baud follows SERIAL_A_BAUD_DEFAULT (9600, upstream's
+// Config.defaults.h value, when SERIAL_A is OFF). Empty when DEBUG is OFF.
 const DEBUG_REAPPLY_MARKER = '// Re-apply DEBUG after Extended.config.h (which would otherwise reset it to OFF)';
 function debugReapplyLines() {
   const d = v('DEBUG');
   if (!d || d === 'OFF') return [];
+  const serialA = String(v('SERIAL_A_BAUD_DEFAULT') || '').trim();
+  const baud = /^\d+$/.test(serialA) ? serialA : '9600';
   return [DEBUG_REAPPLY_MARKER, '#undef DEBUG', '#define DEBUG ' + d,
-          '#undef SERIAL_DEBUG_BAUD', '#define SERIAL_DEBUG_BAUD 9600'];
+          '#undef SERIAL_DEBUG_BAUD', '#define SERIAL_DEBUG_BAUD ' + baud];
 }
 
 // Patch-mode counterpart of debugReapplyLines(): an imported Config.h (the
@@ -4917,7 +4955,7 @@ function generateConfig() {
   L(pad('AXIS1_REVERSE', v('AXIS1_REVERSE'), 'OFF,', 'ON Reverses movement direction, or reverse wiring instead to correct.   <-Often'));
   L(pad('AXIS1_LIMIT_MIN', v('AXIS1_LIMIT_MIN'), '-180,', 'n. Where n= -90..-360 (degrees.) Minimum "Hour Angle" or Azimuth.        Adjust'));
   L(pad('AXIS1_LIMIT_MAX', v('AXIS1_LIMIT_MAX'), '180,', 'n. Where n=  90.. 360 (degrees.) Maximum "Hour Angle" or Azimuth.        Adjust'));
-  L(pad('AXIS1_LIMIT_SYNC', v('AXIS1_LIMIT_SYNC'), 'OFF,', 'n. Where n= 0..90 (degrees.) Allow sync/reset only within this +/-range. Option'));
+  L(pad('AXIS1_LIMIT_SYNC', v('AXIS1_LIMIT_SYNC'), 'OFF,', 'n. Where n= 0..30 (degrees.) Allow sync/reset only within this +/-range. Option'));
   L('');
   L(pad('AXIS1_DRIVER_MICROSTEPS', v('AXIS1_DRIVER_MICROSTEPS'), 'OFF,', 'n. Microstep mode when tracking.                                        <-Req\'d'));
   L(pad('AXIS1_DRIVER_MICROSTEPS_GOTO', v('AXIS1_DRIVER_MICROSTEPS_GOTO'), 'OFF,', 'n. Microstep mode used during slews. OFF uses _DRIVER_MICROSTEPS.        Option'));
@@ -4946,7 +4984,7 @@ function generateConfig() {
   L(pad('AXIS2_REVERSE', v('AXIS2_REVERSE'), 'OFF,', 'ON Reverses movement direction, or reverse wiring instead to correct.   <-Often'));
   L(pad('AXIS2_LIMIT_MIN', v('AXIS2_LIMIT_MIN'), '-90,', 'n. Where n=-90..0 (degrees.) Minimum allowed Declination or Altitude.    Infreq'));
   L(pad('AXIS2_LIMIT_MAX', v('AXIS2_LIMIT_MAX'), '90,', 'n. Where n= 0..90 (degrees.) Maximum allowed Declination or Altitude.    Infreq'));
-  L(pad('AXIS2_LIMIT_SYNC', v('AXIS2_LIMIT_SYNC'), 'OFF,', 'n. Where n= 0..90 (degrees.) Allow sync/reset only within this +/-range. Option'));
+  L(pad('AXIS2_LIMIT_SYNC', v('AXIS2_LIMIT_SYNC'), 'OFF,', 'n. Where n= 0..30 (degrees.) Allow sync/reset only within this +/-range. Option'));
   L('');
   L(pad('AXIS2_DRIVER_MICROSTEPS', v('AXIS2_DRIVER_MICROSTEPS'), 'OFF,', 'n. Microstep mode when tracking.                                        <-Req\'d'));
   L(pad('AXIS2_DRIVER_MICROSTEPS_GOTO', v('AXIS2_DRIVER_MICROSTEPS_GOTO'), 'OFF,', 'n. Microstep mode used during slews. OFF uses _DRIVER_MICROSTEPS.        Option'));
@@ -5003,6 +5041,9 @@ function generateConfig() {
 
   L('// LIMITS ------------------------------------------------------ see https://onstep.groups.io/g/main/wiki/Configuration_Mount#LIMITS');
   L(pad('LIMIT_SENSE', v('LIMIT_SENSE'), 'OFF,', 'HIGH or LOW state on limit sense switch stops movement.                  Option'));
+  L(pad('LIMIT_RECOVERY', v('LIMIT_RECOVERY'), 'OFF,', 'disables limits for 1s to allow gotos outside limits for recovery from   Option'));
+  L('                                          //         overhead (Alt/Azm), horizon, meridian (GEM), and axis1 min/max.');
+  L(pad('LIMIT_RECOVERY_WITH_TRACKING', v('LIMIT_RECOVERY_WITH_TRACKING'), 'OFF,', 'automatically enable tracking on limit recovery                          Option'));
   // LIMIT_STRICT removed — obsolete in OnStepX (Validate.h #errors on it; startup authority now controls limits)
   L('');
 
@@ -5036,11 +5077,11 @@ function generateConfig() {
   L('');
 
   L('// PIER SIDE BEHAVIOUR --------------------------------------- see https://onstep.groups.io/g/main/wiki/Configuration_Mount#PIERSIDE');
-  L(pad('MFLIP_SKIP_HOME', v('MFLIP_SKIP_HOME'), 'OFF,', 'ON Goto directly to destination without visiting home position.         Option'));
+  L(pad('MFLIP_HOME_DEFAULT', v('MFLIP_HOME_DEFAULT'), 'VISIT,', 'OFF, VISIT, PAUSE Select meridian flip home waypoint behavior.           Option'));
+  L('                                          //         OFF goes directly; VISIT passes through home; PAUSE waits at home.');
+  L(pad('MFLIP_HOME_MEMORY', v('MFLIP_HOME_MEMORY'), 'OFF,', 'ON Remember meridian flip home mode setting across power cycles.         Option'));
   L(pad('MFLIP_AUTOMATIC_DEFAULT', v('MFLIP_AUTOMATIC_DEFAULT'), 'OFF,', 'ON Start with automatic meridian flips enabled.                          Option'));
   L(pad('MFLIP_AUTOMATIC_MEMORY', v('MFLIP_AUTOMATIC_MEMORY'), 'OFF,', 'ON Remember automatic meridian flip setting across power cycles.         Option'));
-  L(pad('MFLIP_PAUSE_HOME_DEFAULT', v('MFLIP_PAUSE_HOME_DEFAULT'), 'OFF,', 'ON Start with meridian flip pause at home enabled.                       Infreq'));
-  L(pad('MFLIP_PAUSE_HOME_MEMORY', v('MFLIP_PAUSE_HOME_MEMORY'), 'OFF,', 'ON Remember meridian flip pause at home setting across power cycles.     Infreq'));
   L('');
   L(pad('PIER_SIDE_SYNC_CHANGE_SIDES', v('PIER_SIDE_SYNC_CHANGE_SIDES'), 'OFF,', 'ON Allows sync to change pier side, for GEM mounts.                      Option'));
   L(pad('PIER_SIDE_PREFERRED_DEFAULT', v('PIER_SIDE_PREFERRED_DEFAULT'), 'BEST,', 'BEST, EAST, WEST, or AUTOMATIC.                                        Option'));
@@ -5127,13 +5168,10 @@ function generateConfig() {
     L(pad('FEATURE'+n+'_PURPOSE', v('FEATURE'+n+'_PURPOSE'), 'OFF,', 'SWITCH, MOMENTARY_SWITCH, ANALOG_OUT, DEW_HEATER, INTERVALOMETER.        Option'));
     L(pad('FEATURE'+n+'_NAME', q(v('FEATURE'+n+'_NAME')), '"FE..",', 'Name of feature being controlled.                                        Adjust'));
     L(pad('FEATURE'+n+'_TEMP', v('FEATURE'+n+'_TEMP'), 'OFF,', 'THERMISTOR or n. Where n is the ds18b20 s/n. For DEW_HEATER temperature. Adjust'));
-    // OnStepX's current Validate.h rejects FEATURE*_PIN=AUX (the AUX sentinel
-    // is -4, trips the `!= OFF && < 0` guard before the runtime substitution
-    // in Features.cpp ever runs). Sanitize here so a stale form field never
-    // leaks into Config.h regardless of what the Auxiliary tab says.
-    let pinVal = v('FEATURE'+n+'_PIN');
-    if (pinVal === 'AUX') pinVal = 'OFF';
-    L(pad('FEATURE'+n+'_PIN', pinVal, 'OFF,', 'OFF or a valid GPIO pin number. (AUX sentinel is NOT accepted.)         Adjust'));
+    // AUX is valid: src/pinmaps/Validate.h maps it to AUXn_PIN when the
+    // purpose is set and the board defines AUXn_PIN (preflight warns when it
+    // doesn't). Emitted as-is.
+    L(pad('FEATURE'+n+'_PIN', v('FEATURE'+n+'_PIN'), 'OFF,', 'AUX for auxiliary pin, n. Where n is the pin#.                           Adjust'));
     L(pad('FEATURE'+n+'_VALUE_DEFAULT', v('FEATURE'+n+'_VALUE_DEFAULT'), 'OFF,', 'ON, n. Where n=0..255 for ANALOG_OUT purpose.                            Adjust'));
     L(pad('FEATURE'+n+'_VALUE_MEMORY', v('FEATURE'+n+'_VALUE_MEMORY'), 'OFF,', 'ON remembers state across power cycles.                                 Adjust'));
     L(pad('FEATURE'+n+'_ON_STATE', v('FEATURE'+n+'_ON_STATE'), 'HIGH,', 'LOW to invert so "ON" is 0V and "OFF" is Vcc (3.3V usually.)             Adjust'));
@@ -5179,6 +5217,71 @@ function downloadConfig() {
   showStatus('Config.h downloaded!');
 }
 
+// Read a Config.h into the form-field values it implies, as a Map of
+// {field id -> value}. Shared by "Load Config.h" and "Import from URL".
+//  - CRLF / CR line endings (a Windows-saved file used to fill nothing).
+//  - Trailing // comments (not inside a quoted value), trailing commas, quotes.
+//  - Later #defines win, as they would in the preprocessor.
+//  - Legacy meridian-flip names map onto MFLIP_HOME_DEFAULT / _MEMORY exactly
+//    as upstream Config.defaults.h does, unless the new names are present.
+//  - `PINMAP OFF` plus one of this page's inline pin-map blocks round-trips
+//    to the board that produced it (TERRANS_V5PRO, or FYSETC_E4 with its
+//    custom driver assignment) instead of PINMAP=OFF.
+function configTextToFormValues(text) {
+  text = String(text);
+  const defs = new Map();
+  for (const line of text.split(/\r\n|\r|\n/)) {
+    const m = line.match(/^\s*#define\s+(\w+)\s+(.+?)\s*$/);
+    if (!m) continue;
+    let val = m[2];
+    const cm = val.match(/^("(?:[^"\\]|\\.)*"|[^"]*?)\s*(?:\/\/.*)?$/);
+    if (cm) val = cm[1];
+    val = val.trim().replace(/,\s*$/, '');
+    const q = val.match(/^"(.*)"$/);
+    if (q) val = q[1];
+    if (val !== '') defs.set(m[1], val);
+  }
+  // Config.defaults.h legacy mapping (MFLIP_SKIP_HOME / _VISIT_HOME_* / _PAUSE_HOME_*).
+  if (!defs.has('MFLIP_HOME_DEFAULT')) {
+    let home = null;
+    if (defs.get('MFLIP_PAUSE_HOME_DEFAULT') === 'ON') home = 'PAUSE';
+    else if (defs.has('MFLIP_VISIT_HOME_DEFAULT')) home = defs.get('MFLIP_VISIT_HOME_DEFAULT') === 'ON' ? 'VISIT' : 'OFF';
+    else if (defs.has('MFLIP_SKIP_HOME')) home = defs.get('MFLIP_SKIP_HOME') === 'ON' ? 'OFF' : 'VISIT';
+    else if (defs.has('MFLIP_PAUSE_HOME_DEFAULT')) home = 'VISIT';
+    if (home) defs.set('MFLIP_HOME_DEFAULT', home);
+  }
+  if (!defs.has('MFLIP_HOME_MEMORY')) {
+    if (defs.get('MFLIP_PAUSE_HOME_MEMORY') === 'ON') defs.set('MFLIP_HOME_MEMORY', 'ON');
+    else if (defs.has('MFLIP_VISIT_HOME_MEMORY')) defs.set('MFLIP_HOME_MEMORY', defs.get('MFLIP_VISIT_HOME_MEMORY'));
+    else if (defs.has('MFLIP_PAUSE_HOME_MEMORY')) defs.set('MFLIP_HOME_MEMORY', 'OFF');
+  }
+  for (const legacy of ['MFLIP_SKIP_HOME', 'MFLIP_VISIT_HOME_DEFAULT', 'MFLIP_VISIT_HOME_MEMORY',
+                        'MFLIP_PAUSE_HOME_DEFAULT', 'MFLIP_PAUSE_HOME_MEMORY']) defs.delete(legacy);
+  if (defs.get('PINMAP') === 'OFF') {
+    if (text.includes(TERRANS_PIN_BLOCK_BEGIN)) {
+      defs.set('PINMAP', 'TERRANS_V5PRO');
+    } else if (text.includes(E4_PIN_BLOCK_BEGIN)) {
+      defs.set('PINMAP', 'FYSETC_E4');
+      const byStep = (pin) => Object.keys(E4_DRIVERS).find((d) => String(E4_DRIVERS[d].step) === String(pin));
+      const d1 = byStep(defs.get('AXIS1_STEP_PIN'));
+      const d2 = byStep(defs.get('AXIS2_STEP_PIN'));
+      if (d1) defs.set('E4_AXIS1_DRIVER', d1);
+      if (d2) defs.set('E4_AXIS2_DRIVER', d2);
+    }
+  }
+  return defs;
+}
+
+// Set a form field only if it can actually hold the value (a <select> silently
+// blanks itself on an unknown option). Returns true when the field now holds it.
+function setFormFieldFromConfig(el, val) {
+  const prev = el.value;
+  el.value = val;
+  if (el.value === String(val)) return true;
+  el.value = prev;
+  return false;
+}
+
 // File-input handler: read a user-picked Config.h, populate matching form
 // fields from its #define lines, and preserve the raw text verbatim in the
 // Output textarea so Compile sends it byte-for-byte (incl. unmappable fields).
@@ -5188,20 +5291,10 @@ function loadConfig(event) {
   const reader = new FileReader();
   reader.onload = function(e) {
     const text = e.target.result;
-    const lines = text.split('\n');
-    for (const line of lines) {
-      const m = line.match(/^#define\s+(\w+)\s+(.+?)(?:\s*\/\/.*)?$/);
-      if (m) {
-        const name = m[1];
-        let val = m[2].trim();
-        // Remove quotes for string values
-        const strMatch = val.match(/^"(.*)"$/);
-        if (strMatch) val = strMatch[1];
-        const el = document.getElementById(name);
-        if (el) {
-          el.value = val;
-        }
-      }
+    let populated = 0;
+    for (const [name, val] of configTextToFormValues(text)) {
+      const el = document.getElementById(name);
+      if (el && setFormFieldFromConfig(el, val)) populated++;
     }
     // Also preserve the raw loaded content in the Output textarea so Compile
     // sends it byte-for-byte (including fields the form can't represent).
@@ -5213,7 +5306,9 @@ function loadConfig(event) {
     // banner — and, now, the previous ownership, which would let Compile
     // regenerate over a file the user had just loaded.
     window.setConfigSource?.('Loaded from file: ' + file.name, 'file');
-    showStatus('Config.h loaded! Form values populated, raw content preserved for compile.');
+    showStatus(populated
+      ? `Config.h loaded — ${populated} form field${populated === 1 ? '' : 's'} populated, raw content preserved for compile.`
+      : 'Config.h loaded — no #define matched a form field; raw content preserved for compile.');
   };
   reader.readAsText(file);
 }
@@ -5634,12 +5729,12 @@ import {
   resolveOnStepXRef,
   sha1Hex,
   WORKER_URL,
-} from './compile.js';
-import { validateConfig, findSecrets } from './validate.js';
-import * as esp32Flasher from './flash/esp32.js';
-import * as stm32Flasher from './flash/stm32.js';
-import * as teensyFlasher from './flash/teensy.js';
-import { createMonitor, monitorSupported } from './flash/monitor.js';
+} from './compile.js?v=16';
+import { validateConfig, findSecrets } from './validate.js?v=16';
+import * as esp32Flasher from './flash/esp32.js?v=16';
+import * as stm32Flasher from './flash/stm32.js?v=16';
+import * as teensyFlasher from './flash/teensy.js?v=16';
+import { createMonitor, monitorSupported } from './flash/monitor.js?v=16';
 
 // Latest compile result ({runId, env, files, configHash})
 let lastBuild = null;
@@ -5839,8 +5934,8 @@ const BOARD_DEFAULTS = {
       SLEW_RAPID_STOP_DIST: '1.5',
       AXIS1_LIMIT_MIN: '-180',
       AXIS1_LIMIT_MAX: '180',
-      // The page-wide Axis2 defaults (0 .. 80) would fence off the southern
-      // half of the sky on a GEM. Terrans ships -90 .. 90; match them.
+      // Terrans ships -90 .. 90 (also the page-wide / upstream default);
+      // kept explicit so the profile stays correct if that default changes.
       AXIS2_LIMIT_MIN: '-90',
       AXIS2_LIMIT_MAX: '90',
       // --- Axis1 / Axis2 ---
@@ -6086,25 +6181,6 @@ window.afterI18nApply = function () {
   try { refreshBoardDefaultsButton(); } catch (e) {}
   try { syncEnvFromPinmap(); } catch (e) {}
 };
-// Parse #define lines from a raw Config.h into an object of {name: value}.
-// Skips string-valued #defines with quotes (those usually have embedded spaces
-// or special chars that our simple form fields can't represent well).
-function parseConfigDefines(text) {
-  const out = {};
-  const re = /^\s*#define\s+(\w+)\s+(.+?)\s*(?:\/\/.*)?$/gm;
-  let m;
-  while ((m = re.exec(text)) !== null) {
-    const name = m[1];
-    let value = m[2].trim();
-    // Drop trailing comma (OnStepX configs often end with ",")
-    value = value.replace(/,\s*$/, '');
-    // Keep strings as-is — if the form has a matching field, it'll accept
-    // the full quoted string or a stripped version.
-    out[name] = value;
-  }
-  return out;
-}
-
 /**
  * Fetch a Config.h from a URL, parse its #defines, and apply them to any
  * form fields whose id matches. Confirms with the user before overwriting.
@@ -6114,17 +6190,15 @@ async function importConfigFromUrl(url, { promptUser = true, label } = {}) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`fetch failed (${res.status}) for ${url}`);
   const text = await res.text();
-  const defines = parseConfigDefines(text);
+  // Same parser as "Load Config.h": CRLF-safe, maps legacy names, and brings
+  // PINMAP OFF + an inline Terrans/E4 pin block back as that board.
   const changes = [];
-  for (const [name, value] of Object.entries(defines)) {
+  for (const [name, next] of configTextToFormValues(text)) {
     const el = document.getElementById(name);
     if (!el) continue;
-    let next = value;
-    // For string fields with quotes, keep them stripped so form input matches
-    if (el.tagName === 'INPUT' && el.type !== 'number') {
-      const strMatch = next.match(/^"(.*)"$/);
-      if (strMatch) next = strMatch[1];
-    }
+    // Skip values the field can't hold (unknown <select> option) — they
+    // would blank it rather than set it.
+    if (el.tagName === 'SELECT' && ![...el.options].some((o) => o.value === next)) continue;
     if (el.value !== next) changes.push({ id: name, current: el.value, next });
   }
   if (promptUser) {
@@ -6598,6 +6672,15 @@ function restoreFormState() {
     }
     if (!raw) return false;
     const state = JSON.parse(raw);
+    // Saved before MFLIP_SKIP_HOME / MFLIP_PAUSE_HOME_* were replaced by
+    // upstream's MFLIP_HOME_DEFAULT / _MEMORY: carry the choice over using the
+    // same legacy mapping as the importer (Config.defaults.h).
+    const ox = state.onstepx || {};
+    if (!('MFLIP_HOME_DEFAULT' in ox) && ('MFLIP_SKIP_HOME' in ox || 'MFLIP_PAUSE_HOME_DEFAULT' in ox)) {
+      const legacy = ['MFLIP_SKIP_HOME', 'MFLIP_PAUSE_HOME_DEFAULT', 'MFLIP_PAUSE_HOME_MEMORY']
+        .filter((k) => k in ox).map((k) => `#define ${k} ${ox[k]}`).join('\n');
+      for (const [k, val] of configTextToFormValues(legacy)) ox[k] = val;
+    }
     applyFieldMap(state.onstepx);
     applyFieldMap(state.shc);
     applyFieldMap(state.sws);
@@ -6631,19 +6714,32 @@ window.resetToDefaults = function () {
 // Restore BEFORE wiring change listeners so we don't immediately re-save.
 const restored = restoreFormState();
 
-// One-time migration: older saved state may have FEATURE*_PIN="AUX", which
-// OnStepX's current Validate.h rejects at compile (AUX = -4, tripping the
-// `!= OFF && < 0` guard). Heal silently to OFF so the user doesn't burn a
-// build minute on a legacy default.
-let healedAuxFields = 0;
-for (let i = 1; i <= 8; i++) {
-  const el = document.getElementById(`FEATURE${i}_PIN`);
-  if (el && el.value === 'AUX') { el.value = 'OFF'; healedAuxFields++; }
-}
-if (healedAuxFields > 0) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(collectFormState())); } catch {}
-  showStatus?.(`Auto-fixed ${healedAuxFields} FEATURE*_PIN field(s) that had legacy value "AUX" (not accepted by OnStepX main).`, 'warn');
-}
+// FEATUREn_PIN=AUX used to be rewritten to OFF here on every load. That was
+// wrong: upstream src/pinmaps/Validate.h maps AUX to AUXn_PIN when the board
+// defines it, so AUX is kept and preflight warns only where it can't map.
+
+// One-time migration: AXIS2_LIMIT_MIN/MAX used to default to 0 / 80, which
+// fences a GEM/FORK off from the southern sky and the pole. Upstream's defaults
+// are -90 / 90. A saved form still holding exactly the old pair on an
+// equatorial mount was almost certainly never touched, so move it to the new
+// defaults once (flagged, so a later deliberate 0 / 80 is left alone).
+const AXIS2_LIMITS_MIGRATED_KEY = 'onstepx-configurator-axis2-limits-v1';
+try {
+  // Flag set even when nothing was restored: a new user's later deliberate
+  // 0 / 80 must not be "migrated" on their next visit.
+  if (!localStorage.getItem(AXIS2_LIMITS_MIGRATED_KEY)) {
+    const lo = document.getElementById('AXIS2_LIMIT_MIN');
+    const hi = document.getElementById('AXIS2_LIMIT_MAX');
+    const mount = document.getElementById('MOUNT_TYPE')?.value || '';
+    if (lo && hi && lo.value === '0' && hi.value === '80' && /^(GEM|FORK)/.test(mount)) {
+      lo.value = '-90';
+      hi.value = '90';
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(collectFormState()));
+      showStatus?.('AXIS2_LIMIT_MIN/MAX were the old 0 / 80 defaults (no southern sky, no pole) — updated to -90 / 90.');
+    }
+    localStorage.setItem(AXIS2_LIMITS_MIGRATED_KEY, '1');
+  }
+} catch {}
 
 document.addEventListener('change', () => { queueSave(); runPreflight(); });
 document.addEventListener('input', queueSave);
@@ -7056,9 +7152,53 @@ function generateSWSConfig() {
 // current value. Every other line (THERMISTOR1_*, LIMIT_SENSE_PIN, comments,
 // section headers, etc.) is preserved verbatim. This lets imported E4
 // Config.h survive the user clicking "Generate" mid-workflow.
+// SHC/SWS form fields are prefixed (SHC_WEATHER, SWS_HOST_NAME, ...) and some
+// values need formatting (quoted strings, {a,b,c,d} IP arrays, MAC bytes,
+// AP_SSID's HOST_NAME token). Rather than duplicating that, render the
+// project's own generator once and take each #define's value from it. A define
+// the SHC/SWS generator does not emit is left untouched — it must NEVER fall
+// back to the same-named OnStepX field (SERIAL_RADIO, WEATHER, HOST_NAME and
+// DEBUG all exist on the hidden OnStepX form too).
+function companionDefineValues(mode) {
+  const out = document.getElementById('configOutput');
+  const keep = out ? out.value : '';
+  let text = '';
+  try {
+    text = (mode === 'shc' ? generateSHCConfig() : generateSWSConfig()) || '';
+  } finally {
+    if (out) out.value = keep;
+  }
+  const map = new Map();
+  for (const line of text.split('\n')) {
+    const m = line.match(/^\s*#define\s+(\w+)\s+(\S.*?)\s*$/);
+    if (m && !map.has(m[1])) map.set(m[1], m[2]);
+  }
+  return map;
+}
+
 function patchFormFieldsIntoConfig(rawText) {
-  const lines = rawText.split('\n');
+  const lines = rawText.split(/\r?\n/);
   let patched = 0;
+  const mode = window.currentMode;
+  const companion = (mode === 'shc' || mode === 'sws') ? companionDefineValues(mode) : null;
+  if (companion) {
+    const updated = lines.map((line) => {
+      const m = line.match(/^(\s*#define\s+)(\w+)(\s+)(\S.*?)(\s*)$/);
+      if (!m) return line;
+      const [, prefix, name, sep, rest, trailingWs] = m;
+      if (!companion.has(name)) return line;
+      // Keep a trailing // comment, but not one inside a quoted value.
+      const cm = rest.match(/^("(?:[^"\\]|\\.)*"|[^"]*?)(\s*\/\/.*)?$/);
+      const currentValue = (cm ? cm[1] : rest).trimEnd();
+      const comment = cm && cm[2] ? cm[2] : '';
+      const newValue = companion.get(name);
+      if (newValue === currentValue) return line;
+      patched++;
+      return prefix + name + sep + newValue + comment + trailingWs;
+    });
+    if (patched > 0) console.log(`patchFormFieldsIntoConfig (${mode}): updated ${patched} line(s)`);
+    return updated.join('\n');
+  }
   const updated = lines.map((line) => {
     // Split off any trailing "// comment" so we only touch the value portion
     const commentIdx = line.indexOf('//');
@@ -7153,6 +7293,13 @@ const relevantIds = [
   'AXIS2_LIMIT_MIN', 'AXIS2_LIMIT_MAX', 'AXIS2_REVERSE', 'AXIS2_POWER_DOWN',
   'AXIS3_DRIVER_MICROSTEPS', 'AXIS3_DRIVER_IRUN', 'AXIS3_DRIVER_IHOLD',
   'AXIS4_DRIVER_MICROSTEPS', 'AXIS4_DRIVER_IRUN', 'AXIS4_DRIVER_IHOLD',
+  'AXIS3_DRIVER_MODEL', 'AXIS3_DRIVER_MICROSTEPS_GOTO',
+  'AXIS4_DRIVER_MODEL', 'AXIS4_DRIVER_MICROSTEPS_GOTO',
+  'AXIS1_LIMIT_SYNC', 'AXIS2_LIMIT_SYNC',
+  // Inputs to the AUX pin-sharing replay (validate.js auxPinConflicts).
+  'STATUS_MOUNT_LED', 'RETICLE_LED_DEFAULT', 'LIMIT_SENSE', 'TIME_LOCATION_PPS_SENSE',
+  'AXIS1_SENSE_HOME', 'AXIS2_SENSE_HOME', 'SERIAL_B_ESP_FLASHING', 'AXIS4_POWER_DOWN',
+  'AXIS1_DRIVER_STATUS', 'AXIS2_DRIVER_STATUS', 'AXIS3_DRIVER_STATUS', 'AXIS4_DRIVER_STATUS',
 ];
 // Build the input object for validateConfig() (OnStepX mode): the relevantIds
 // field values plus bundled extras the validator needs — selected plugins,
@@ -7162,6 +7309,14 @@ function snapshotForValidation() {
   for (const id of relevantIds) {
     const el = document.getElementById(id);
     if (el) s[id] = el.value;
+  }
+  // FEATUREn_PURPOSE / _PIN are rendered on the Auxiliary tab at init; the
+  // validator needs them for the FEATUREn_PIN=AUX -> AUXn_PIN mapping.
+  for (let i = 1; i <= 8; i++) {
+    for (const id of [`FEATURE${i}_PURPOSE`, `FEATURE${i}_PIN`]) {
+      const el = document.getElementById(id);
+      if (el) s[id] = el.value;
+    }
   }
   // Bundle the selected plugin list so validateConfig can rule on
   // plugin-vs-config interactions (e.g. Website needs SERIAL_RADIO=WIFI_*).
@@ -7837,7 +7992,14 @@ window.startCompileFlow = async function () {
 
     if (final.conclusion !== 'success') {
       appendLog('compileLog', `! run failed — see ${final.html_url || 'Actions tab'}`);
-      throw new Error(`Build ${final.conclusion || 'failed'}`);
+      // Compiler/#error lines the worker scraped from the failed job's log.
+      const errLines = Array.isArray(final.error_lines) ? final.error_lines : [];
+      if (errLines.length) {
+        appendLog('compileLog', `  --- build errors (from the run log) ---`);
+        for (const l of errLines) appendLog('compileLog', `  ${l}`);
+        appendLog('compileLog', `  --- end build errors ---`);
+      }
+      throw new Error(`Build ${final.conclusion || 'failed'}${errLines.length ? ': ' + errLines[0] : ''}`);
     }
     appendLog('compileLog', `  run_id = ${final.run_id}`);
     appendLog('compileLog', `  run URL: ${final.html_url}`);
@@ -7920,6 +8082,10 @@ window.downloadFirmware = function () {
 const MONITOR_MAX_LINES = 5000;
 const monitorLines = [];
 let monitorBox = null;
+// True while flashBoard() owns the USB device: the monitor must not grab the
+// same serial port mid-flash (the flasher's open()/requestPort would fail or
+// the two readers would steal each other's bytes).
+let flashInProgress = false;
 function monitorStatusText(msg, warn) {
   const el = document.getElementById('monitorStatus');
   if (!el) return;
@@ -7961,6 +8127,14 @@ window.monitorToggle = async function () {
     });
   }
   if (monitorBox.isOpen()) { await monitorBox.disconnect(); return; }
+  if (flashInProgress) {
+    monitorStatusText(pgT(
+      'A flash is in progress — wait for it to finish, then connect the monitor.',
+      'Un flash est en cours — attendez la fin, puis connectez le moniteur.',
+      '正在烧录 — 请等待完成后再连接串口监视器。',
+      'Scrierea firmware-ului este în curs — așteptați să se termine, apoi conectați monitorul.'), true);
+    return;
+  }
   if (!monitorSupported()) {
     monitorStatusText(pgT(
       'Web Serial is not available in this browser. Use Chrome or Edge on a desktop computer.',
@@ -8036,8 +8210,17 @@ window.flashBoard = async function () {
   }
 
   flashBtn.disabled = true;
+  flashInProgress = true;
   progShow('flashProgress', 'flashProgBar', 'flashProgLabel', { pct: 0, label: `${pgT('Flashing…', 'Flash en cours…', '正在烧录…', 'Se scrie firmware-ul…')} 0%` });
   try {
+    // Release the serial monitor's hold on the port BEFORE any flasher asks for
+    // a device: an open monitor makes esptool's port.open() fail ("port is
+    // already open") and would also eat the bootloader's replies. Closing is a
+    // few ms, so it doesn't use up the click's user activation.
+    if (monitorBox && monitorBox.isOpen()) {
+      log('Closing the serial monitor so the flasher can use the port…');
+      await monitorBox.disconnect();
+    }
     const { env, files } = lastBuild;
     // All ESP32 builds (OnStepX / SHC / SWS) share the Web Serial flasher.
     // Both ESP32 and ESP8266 are supported by esptool-js; the flasher adapts
@@ -8048,22 +8231,52 @@ window.flashBoard = async function () {
       env === 'shc_teensy40' || env === 'shc_teensy32';
     const isStm32Dfu = env === 'blackpill_f411' || env === 'skr_pro_f407' || env === 'f446_fysetc_s6';
     const eraseAll = !!document.getElementById('flashEraseAll')?.checked;
-    if (isEsp) await esp32Flasher.flash(files, log, { eraseAll });
-    else if (isStm32Dfu) await stm32Flasher.flash(files, log);
-    else if (isTeensy) await teensyFlasher.flash(files, env, log);
+    let result;
+    if (isEsp) result = await esp32Flasher.flash(files, log, { eraseAll });
+    else if (isStm32Dfu) result = await stm32Flasher.flash(files, log);
+    else if (isTeensy) result = await teensyFlasher.flash(files, env, log);
     else throw new Error(`no flasher for env ${env}`);
+
+    // Teensy fallback (no WebHID, picker dismissed, or a mid-flash failure):
+    // the board was NOT programmed — firmware.hex was saved for Teensy Loader.
+    // Say so, and leave the form exactly as it is.
+    if (result && result.downloaded) {
+      progHide('flashProgress');
+      log('');
+      log('⚠ The board was NOT flashed: firmware downloaded — flash it with Teensy Loader (steps above).');
+      showStatus?.('Firmware downloaded — flash it with Teensy Loader.', 'warn');
+      return;
+    }
+
     progSet('flashProgBar', 'flashProgLabel', 100, pgT('Flash complete ✓', 'Flash terminé ✓', '烧录完成 ✓', 'Scriere firmware terminată ✓'));
 
     // Flash succeeded — auto-reset the OnStepX form to the current board's
     // starter defaults so the next build starts clean. We snapshot the
-    // pre-flash state first so a manual restore is possible (the user can
-    // reload with the Output tab's "Load Existing Config.h" button to get
-    // it back, or reach into localStorage via devtools).
+    // pre-flash state first so a manual restore is possible (one click via
+    // restorePreflashConfig() below, the Output tab's "Load Existing
+    // Config.h", or localStorage via devtools).
     if (window.currentMode === 'onstepx') {
       const pinmap = document.getElementById('PINMAP')?.value;
       const entry = BOARD_DEFAULTS[pinmap];
-      if (entry) {
-        try { localStorage.setItem('onstepx-configurator-v2-preflash', localStorage.getItem(STORAGE_KEY) || ''); } catch {}
+      // If the form already holds these defaults (e.g. a second flash right
+      // after an auto-reset), there's nothing to reset — and snapshotting now
+      // would overwrite the user's real pre-flash config with the defaults.
+      const alreadyDefaults = entry && Object.entries(entry.fields).every(([id, val]) => {
+        const el = document.getElementById(id);
+        return !el || String(el.value) === String(val);
+      });
+      if (entry && alreadyDefaults) {
+        log('');
+        log('✓ Flash complete. (Form already at board defaults — left as-is.)');
+      } else if (entry) {
+        // Snapshot the LIVE form, not localStorage: the debounced save may not
+        // have caught the latest edits yet.
+        try {
+          const snap = typeof collectFormState === 'function'
+            ? JSON.stringify(collectFormState())
+            : (localStorage.getItem(STORAGE_KEY) || '');
+          localStorage.setItem('onstepx-configurator-v2-preflash', snap);
+        } catch {}
         for (const [id, val] of Object.entries(entry.fields)) {
           const el = document.getElementById(id);
           if (!el) continue;
@@ -8072,9 +8285,9 @@ window.flashBoard = async function () {
         }
         log('');
         log(`✓ Flash complete. Form reset to ${entry.label} starter defaults for next build.`);
-        log(`  (To restore your pre-flash config: Output tab → Load Existing Config.h,`);
-        log(`   or in DevTools: localStorage.setItem('${STORAGE_KEY}', localStorage.getItem('onstepx-configurator-v2-preflash')); location.reload();)`);
-        showStatus?.('Flashed! Form reset to board defaults.', 'ok');
+        log(`  Your pre-flash config was saved. To restore it, run restorePreflashConfig() in the`);
+        log(`  DevTools console (reloads the page), or Output tab → Load Existing Config.h.`);
+        showStatus?.('Flashed! Form reset to board defaults (pre-flash config saved — restorePreflashConfig() restores it).', 'ok');
       } else {
         log('');
         log('✓ Flash complete. (No starter defaults for this PINMAP — form kept as-is.)');
@@ -8085,29 +8298,48 @@ window.flashBoard = async function () {
     }
   } catch (err) {
     log(`! ${err.message}`);
+    // requestPort/requestDevice need a fresh click: if the user sat on the
+    // stale-firmware dialog too long the browser refuses to show the picker.
+    if (err && err.name === 'SecurityError') {
+      log('  The browser blocked the device picker because too much time passed since the click.');
+      log('  Click "Flash to Board" again.');
+    }
     progHide('flashProgress');
   } finally {
+    flashInProgress = false;
     flashBtn.disabled = false;
   }
 };
+
+// Undo the post-flash auto-reset: put the snapshot taken just before the reset
+// back as the saved form state and reload so every dependent field re-renders.
+window.restorePreflashConfig = function () {
+  let snap = null;
+  try { snap = localStorage.getItem('onstepx-configurator-v2-preflash'); } catch {}
+  if (!snap) { console.warn('No pre-flash config snapshot found.'); return false; }
+  clearTimeout(saveTimer); // don't let a pending debounced save overwrite it
+  try { localStorage.setItem(STORAGE_KEY, snap); } catch (e) { console.warn('restore failed', e); return false; }
+  location.reload();
+  return true;
+};
 </script>
-<script src="e4-guide.js?v=15"></script>
-<script src="i18n-fr.js?v=15"></script>
-<script src="i18n-fr-2.js?v=15"></script>
-<script src="i18n-fr-3.js?v=15"></script>
-<script src="i18n-fr-4.js?v=15"></script>
-<script src="i18n-fr-e4a.js?v=15"></script>
-<script src="i18n-fr-e4b.js?v=15"></script>
-<script src="i18n-fr-e4c.js?v=15"></script>
-<script src="i18n-fr-5.js?v=15"></script>
-<script src="i18n-fr-6.js?v=15"></script>
-<script src="i18n-fr-7.js?v=15"></script>
-<script src="i18n-fr-8.js?v=15"></script>
-<script src="i18n-fr-terrans.js?v=15"></script>
-<script src="i18n-fr-9.js?v=15"></script>
-<script src="i18n-fr-e4d.js?v=15"></script>
-<script src="i18n-zh.js?v=15"></script>
-<script src="i18n-ro.js?v=15"></script>
-<script src="i18n.js?v=15"></script>
+<script src="e4-guide.js?v=16"></script>
+<script src="i18n-fr.js?v=16"></script>
+<script src="i18n-fr-2.js?v=16"></script>
+<script src="i18n-fr-3.js?v=16"></script>
+<script src="i18n-fr-4.js?v=16"></script>
+<script src="i18n-fr-e4a.js?v=16"></script>
+<script src="i18n-fr-e4b.js?v=16"></script>
+<script src="i18n-fr-e4c.js?v=16"></script>
+<script src="i18n-fr-5.js?v=16"></script>
+<script src="i18n-fr-6.js?v=16"></script>
+<script src="i18n-fr-7.js?v=16"></script>
+<script src="i18n-fr-8.js?v=16"></script>
+<script src="i18n-fr-terrans.js?v=16"></script>
+<script src="i18n-fr-9.js?v=16"></script>
+<script src="i18n-fr-e4d.js?v=16"></script>
+<script src="i18n-zh.js?v=16"></script>
+<script src="i18n-ro.js?v=16"></script>
+<script src="i18n.js?v=16"></script>
 </body>
 </html>

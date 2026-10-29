@@ -417,8 +417,12 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "// ON activează driverele motoarelor monturii în standby.",
   "// ON Flashes proportional to rate of movement or solid on for slews.":
     "// ON clipește proporțional cu viteza de mișcare sau rămâne aprins continuu la deplasările rapide.",
-  "// ON Goto directly to the destination without visiting home position.":
-    "// ON GOTO direct la destinație fără a trece prin poziția de origine.",
+  "// OFF goes directly; VISIT passes through home; PAUSE waits at home.":
+    "// OFF merge direct; VISIT trece prin origine; PAUSE așteaptă la origine.",
+  "Resume tracking after a recovery":
+    "Reluare urmărire după recuperare",
+  "// ON disables limits for 1s to allow gotos outside limits for recovery from overhead (Alt/Azm), horizon, meridian (GEM), and axis1 min/max.":
+    "// ON dezactivează limitele 1 s pentru a permite GOTO în afara limitelor, pentru recuperare din zenit (Alt/Azm), orizont, meridian (GEM) și min/max axa 1.",
   "// ON Inverts control for cases where 0V is max brightness.":
     "// ON inversează comanda pentru cazurile în care 0V înseamnă luminozitate maximă.",
   "// ON Powers off 30 seconds after movement stops.":
@@ -429,8 +433,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "// ON reține setarea de întoarcere automată la meridian între reporniri.",
   "// ON Remember automatic sync setting across power cycles.":
     "// ON reține setarea de sincronizare automată între reporniri.",
-  "// ON Remember meridian flip pause at home setting across power cycles.":
-    "// ON reține setarea de pauză la origine pentru întoarcerea la meridian între reporniri.",
+  "// ON Remember meridian flip home mode setting across power cycles.":
+    "// ON reține modul de origine pentru întoarcerea la meridian între reporniri.",
   "// ON Remember preferred pier side setting across power cycles.":
     "// ON reține setarea pentru partea preferată a pilonului între reporniri.",
   "// ON Remember reticle brightness across power cycles.":
@@ -447,8 +451,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "// ON inversează direcția de mișcare; alternativ, inversați cablajul pentru corectare.",
   "// ON Start with automatic meridian flips enabled.":
     "// ON pornește cu întoarcerile automate la meridian activate.",
-  "// ON Start with meridian flip pause at home enabed.":
-    "// ON pornește cu pauza la origine pentru întoarcerea la meridian activată.",
+  "// ON automatically enable tracking on limit recovery.":
+    "// ON activează automat urmărirea la recuperarea din limită.",
   "// ON Start with tracking enabled.":
     "// ON pornește cu urmărirea activată.",
   "// ON Upload ESP8266 WiFi firmware through SERIAL_B with :ESPFLASH# cmd.":
@@ -601,8 +605,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "// n. Limită de timp n=0..120 secunde. Folosiți 0 pentru a dezactiva.",
   "// n. Where n= -90..-360 (degrees.) Minimum \"Hour Angle\" or Azimuth.":
     "// n. Unde n= -90..-360 (grade.) „Unghi orar” sau azimut minim.",
-  "// n. Where n= 0..90 (degrees.) Allow sync/reset only within this +/-range.":
-    "// n. Unde n= 0..90 (grade.) Permite sync/reset doar în acest interval +/-.",
+  "// n. Where n= 0..30 (degrees.) Allow sync/reset only within this +/-range.":
+    "// n. Unde n= 0..30 (grade.) Permite sync/reset doar în acest interval +/-.",
   "// n. Where n= 0..90 (degrees.) Maximum allowed Declination or Altitude.":
     "// n. Unde n= 0..90 (grade.) Declinația sau altitudinea maximă permisă.",
   "// n. Where n= 90.. 360 (degrees.) Maximum \"Hour Angle\" or Azimuth.":
@@ -2485,8 +2489,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "OFF pe E4 — definiți singur ONE_WIRE_PIN (doar GPIO21/22)",
   "OFF or 0..255 brightness":
     "OFF sau luminozitate 0..255",
-  "OFF or 0..90 degrees":
-    "OFF sau 0..90 grade",
+  "OFF or 0..30 degrees":
+    "OFF sau 0..30 grade",
   "OFF or mA":
     "OFF sau mA",
   "OFF or mA for slew current":
@@ -2707,8 +2711,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "Parola rețelei WiFi existente",
   "Paste a":
     "Lipiți un",
-  "Pause at home during flip":
-    "Pauză în poziția de origine (home) în timpul întoarcerii meridianului",
+  "Remember flip home mode":
+    "Memorare mod origine la întoarcere",
   "Per Config.h: OFF disables limits until an unpark goto or a sync; ON enables them at startup (the defaults file adds \"if date/time are set\"). The stock E4 Config.h ships OFF.":
     "Conform Config.h: OFF dezactivează limitele până la un GOTO de ieșire din parcare sau o sincronizare; ON le activează la pornire (fișierul de valori implicite adaugă „dacă data/ora sunt setate”). Config.h original pentru E4 este livrat cu OFF.",
   "Periodic Error Correction (PEC) compensates for worm-gear imperfections. OnStepX learns the error pattern over one worm rotation and applies real-time correction. Requires a sensor to detect the worm index pulse.":
@@ -2863,8 +2867,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "Memorare setare de compensare",
   "Remember coords across power cycles (needs FRAM)":
     "Memorare coordonate între cicluri de alimentare (necesită FRAM)",
-  "Remember pause setting":
-    "Memorare setare de pauză",
+  "Allow gotos out of a limit for 1s":
+    "Permite GOTO în afara limitei timp de 1 s",
   "Remember pier side setting":
     "Memorare setare parte a pilonului",
   "Remember slew rate":
@@ -3107,8 +3111,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "Șase octeți hexazecimali pentru shield-ul Ethernet W5100/W5500. Ignorat în modul WIFI.",
   "Skip final goto phase for alignment stars":
     "Omitere fază finală GOTO pentru stelele de aliniere",
-  "Skip home during meridian flip":
-    "Omitere poziție de origine (home) la întoarcerea la meridian",
+  "Meridian flip home waypoint":
+    "Trecerea prin origine (home) la întoarcerea la meridian",
   "Sleeve":
     "Manșon (Sleeve)",
   "Sleeve is ground, as on every brand here. Many modern Sony bodies use Multi-terminal (USB) instead of a 2.5mm jack — check the manual.":
@@ -4801,4 +4805,107 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "Salvează .txt",
   "Shows what the board prints on its USB port, for example the OnStepX startup messages when DEBUG is ON or VERBOSE (Controller tab). Close NINA, ASCOM and any other program using the port first.":
     "Afișează ce trimite placa pe portul USB, de exemplu mesajele de pornire OnStepX când DEBUG este ON sau VERBOSE (fila Controller). Închideți mai întâi NINA, ASCOM și orice alt program care folosește portul.",
+  // Short labels (axis / pin / board names) — added to match the French key set.
+  "Calculator":
+    "Calculator",
+  "Axis1 RA/Azm":
+    "Axis1 RA/Azm",
+  "Axis2 Dec/Alt":
+    "Axis2 Dec/Alt",
+  "Rotator":
+    "Rotator",
+  "Browser":
+    "Browser",
+  "Axis1":
+    "Axis1",
+  "Axis2":
+    "Axis2",
+  "Axis1 / Axis2":
+    "Axis1 / Axis2",
+  "Axis3 Rotator":
+    "Axis3 Rotator",
+  "Axis4 Focuser 1":
+    "Axis4 Focuser 1",
+  "Rotator / Focuser":
+    "Rotator / Focuser",
+  "Serial (USB CDC)":
+    "Serial (USB CDC)",
+  "Serial1 (UART1)":
+    "Serial1 (UART1)",
+  "Serial2 (UART2)":
+    "Serial2 (UART2)",
+  "Serial":
+    "Serial",
+  "Esc":
+    "Esc",
+  "Flash:":
+    "Flash:",
+  "// AB, AB_ESP32, CW_CCW, PULSE_DIR, AS37_H39B_B. Dec/Alt (A/MA) & (B/SLO.)":
+    "// AB, AB_ESP32, CW_CCW, PULSE_DIR, AS37_H39B_B. Dec/Alt (A/MA) & (B/SLO.)",
+  "Axis1 DIR":
+    "Axis1 DIR",
+  "Axis1 STEP":
+    "Axis1 STEP",
+  "Axis2 DIR":
+    "Axis2 DIR",
+  "Axis2 STEP":
+    "Axis2 STEP",
+  "Axis3/Axis5 DIR":
+    "Axis3/Axis5 DIR",
+  "Axis3/Axis5 STEP":
+    "Axis3/Axis5 STEP",
+  "Axis4 DIR":
+    "Axis4 DIR",
+  "Axis4 STEP":
+    "Axis4 STEP",
+  "DS3231 + AT24C32 EEPROM":
+    "DS3231 + EEPROM AT24C32",
+  "Hall (unipolar)":
+    "Hall (unipolar)",
+  "Model":
+    "Model",
+  "OnStep Web Installer":
+    "Instalator web OnStep",
+  "Rotator (Axis3)":
+    "Rotator (Axis3)",
+  "⚠ Magnet:":
+    "⚠ Magnet:",
+  "Axis3 rotator / Axis5 focuser2 — TMC2209 UART":
+    "Axis3 rotator / Axis5 focuser2 — TMC2209 UART",
+  "Axis4 (Focuser1) — TMC2209 UART":
+    "Axis4 (Focuser1) — TMC2209 UART",
+  "Axis4":
+    "Axis4",
+  "Motor / LED":
+    "Motor / LED",
+  "Pinmap":
+    "Pinmap",
+  "Focuser1":
+    "Focuser1",
+  "(rotator)":
+    "(rotator)",
+  // Same strings as the pgT() variants in index.html (serial monitor / compile /
+  // flash progress), so i18n.js can map JS-written translations back to English.
+  "Starting…":
+    "Pornire…",
+  "Waiting for runner":
+    "Se așteaptă runner-ul",
+  "Compiling":
+    "Compilare",
+  "Fetching firmware":
+    "Se descarcă firmware-ul",
+  "Build complete ✓":
+    "Compilare terminată ✓",
+  "Disconnect":
+    "Deconectare",
+  "Connected. Waiting for data…":
+    "Conectat. Se așteaptă date…",
+  "Copied.":
+    "Copiat.",
+  "Copy failed. Use Save .txt instead.":
+    "Copierea a eșuat. Folosiți Save .txt.",
+  "Flashing…":
+    "Se scrie firmware-ul…",
+  "Flash complete ✓":
+    "Scriere firmware terminată ✓",
 });

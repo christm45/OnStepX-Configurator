@@ -22,7 +22,7 @@
 // Loader instructions. The HalfKay bootloader is in ROM and cannot be bricked
 // by a partial flash — a retry (browser or desktop) always recovers.
 
-import { downloadBlob } from '../compile.js';
+import { downloadBlob } from '../compile.js?v=16';
 
 const HALFKAY_VID = 0x16C0;
 const HALFKAY_PID = 0x0478;
@@ -272,11 +272,23 @@ export async function flashWebHID(files, env, log = console.log) {
     bootReport[1] = 0xFF;
     bootReport[2] = 0xFF;
     try {
-      await sendReportWithTimeout(device, bootReport, 0.5);
-    } catch {
+      // Single attempt, no retry: a second reboot report would hit a device
+      // that is already gone.
+      await sendReportOnce(device, bootReport, 0.5);
+    } catch (err) {
       // The reboot report often doesn't ACK because the device resets
-      // mid-transfer. That's expected, not an error.
-      log('(reboot ack not received — expected, device is restarting)');
+      // mid-transfer (timeout / NetworkError / NotAllowedError from a vanished
+      // device). That's expected, not an error. Anything else (a programming
+      // bug such as a TypeError/ReferenceError) is surfaced in the log.
+      const name = err && err.name;
+      const expected = name === 'NetworkError' || name === 'NotAllowedError' ||
+        name === 'InvalidStateError' || name === 'NotFoundError' ||
+        /timed out/i.test((err && err.message) || '');
+      if (expected) {
+        log('(reboot ack not received — expected, device is restarting)');
+      } else {
+        log(`⚠ Reboot command failed (${(err && err.message) || err}) — press the Teensy's program button or power-cycle it to start the new firmware.`);
+      }
     }
 
     const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
@@ -290,6 +302,9 @@ export async function flashWebHID(files, env, log = console.log) {
 // Entry point used by index.html
 // --------------------------------------------------------------------------
 
+// Resolves to { flashed: true } when the board was programmed over WebHID, or
+// { downloaded: true } when we fell back to saving firmware.hex for Teensy
+// Loader — the caller must NOT report that as a completed flash.
 export async function flash(files, env, log = console.log) {
   const webhidEligible = webhidSupported() && codeSizeForEnv(env) !== null;
 
@@ -297,7 +312,7 @@ export async function flash(files, env, log = console.log) {
     try {
       log('Attempting one-click flash via WebHID (Chrome/Edge).');
       await flashWebHID(files, env, log);
-      return;
+      return { flashed: true };
     } catch (err) {
       const code = err && err.code;
       log('');
@@ -320,6 +335,7 @@ export async function flash(files, env, log = console.log) {
   }
 
   downloadFallback(files, log);
+  return { downloaded: true };
 }
 
 function downloadFallback(files, log) {

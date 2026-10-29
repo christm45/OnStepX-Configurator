@@ -3,30 +3,50 @@
 // then appends a <span class="config-comment">// ...</span> sibling next
 // to every existing <span class="field-hint">...</span> in index.html.
 //
-// Source-of-truth for upstream:
-//   OnStepX:        OnStepX/Config.h + Extended.config.h
-//   SWS:            /tmp/sws_ref/Config.h + Extended.config.h
-//   SHC:            /tmp/sws_ref/SHC_Config.h + SHC_Extended.config.h
+// Source-of-truth for upstream (see ENRICH_HINTS.md):
+//   OnStepX:        <onstepx-dir>/Config.h + Extended.config.h
+//   SWS:            <ref-dir>/Config.h + Extended.config.h
+//   SHC:            <ref-dir>/SHC_Config.h + SHC_Extended.config.h
+//
+//   node tools/enrich_hints.mjs [--onstepx DIR] [--ref DIR] [--html FILE]
+//
+// Each flag falls back to an env var, then a default:
+//   --onstepx  ONSTEPX_DIR      ../OnStepX (a clone next to this repo)
+//   --ref      HINTS_REF_DIR    <os tmpdir>/sws_ref
+//   --html     CONFIGURATOR_HTML  index.html of this repo
 //
 // Field IDs in index.html may carry a SHC_ or SWS_ prefix; we strip it
 // before lookup. SHC and SWS take precedence over OnStepX for prefixed IDs;
 // OnStepX is the fallback.
 
 import { readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+function arg(name) {
+  const i = process.argv.indexOf(`--${name}`);
+  return i > 0 ? process.argv[i + 1] : undefined;
+}
+
+const ONSTEP_DIR = arg('onstepx') || process.env.ONSTEPX_DIR || path.join(REPO_ROOT, '..', 'OnStepX');
+const REF_DIR = arg('ref') || process.env.HINTS_REF_DIR || path.join(tmpdir(), 'sws_ref');
+const HTML_PATH = arg('html') || process.env.CONFIGURATOR_HTML || path.join(REPO_ROOT, 'index.html');
 
 const ONSTEP_FILES = [
-  'C:/Users/Bogdan/Desktop/OnStepX-github configurator/OnStepX/Config.h',
-  'C:/Users/Bogdan/Desktop/OnStepX-github configurator/OnStepX/Extended.config.h',
+  path.join(ONSTEP_DIR, 'Config.h'),
+  path.join(ONSTEP_DIR, 'Extended.config.h'),
 ];
 const SWS_FILES = [
-  'C:/Users/Bogdan/AppData/Local/Temp/sws_ref/Config.h',
-  'C:/Users/Bogdan/AppData/Local/Temp/sws_ref/Extended.config.h',
+  path.join(REF_DIR, 'Config.h'),
+  path.join(REF_DIR, 'Extended.config.h'),
 ];
 const SHC_FILES = [
-  'C:/Users/Bogdan/AppData/Local/Temp/sws_ref/SHC_Config.h',
-  'C:/Users/Bogdan/AppData/Local/Temp/sws_ref/SHC_Extended.config.h',
+  path.join(REF_DIR, 'SHC_Config.h'),
+  path.join(REF_DIR, 'SHC_Extended.config.h'),
 ];
-const HTML_PATH = 'C:/Users/Bogdan/Desktop/OnStepX-github configurator/index.html';
 
 // Tags the configurator already shows as a hint-tag badge — strip from the
 // upstream comment to avoid duplication.

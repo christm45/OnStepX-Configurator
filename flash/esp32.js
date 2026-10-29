@@ -8,10 +8,14 @@
 // that immediately imports three more URLs, so any network that blocks or
 // rate-limits it fails with an unhelpful "Failed to fetch dynamically
 // imported module". Networks/regions that block one CDN rarely block them all.
+// Every source must resolve esptool-js's own deps (pako, atob-lite) to EXACT
+// versions: jsDelivr's +esm already does; esm.sh needs ?deps= (its default
+// rewrites them to floating ^ ranges) and ?bundle inlines them into one file.
+// unpkg's ?module rewrite was dropped: it always emits floating
+// "pako@^2.1.0" / "atob-lite@^2.0.0" imports and has no way to pin them.
 const ESPTOOL_MODULES = [
   'https://cdn.jsdelivr.net/npm/esptool-js@0.4.5/+esm',
-  'https://esm.sh/esptool-js@0.4.5',
-  'https://unpkg.com/esptool-js@0.4.5?module',
+  'https://esm.sh/esptool-js@0.4.5?bundle&deps=pako@2.1.0,atob-lite@2.0.0',
 ];
 
 // Cached so a retry after a failed flash doesn't re-download the library.
@@ -36,7 +40,7 @@ function loadEsptool(log) {
     throw new Error(
       'Could not load the esptool-js flashing library from any CDN. This is ' +
       'usually a network/firewall or ad-blocker issue — check that ' +
-      'cdn.jsdelivr.net, esm.sh or unpkg.com is reachable, then reload the ' +
+      'cdn.jsdelivr.net or esm.sh is reachable, then reload the ' +
       'page and try again. (' + errors.join('; ') + ')'
     );
   })();
@@ -80,8 +84,12 @@ export async function flash(files, log = console.log, opts = {}) {
     }
   }
 
-  const { ESPLoader, Transport } = await loadEsptool(log);
-
+  // Ask for the port FIRST, while the click's transient user activation is
+  // still valid: requestPort() throws SecurityError once it expires, and the
+  // first CDN import of esptool-js can easily take longer than that. The
+  // library download is started in parallel and awaited after the picker.
+  const libPromise = loadEsptool(log);
+  libPromise.catch(() => {}); // awaited below; don't flag an early rejection
   const port = await navigator.serial.requestPort({
     // Common USB-UART bridges used on ESP32 *and* ESP8266 dev boards
     // (NodeMCU, Wemos D1, ESP-01, generic modules).
@@ -92,79 +100,87 @@ export async function flash(files, log = console.log, opts = {}) {
       { usbVendorId: 0x303a }, // Espressif native USB (ESP32-S2/S3/C3)
     ],
   });
-  const transport = new Transport(port, true);
+  const { ESPLoader, Transport } = await libPromise;
+  // tracing=false: true hex-dumps every SLIP packet into the console.
+  const transport = new Transport(port, false);
 
-  // 460800 is a safe-for-both baud: reliable on NodeMCU/Wemos/ESP32 DevKit,
-  // and their USB-serial chips generally cope. 921600 works for most ESP32
-  // but has been reported to fail on cheaper ESP8266 modules.
-  const flashOptions = {
-    transport,
-    baudrate: 460800,
-    romBaudrate: 115200,
-    terminal: {
-      clean() {},
-      writeLine: (d) => log(d),
-      write: (d) => log(d),
-    },
-  };
-
-  const esploader = new ESPLoader(flashOptions);
-  log('Connecting…');
-  const chip = await esploader.main();
-  log(`Detected: ${chip}`);
-  // Refuse a chip/bundle mismatch before touching flash: the image would never
-  // boot, and on boards that share one USB port between an ESP32 and an ESP8266
-  // (Terrans V5 Pro) it means the selector switch is on the wrong chip and we'd
-  // be wiping the firmware on the other one.
-  const isEsp8266 = /ESP8266/i.test(String(chip));
-  const mismatch =
-    isEsp8266 && !useSingle ? 'ESP8266 detected, but this firmware was built for an ESP32' :
-    !isEsp8266 && useSingle ? `${chip} detected, but this firmware was built for an ESP8266` :
-    null;
-  if (mismatch) {
-    await transport.disconnect();
-    throw new Error(`${mismatch}. Nothing was written. If your board has a USB/chip selector switch, ` +
-      'move it to the chip this firmware is for and try again.');
-  }
-
-  const fileArray = useMerged
-    ? [{ data: binaryString(files['merged-firmware.bin']), address: 0x0 }]
-    : useSingle
-    ? [{ data: binaryString(files['firmware.bin']), address: 0x0 }]
-    : [
-        { data: binaryString(files['bootloader.bin']), address: 0x1000 },
-        { data: binaryString(files['partitions.bin']), address: 0x8000 },
-        ...(files['boot_app0.bin'] ? [{ data: binaryString(files['boot_app0.bin']), address: 0xe000 }] : []),
-        { data: binaryString(files['firmware.bin']), address: 0x10000 },
-      ];
-
-  const eraseAll = opts.eraseAll === true;
-  if (eraseAll) log('Erasing entire flash first (this wipes saved NV/EEPROM settings and takes ~10–30 s)…');
-  log(`Writing ${fileArray.length} file${fileArray.length === 1 ? '' : 's'}…`);
-  await esploader.writeFlash({
-    fileArray,
-    flashSize: 'keep',
-    flashMode: 'keep',
-    flashFreq: 'keep',
-    eraseAll,
-    compress: true,
-    reportProgress: (fileIndex, written, total) => {
-      const pct = ((written / total) * 100).toFixed(1);
-      log(`  [${fileIndex + 1}/${fileArray.length}] ${pct}%`);
-    },
-  });
-
-  // The write is complete at this point, so a reset hiccup must not read as a
-  // failed flash. esptool-js 0.4.x only has hardReset(); after() is newer.
-  log('Resetting into application…');
+  // Always release the port — on success, chip mismatch, or any error thrown
+  // mid-flash — so a retry (or the serial monitor) can open it again.
   try {
-    if (typeof esploader.after === 'function') await esploader.after();
-    else await esploader.hardReset();
-  } catch (e) {
-    log(`⚠ Firmware written, but the automatic reset failed (${e.message || e}) — press RESET or power-cycle the board.`);
+    // 460800 is a safe-for-both baud: reliable on NodeMCU/Wemos/ESP32 DevKit,
+    // and their USB-serial chips generally cope. 921600 works for most ESP32
+    // but has been reported to fail on cheaper ESP8266 modules.
+    const flashOptions = {
+      transport,
+      baudrate: 460800,
+      romBaudrate: 115200,
+      terminal: {
+        clean() {},
+        writeLine: (d) => log(d),
+        write: (d) => log(d),
+      },
+    };
+
+    const esploader = new ESPLoader(flashOptions);
+    log('Connecting…');
+    const chip = await esploader.main();
+    log(`Detected: ${chip}`);
+    // Refuse a chip/bundle mismatch before touching flash: the image would never
+    // boot, and on boards that share one USB port between an ESP32 and an ESP8266
+    // (Terrans V5 Pro) it means the selector switch is on the wrong chip and we'd
+    // be wiping the firmware on the other one.
+    const isEsp8266 = /ESP8266/i.test(String(chip));
+    const mismatch =
+      isEsp8266 && !useSingle ? 'ESP8266 detected, but this firmware was built for an ESP32' :
+      !isEsp8266 && useSingle ? `${chip} detected, but this firmware was built for an ESP8266` :
+      null;
+    if (mismatch) {
+      throw new Error(`${mismatch}. Nothing was written. If your board has a USB/chip selector switch, ` +
+        'move it to the chip this firmware is for and try again.');
+    }
+
+    const fileArray = useMerged
+      ? [{ data: binaryString(files['merged-firmware.bin']), address: 0x0 }]
+      : useSingle
+      ? [{ data: binaryString(files['firmware.bin']), address: 0x0 }]
+      : [
+          { data: binaryString(files['bootloader.bin']), address: 0x1000 },
+          { data: binaryString(files['partitions.bin']), address: 0x8000 },
+          ...(files['boot_app0.bin'] ? [{ data: binaryString(files['boot_app0.bin']), address: 0xe000 }] : []),
+          { data: binaryString(files['firmware.bin']), address: 0x10000 },
+        ];
+
+    const eraseAll = opts.eraseAll === true;
+    if (eraseAll) log('Erasing entire flash first (this wipes saved NV/EEPROM settings and takes ~10–30 s)…');
+    log(`Writing ${fileArray.length} file${fileArray.length === 1 ? '' : 's'}…`);
+    await esploader.writeFlash({
+      fileArray,
+      flashSize: 'keep',
+      flashMode: 'keep',
+      flashFreq: 'keep',
+      eraseAll,
+      compress: true,
+      reportProgress: (fileIndex, written, total) => {
+        const pct = ((written / total) * 100).toFixed(1);
+        log(`  [${fileIndex + 1}/${fileArray.length}] ${pct}%`);
+      },
+    });
+
+    // The write is complete at this point, so a reset hiccup must not read as a
+    // failed flash. esptool-js 0.4.x only has hardReset(); after() is newer.
+    log('Resetting into application…');
+    try {
+      if (typeof esploader.after === 'function') await esploader.after();
+      else await esploader.hardReset();
+    } catch (e) {
+      log(`⚠ Firmware written, but the automatic reset failed (${e.message || e}) — press RESET or power-cycle the board.`);
+    }
+    log(`Done. ${chip} is now running your firmware.`);
+  } finally {
+    // disconnect() itself can throw (port never opened, device unplugged
+    // mid-flash); that must not mask the real error or a successful flash.
+    try { await transport.disconnect(); } catch (_) { /* already closed / gone */ }
   }
-  await transport.disconnect();
-  log(`Done. ${chip} is now running your firmware.`);
 }
 
 function binaryString(u8) {
