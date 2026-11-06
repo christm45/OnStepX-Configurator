@@ -769,7 +769,7 @@
       config: [
         { dir: 'PEC_SENSE', val: 'HIGH', note: 'Rising edge = index pulse detected' },
         { dir: 'PEC_STEPS_PER_WORM_ROTATION', val: '<em>calculate it</em>', note: '(AXIS1_STEPS_PER_DEGREE × 360) / worm_wheel_teeth — see the formula below. There is no universal default; a wrong value makes PEC useless.' },
-        { dir: 'PEC_BUFFER_SIZE_LIMIT', val: '720', note: 'Max recording length in seconds (720s = 12 min)' },
+        { dir: 'PEC_BUFFER_SIZE_LIMIT', val: '720', note: 'At least the worm period in seconds (86400 ÷ worm teeth), at most 2016 on the E4. Too small gives "Init NV/EEPROM error" on main.' },
         { dir: 'AXIS1_STEPS_PER_DEGREE', val: '<em>your gearing</em>', note: 'Must match your mount — use the configurator\'s Calculator tab' },
       ],
       notes:

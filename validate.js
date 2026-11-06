@@ -426,6 +426,63 @@ const DECAY_MODES = new Set(['MIXED', 'FAST', 'SLOW', 'SPREADCYCLE', 'STEALTHCHO
 // NV drivers src/telescope/mount/Mount.cpp accepts for MOUNT_COORDS_MEMORY ON.
 const FRAM_NV_DRIVERS = new Set(['NV_MB85RC32', 'NV_MB85RC64', 'NV_MB85RC256']);
 
+// NV device size in bytes per NV_DRIVER (OnStepX src/lib/nv/Nv.cpp backends).
+// NV_DEFAULT / NV_EEPROM depend on the MCU core, so only ESP32 is known.
+const NV_DRIVER_BYTES = {
+  NV_ESP: 4096, NV_M0: 1024, NV_2416: 2048, NV_2432: 4096, NV_AT24C32: 4096, NV_2464: 8192,
+  NV_24128: 16384, NV_24256: 32768, NV_MB85RC32: 4096, NV_MB85RC64: 8192, NV_MB85RC256: 32768,
+};
+function nvBytes(values) {
+  const drv = values.NV_DRIVER || 'NV_DEFAULT';
+  if (NV_DRIVER_BYTES[drv]) return NV_DRIVER_BYTES[drv];
+  if (drv === 'NV_DEFAULT' && values.COMPILE_ENV === 'esp32') return 4096;
+  return null;
+}
+
+// PEC checks that OnStepX only makes at boot (src/telescope/mount/pec/Pec.cpp).
+// A failure there sets initError.value, which main reports as "Init NV/EEPROM
+// error" (Limits.cpp errorCode) and which also refuses every goto
+// (Limits::isGotoError). Nothing fails at compile time, so catch it here.
+function pecRuntimeChecks(values, num, add) {
+  const steps = num('PEC_STEPS_PER_WORM_ROTATION');
+  const spd = num('AXIS1_STEPS_PER_DEGREE');
+  const limit = num('PEC_BUFFER_SIZE_LIMIT') ?? 720;
+  if (!steps || !(steps > 0) || !limit || !(limit > 0) || !spd || !(spd > 0)) return; // PEC off or unknown
+  const id = 'PEC_STEPS_PER_WORM_ROTATION';
+  const off = 'Set PEC_STEPS_PER_WORM_ROTATION to 0 if you don\'t use PEC.';
+  const symptom = 'OnStepX main then disables PEC and reports "Init NV/EEPROM error" at boot, and refuses every goto.';
+  // Pec.cpp: bufferSize = round(wormRotationSteps / stepsPerSiderealSecond), steps/deg ÷ 240.
+  const wormSec = Math.round(steps / (spd / 240));
+  if (wormSec < 61) {
+    add('error', id,
+      `PEC worm period is ${wormSec} s (PEC_STEPS_PER_WORM_ROTATION ${steps} ÷ (AXIS1_STEPS_PER_DEGREE ${spd} ÷ 240)), ` +
+      `below OnStepX's 61 s minimum. ${symptom} Recalculate it as AXIS1_STEPS_PER_DEGREE × 360 ÷ worm wheel teeth. ${off}`);
+    return;
+  }
+  // The PEC partition is PEC_BUFFER_SIZE_LIMIT rounded down to 16 bytes (Telescope.cpp).
+  const partition = Math.floor(limit / 16) * 16;
+  if (wormSec > partition) {
+    add('error', 'PEC_BUFFER_SIZE_LIMIT',
+      `PEC worm period is ${wormSec} s but PEC_BUFFER_SIZE_LIMIT gives a ${partition}-byte PEC buffer (one byte per second). ` +
+      `${symptom} Raise PEC_BUFFER_SIZE_LIMIT to at least ${Math.ceil(wormSec / 16) * 16}, or check the worm teeth. ${off}`);
+    return;
+  }
+  // Telescope.cpp sizes the KV partition from the NV size and drops the PEC
+  // partition when it doesn't fit; Pec::init() then quietly disables PEC.
+  const bytes = nvBytes(values);
+  if (!bytes) return;
+  const vSize = bytes - 32;
+  if (vSize <= 1039) return;
+  const kv = vSize < 1536 ? 1040 : vSize < 3072 ? 1536 : vSize < 6144 ? 2048 : vSize < 16384 ? 3072 : 4080;
+  const maxPec = Math.floor((vSize - kv) / 16) * 16;
+  if (partition > maxPec) {
+    add('warn', 'PEC_BUFFER_SIZE_LIMIT',
+      `PEC_BUFFER_SIZE_LIMIT ${limit} doesn't fit this board's ${bytes}-byte NV storage (room for about ${maxPec}), so OnStepX ` +
+      `creates no PEC partition and PEC stays disabled. ` +
+      (wormSec <= maxPec ? `Lower it to ${maxPec} (your worm period is ${wormSec} s).` : `Your ${wormSec} s worm period needs a larger NV device.`));
+  }
+}
+
 // Every MOUNT_TYPE in upstream src/Constants.h (MOUNT_TYPE_FIRST..LAST), which
 // src/Validate.h accepts (all offered by the MOUNT_TYPE select).
 export const MOUNT_TYPES_COMMON = [
@@ -626,6 +683,7 @@ export function validateConfig(values) {
     add('error', 'PEC_STEPS_PER_WORM_ROTATION',
       `PEC_STEPS_PER_WORM_ROTATION=${values.PEC_STEPS_PER_WORM_ROTATION} is outside the valid range (0 to disable, or 1 to 129600000).`);
   }
+  pecRuntimeChecks(values, num, add);
   // RETICLE_LED_DEFAULT: OFF or 0..255 (src/Validate.h).
   const reticle = (values.RETICLE_LED_DEFAULT ?? '').toString().trim();
   if (reticle !== '' && reticle !== 'OFF' && /^-?\d+$/.test(reticle) && (Number(reticle) < 0 || Number(reticle) > 255)) {

@@ -36,7 +36,7 @@ window.I18N_FR = Object.assign(window.I18N_FR || {}, {
   /* ------------------------------------------------------------ Hall / PEC */
   "Divider: 1kΩ series + 2kΩ to GND ≈ 3.3V": "Diviseur : 1kΩ en série + 2kΩ vers la masse ≈ 3,3V",
   "(AXIS1_STEPS_PER_DEGREE × 360) / worm_wheel_teeth — see the formula below. There is no universal default; a wrong value makes PEC useless.": "(AXIS1_STEPS_PER_DEGREE × 360) / nombre_de_dents_de_la_roue — voir la formule ci-dessous. Il n'y a pas de valeur par défaut universelle ; une valeur erronée rend la PEC inutile.",
-  "Max recording length in seconds (720s = 12 min)": "Durée d'enregistrement maximale en secondes (720s = 12 min)",
+  "At least the worm period in seconds (86400 ÷ worm teeth), at most 2016 on the E4. Too small gives \"Init NV/EEPROM error\" on main.": "Au moins la période de la vis sans fin en secondes (86400 ÷ dents de la roue), au plus 2016 sur la E4. Trop petit provoque « Init NV/EEPROM error » sur main.",
   "Must match your mount — use the configurator's Calculator tab": "Doit correspondre à votre monture — utilisez l'onglet Calculateur du configurateur",
 
   /* ------------------------------------------------------------------- GPS */

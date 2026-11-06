@@ -1631,8 +1631,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "Epcos/TDK 及部分 100k 品牌",
   "Erase All Flash Before Upload":
     "上传前擦除全部 flash",
-  "Erase entire flash before writing — fixes a stuck \"Init NV/EEPROM error\" (ESP32/ESP8266 only; wipes saved settings/PEC, adds ~10–30 s).":
-    "写入前擦除整个 flash — 可修复一直出现的「Init NV/EEPROM error」（仅限 ESP32/ESP8266；会清除已保存的设置/PEC，增加约 10–30 秒）。",
+  "Erase entire flash before writing — resets the saved NV settings, needed once after changing PEC values (ESP32/ESP8266 only; wipes saved settings/PEC, adds ~10–30 s).":
+    "写入前擦除整个 flash — 重置已保存的 NV 设置，修改 PEC 数值后需要执行一次（仅限 ESP32/ESP8266；会清除已保存的设置/PEC，增加约 10–30 秒）。",
   "Escape hatch:":
     "应急方案：",
   "Ethernet (only if OPERATIONAL_MODE = ETHERNET_*)":
@@ -2321,8 +2321,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "最大限位",
   "Max limit switch":
     "最大限位开关",
-  "Max recording length in seconds (720s = 12 min)":
-    "最长记录时间，单位秒（720s = 12 分钟）",
+  "At least the worm period in seconds (86400 ÷ worm teeth), at most 2016 on the E4. Too small gives \"Init NV/EEPROM error\" on main.":
+    "至少等于蜗杆周期（秒）（86400 ÷ 蜗轮齿数），E4 上最大 2016。设得太小，main 会报「Init NV/EEPROM error」。",
   "Max travel in mm":
     "最大行程（mm）",
   "Max µm/s":
@@ -4863,8 +4863,8 @@ window.I18N_ZH = Object.assign(window.I18N_ZH || {}, {
     "🧲 PEC 索引传感器",
   "Leave OFF for normal use. Turn ON (errors and warnings) or VERBOSE (everything) when asked to troubleshoot: OnStepX then prints startup messages on the USB serial port at the SERIAL_A_BAUD_DEFAULT baud rate (9600 unless changed under Serial Ports). CONSOLE (VT100 debug console) and PROFILER (VT100 task profiler) use the same port and need a terminal program such as PuTTY.":
     "正常使用时请保持 OFF。排查问题时按要求设为 ON（错误和警告）或 VERBOSE（全部信息）：OnStepX 随后会通过 USB 串口以 SERIAL_A_BAUD_DEFAULT 的波特率（除非在「串口」部分修改，否则为 9600）输出启动信息。CONSOLE（VT100 调试控制台）和 PROFILER（VT100 任务分析器）使用同一端口，需要 PuTTY 等终端程序。",
-  "Still an Init NV/EEPROM error on main after erasing? Use E4 as the Source ref for now, then set DEBUG to ON (Controller tab), rebuild, and read the Nv lines on the USB serial monitor at the SERIAL_A_BAUD_DEFAULT baud rate (9600 unless changed).":
-    "擦除后 main 仍然出现 Init NV/EEPROM error？请暂时将「源代码引用」设为 E4，然后在「控制器」选项卡中把 DEBUG 设为 ON，重新编译，并在 USB 串口监视器中以 SERIAL_A_BAUD_DEFAULT 的波特率（未修改时为 9600）查看 Nv 开头的行。",
+  "Changed the PEC values on a board that already ran main? The PEC buffer size and worm steps stay saved in NV, so tick Erase entire flash before writing once. Still the error? Set DEBUG to ON (Controller tab), rebuild, and read the WRN and ERR lines (Nv, Pec, Focuser) on the USB serial monitor at the SERIAL_A_BAUD_DEFAULT baud rate (9600 unless changed).":
+    "在已经运行过 main 的板子上修改了 PEC 数值？PEC 缓冲区大小和蜗杆步数仍保存在 NV 中，所以请勾选一次「写入前擦除整个 flash」。仍然报错？在「控制器」选项卡中把 DEBUG 设为 ON，重新编译，并在 USB 串口监视器中以 SERIAL_A_BAUD_DEFAULT 的波特率（未修改时为 9600）查看 WRN 和 ERR 行（Nv、Pec、Focuser）。",
   "Serial monitor":
     "串口监视器",
   "Connect":

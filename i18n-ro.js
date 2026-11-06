@@ -1583,8 +1583,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "Epcos/TDK și unele mărci 100k",
   "Erase All Flash Before Upload":
     "Ștergere completă a memoriei flash înainte de încărcare",
-  "Erase entire flash before writing — fixes a stuck \"Init NV/EEPROM error\" (ESP32/ESP8266 only; wipes saved settings/PEC, adds ~10–30 s).":
-    "Șterge întreaga memorie flash înainte de scriere — rezolvă o eroare persistentă „Init NV/EEPROM error” (doar ESP32/ESP8266; șterge setările/PEC salvate, adaugă ~10–30 s).",
+  "Erase entire flash before writing — resets the saved NV settings, needed once after changing PEC values (ESP32/ESP8266 only; wipes saved settings/PEC, adds ~10–30 s).":
+    "Șterge întreaga memorie flash înainte de scriere — resetează setările NV salvate, necesar o dată după ce schimbați valorile PEC (doar ESP32/ESP8266; șterge setările/PEC salvate, adaugă ~10–30 s).",
   "Escape hatch:":
     "Soluție de rezervă:",
   "Ethernet (only if OPERATIONAL_MODE = ETHERNET_*)":
@@ -2265,8 +2265,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "Limită maximă",
   "Max limit switch":
     "Limitator de cursă maxim",
-  "Max recording length in seconds (720s = 12 min)":
-    "Durata maximă de înregistrare în secunde (720s = 12 min)",
+  "At least the worm period in seconds (86400 ÷ worm teeth), at most 2016 on the E4. Too small gives \"Init NV/EEPROM error\" on main.":
+    "Cel puțin perioada melcului în secunde (86400 ÷ dinții roții melcate), cel mult 2016 pe E4. O valoare prea mică dă „Init NV/EEPROM error” pe main.",
   "Max travel in mm":
     "Cursă maximă în mm",
   "Max µm/s":
@@ -4793,8 +4793,8 @@ window.I18N_RO = Object.assign(window.I18N_RO || {}, {
     "Adafruit BME280 v2.2.2 + Adafruit Sensor v1.1.7 (Arduino Library Manager / managerul de biblioteci).",
   "Leave OFF for normal use. Turn ON (errors and warnings) or VERBOSE (everything) when asked to troubleshoot: OnStepX then prints startup messages on the USB serial port at the SERIAL_A_BAUD_DEFAULT baud rate (9600 unless changed under Serial Ports). CONSOLE (VT100 debug console) and PROFILER (VT100 task profiler) use the same port and need a terminal program such as PuTTY.":
     "Lăsați pe OFF pentru utilizarea normală. Setați ON (erori și avertismente) sau VERBOSE (totul) atunci când vi se cere pentru depanare: OnStepX afișează atunci mesajele de pornire pe portul serial USB la viteza SERIAL_A_BAUD_DEFAULT (9600 baud dacă nu ați schimbat-o la Porturi seriale). CONSOLE (consolă de depanare VT100) și PROFILER (profilator de sarcini VT100) folosesc același port și necesită un program de terminal precum PuTTY.",
-  "Still an Init NV/EEPROM error on main after erasing? Use E4 as the Source ref for now, then set DEBUG to ON (Controller tab), rebuild, and read the Nv lines on the USB serial monitor at the SERIAL_A_BAUD_DEFAULT baud rate (9600 unless changed).":
-    "Încă o eroare Init NV/EEPROM pe main după ștergere? Folosiți deocamdată E4 ca Source ref, apoi setați DEBUG pe ON (fila Controller), recompilați și citiți liniile Nv în monitorul serial USB la viteza SERIAL_A_BAUD_DEFAULT (9600 baud dacă nu ați schimbat-o).",
+  "Changed the PEC values on a board that already ran main? The PEC buffer size and worm steps stay saved in NV, so tick Erase entire flash before writing once. Still the error? Set DEBUG to ON (Controller tab), rebuild, and read the WRN and ERR lines (Nv, Pec, Focuser) on the USB serial monitor at the SERIAL_A_BAUD_DEFAULT baud rate (9600 unless changed).":
+    "Ați schimbat valorile PEC pe o placă ce a rulat deja main? Dimensiunea bufferului PEC și pașii melcului rămân salvați în NV, așa că bifați o dată Șterge întreaga memorie flash înainte de scriere. Tot apare eroarea? Setați DEBUG pe ON (fila Controller), recompilați și citiți liniile WRN și ERR (Nv, Pec, Focuser) în monitorul serial USB la viteza SERIAL_A_BAUD_DEFAULT (9600 baud dacă nu ați schimbat-o).",
   "Serial monitor":
     "Monitor serial",
   "Connect":
