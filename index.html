@@ -8007,6 +8007,16 @@ document.getElementById('COMPILE_ENV')?.addEventListener('change', () => {
 });
 // Initialise mode (sets tab visibility, board options, title — also calls runPreflight)
 renderPlugins();
+// restoreFormState() ran long before this point, when the PLUGIN_* checkboxes
+// did not exist yet, so a saved plugin choice was never put back: after a
+// reload the Website plugin showed unticked and an E4 build silently lost its
+// web UI. Apply the saved plugin choices now that the boxes exist.
+try {
+  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+  if (saved && saved.onstepx) {
+    applyFieldMap(Object.fromEntries(Object.entries(saved.onstepx).filter(([id]) => id.startsWith('PLUGIN_'))));
+  }
+} catch { /* no saved state / storage blocked: keep the defaults */ }
 setMode(window.currentMode);
 syncEnvFromPinmap();
 refreshBoardDefaultsButton();
