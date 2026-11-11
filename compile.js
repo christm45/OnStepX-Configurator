@@ -107,7 +107,9 @@ export async function pollUntilDone(requestId, onUpdate, { timeoutMs = 25 * 60 *
       onUpdate(data);
       if (data.state === 'completed') return await awaitFailureLines(requestId, data);
       if (data.state === 'never_started') {
-        throw new Error('build never started — GitHub Actions did not create the run (GitHub queue/dispatch issue). Try again in a few minutes.');
+        const e = new Error('build never started — GitHub Actions did not create the run (GitHub queue/dispatch issue). Try again in a few minutes.');
+        e.githubStartFailure = true; // the caller may dispatch once more
+        throw e;
       }
       await sleep(intervalMs);
       // Back off a little after the first minute

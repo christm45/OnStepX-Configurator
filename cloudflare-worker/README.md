@@ -78,10 +78,15 @@ and proxies the firmware artifact back to the browser.
 - `GET /status?id=<request_id>&token=<token>` →
   `{state, run_id?, conclusion?, html_url?, error_lines?, logs_pending?}`
   - `state`: `queued | in_progress | completed`, or `never_started` when no
-    run carrying the request_id appeared within 3 min of dispatch. Runs are
-    looked up in the newest 100 dispatches; if the run was pushed off that
-    page, by its remembered run id or a runs query limited to the token's
-    creation window.
+    run carrying the request_id appeared within 3 min of dispatch. `/compile`
+    dispatches with `return_run_details: true`; when GitHub returns the run id
+    it is signed into the token (`<issued>.r<runId>.<sig>`) and the run is
+    fetched by id, which also works while the run has not started (its title
+    is then still the workflow name, not the run-name). Older tokens fall back
+    to matching the run-name in the newest 100 dispatches, then a runs query
+    limited to the token's creation window.
+  - `conclusion: startup_failure` comes with a `detail` saying GitHub could
+    not start the run (GitHub-side error).
   - `error_lines`: on `conclusion: failure`, up to 30 compiler/`#error`/link
     error lines scraped from the failed job's log. On lines whose diagnostic
     (incl. following source excerpt / "in expansion of macro" notes) mentions
@@ -91,7 +96,8 @@ and proxies the firmware artifact back to the browser.
     poll again (compile.js retries up to 4 × 5 s). Not cached.
   - Cached a few seconds per isolate; 60 calls/min/IP per isolate.
 - `GET /firmware?run_id=<run_id>&id=<request_id>&token=<token>` →
-  `application/zip`. Refused unless the run's name carries that request_id.
+  `application/zip`. Refused unless it is the run id signed into the token
+  (or, for older tokens, unless the run's name carries that request_id).
   This only stops the *Worker* from serving another user's build: the
   build-service repo is public, so GitHub itself serves its run logs to anyone
   and its artifacts (firmware with the user's WiFi credentials) to any

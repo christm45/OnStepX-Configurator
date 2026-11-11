@@ -226,6 +226,13 @@ async function handleCompile(request, env) {
         method: 'POST',
         body: JSON.stringify({
           ref: 'main', // which branch of the BUILD-SERVICE repo runs the workflow
+          // Since 2026-02 GitHub answers 200 + {workflow_run_id, ...} instead of
+          // 204 when asked. The run id is bound into the access token so /status
+          // follows the run by id. Matching by run-name alone failed while
+          // GitHub was slow: a run that has not started yet still carries the
+          // workflow's name ("Build OnStep firmware"), not our run-name, and was
+          // reported as never_started although it existed.
+          return_run_details: true,
           inputs: {
             project,                 // 'onstepx' | 'shc' | 'sws' — picks upstream repo
             config_h: configB64,
@@ -252,8 +259,16 @@ async function handleCompile(request, env) {
     );
   }
 
-  const token = await signToken(env, requestId, Date.now());
-  return json({ request_id: requestId, token, state: 'queued' });
+  // 200 with run details, or 204 (older API behaviour): both mean dispatched.
+  let runId = null;
+  if (dispatchRes.status === 200) {
+    const d = await dispatchRes.json().catch(() => null);
+    const id = d && (d.workflow_run_id ?? d.run_id ?? d.id);
+    if (Number.isSafeInteger(id) && id > 0) runId = id;
+  }
+
+  const token = await signToken(env, requestId, Date.now(), runId);
+  return json({ request_id: requestId, token, state: 'queued', ...(runId ? { run_id: runId } : {}) });
 }
 
 // Rate-limit window record: {start: ms epoch, count}. A missing, expired or
@@ -356,41 +371,50 @@ async function hmacKey(env) {
   );
 }
 
-async function signToken(env, requestId, issuedMs) {
-  const key = await hmacKey(env);
-  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${requestId}.${issuedMs}`));
-  return `${issuedMs}.${base64UrlEncode(new Uint8Array(sig))}`;
+// Token: "<issuedMs>.<sig>", or "<issuedMs>.r<runId>.<sig>" when GitHub
+// returned the run id at dispatch. The signed message carries the run id too,
+// so a client cannot point its token at another run.
+function tokenMessage(requestId, issuedMs, runId) {
+  return runId ? `${requestId}.${issuedMs}.r${runId}` : `${requestId}.${issuedMs}`;
 }
 
-// Returns the token's issue time (ms) if valid for this requestId, else null.
+async function signToken(env, requestId, issuedMs, runId = null) {
+  const key = await hmacKey(env);
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(tokenMessage(requestId, issuedMs, runId)));
+  return `${issuedMs}.${runId ? `r${runId}.` : ''}${base64UrlEncode(new Uint8Array(sig))}`;
+}
+
+// Returns {issuedMs, runId} if the token is valid for this requestId, else
+// null. runId is null for a token issued without run details.
 // crypto.subtle.verify does the constant-time comparison.
 async function verifyToken(env, requestId, token) {
   if (typeof token !== 'string') return null;
-  const m = /^(\d{10,16})\.([A-Za-z0-9_-]{20,})$/.exec(token);
+  const m = /^(\d{10,16})\.(?:r(\d{1,16})\.)?([A-Za-z0-9_-]{20,})$/.exec(token);
   if (!m) return null;
   const issuedMs = Number(m[1]);
+  const runId = m[2] ? Number(m[2]) : null;
   if (!(Date.now() - issuedMs < TOKEN_TTL_MS) || issuedMs > Date.now() + 60_000) return null;
   let sig;
   try {
-    sig = base64ToBytes(m[2].replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (m[2].length % 4)) % 4));
+    sig = base64ToBytes(m[3].replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (m[3].length % 4)) % 4));
   } catch {
     return null;
   }
   const key = await hmacKey(env);
-  const ok = await crypto.subtle.verify('HMAC', key, sig, new TextEncoder().encode(`${requestId}.${issuedMs}`));
-  return ok ? issuedMs : null;
+  const ok = await crypto.subtle.verify('HMAC', key, sig, new TextEncoder().encode(tokenMessage(requestId, issuedMs, runId)));
+  return ok ? { issuedMs, runId } : null;
 }
 
 const REQUEST_ID_RE = /^[0-9a-fA-F-]{8,64}$/;
 
-// Common gate for /status and /firmware. Returns {requestId, issuedMs} or a Response.
+// Common gate for /status and /firmware. Returns {requestId, issuedMs, runId} or a Response.
 async function authorizeRequest(url, env) {
   if (!env.TOKEN_SECRET) return tokenSecretMissing();
   const requestId = url.searchParams.get('id') || url.searchParams.get('request_id');
   if (!requestId || !REQUEST_ID_RE.test(requestId)) return json({ error: 'id param required' }, 400);
-  const issuedMs = await verifyToken(env, requestId, url.searchParams.get('token'));
-  if (issuedMs === null) return json({ error: 'invalid or expired token' }, 403);
-  return { requestId, issuedMs };
+  const tok = await verifyToken(env, requestId, url.searchParams.get('token'));
+  if (tok === null) return json({ error: 'invalid or expired token' }, 403);
+  return { requestId, issuedMs: tok.issuedMs, runId: tok.runId };
 }
 
 // The workflow's run-name is "onstepx-build req=<uuid> env=<env> project=<p>".
@@ -464,7 +488,17 @@ function ghApiError(status) {
 // up directly: by run id if this isolate already saw it, else by a runs query
 // restricted to the creation window around the token's issue time. Only a
 // miss on that is reported as "not there" (-> queued / never_started).
-async function findRun(env, requestId, issuedMs) {
+async function findRun(env, requestId, issuedMs, tokenRunId = null) {
+  // Run id known from the dispatch (bound into the token): ask for it directly.
+  // Works while the run is still waiting to start (its title is not our
+  // run-name yet) and for runs GitHub failed to start (startup_failure).
+  if (tokenRunId) {
+    const r = await ghFetch(env, `/repos/${env.BUILD_OWNER}/${env.BUILD_REPO}/actions/runs/${tokenRunId}`);
+    if (r.ok) return r.json();
+    if (r.status !== 404) throw ghApiError(r.status);
+    // 404 right after the dispatch: not visible yet, fall through.
+  }
+
   const runs = await listRecentRuns(env);
   const hit = runs.find((r) => runMatches(r, requestId));
   if (hit) {
@@ -513,21 +547,22 @@ async function handleStatus(request, url, env) {
 
   const auth = await authorizeRequest(url, env);
   if (auth instanceof Response) return auth;
-  const { requestId, issuedMs } = auth;
+  const { requestId, issuedMs, runId: tokenRunId } = auth;
 
   const cached = finalStatusCache.get(requestId);
   if (cached && Date.now() - cached.at < FINAL_CACHE_MS) return json(cached.body);
 
-  // Find the run whose run-name carries our request_id.
+  // Find our run: by the id from the dispatch, else by its run-name.
   let run;
   try {
-    run = await findRun(env, requestId, issuedMs);
+    run = await findRun(env, requestId, issuedMs, tokenRunId);
   } catch (e) {
     return json({ error: 'github api error', status: e.status || 0 }, 502);
   }
 
   if (!run) {
-    if (Date.now() - issuedMs > NEVER_STARTED_MS) {
+    // With a run id from the dispatch the run exists: keep reporting queued.
+    if (!tokenRunId && Date.now() - issuedMs > NEVER_STARTED_MS) {
       return json({
         request_id: requestId,
         state: 'never_started',
@@ -541,11 +576,16 @@ async function handleStatus(request, url, env) {
   // conclusion (only when completed): success | failure | cancelled | skipped | ...
   const body = {
     request_id: requestId,
-    state: run.status,
+    // GitHub's waiting / requested / pending all mean "not started yet".
+    state: ['queued', 'in_progress', 'completed'].includes(run.status) ? run.status : 'queued',
     conclusion: run.conclusion,
     run_id: run.id,
     html_url: run.html_url,
   };
+  if (run.status === 'completed' && run.conclusion === 'startup_failure') {
+    // GitHub could not start the run: its own error, the workflow never ran.
+    body.detail = 'GitHub Actions could not start the build (an error on GitHub\'s side, not in your Config.h). Try again in a few minutes.';
+  }
   if (run.status === 'completed') {
     let cacheable = true;
     if (run.conclusion === 'failure') {
@@ -676,18 +716,23 @@ function extractErrorLines(logText) {
 async function handleFirmware(url, env) {
   const auth = await authorizeRequest(url, env);
   if (auth instanceof Response) return auth;
-  const { requestId } = auth;
+  const { requestId, runId: tokenRunId } = auth;
 
   const runId = url.searchParams.get('run_id');
   if (!runId || !/^\d+$/.test(runId)) return json({ error: 'run_id param required' }, 400);
 
   // The run must be the one this token's request_id dispatched — otherwise a
-  // valid token for one build could fetch any other run's firmware.
-  const runRes = await ghFetch(env, `/repos/${env.BUILD_OWNER}/${env.BUILD_REPO}/actions/runs/${runId}`);
-  if (runRes.status === 404) return json({ error: 'run not found' }, 404);
-  if (!runRes.ok) return json({ error: 'github api error', status: runRes.status }, 502);
-  if (!runMatches(await runRes.json(), requestId)) {
-    return json({ error: 'run does not belong to this request' }, 403);
+  // valid token for one build could fetch any other run's firmware. A token
+  // carrying the run id settles it; older tokens check the run-name.
+  if (tokenRunId) {
+    if (String(tokenRunId) !== runId) return json({ error: 'run does not belong to this request' }, 403);
+  } else {
+    const runRes = await ghFetch(env, `/repos/${env.BUILD_OWNER}/${env.BUILD_REPO}/actions/runs/${runId}`);
+    if (runRes.status === 404) return json({ error: 'run not found' }, 404);
+    if (!runRes.ok) return json({ error: 'github api error', status: runRes.status }, 502);
+    if (!runMatches(await runRes.json(), requestId)) {
+      return json({ error: 'run does not belong to this request' }, 403);
+    }
   }
 
   const artRes = await ghFetch(env, `/repos/${env.BUILD_OWNER}/${env.BUILD_REPO}/actions/runs/${runId}/artifacts`);

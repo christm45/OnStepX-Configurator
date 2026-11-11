@@ -6,7 +6,7 @@
 |---|---|---|
 | Frontend | https://christm45.github.io/OnStepX-Configurator/ | Live; its `compile.js` sends the per-build token. |
 | Build service | https://github.com/christm45/onstepx-build-service | Live (public repo — see *Exposure* below). |
-| Cloudflare Worker | https://onstepx-build-bridge.craciun-vlad.workers.dev | The deployed Worker predates `cloudflare-worker/worker.js` in this repo (per-build tokens, `never_started`, `error_lines`, charge-before-dispatch rate limit). The repo version has not been deployed yet; the live site works with both. |
+| Cloudflare Worker | https://onstepx-build-bridge.craciun-vlad.workers.dev | Deployed 2026-10-29. The repo version (2026-11-11) also asks GitHub for the run id at dispatch (`return_run_details`) and binds it into the token, so a run that is slow to start is no longer reported as `never_started`. Deploy it with `npx wrangler deploy` in `cloudflare-worker/`; the live site works with both. |
 
 The ESP32 build + merged-firmware.bin download path was verified end-to-end
 on the original deployment (2026-04-22). Re-verify after deploying the new
@@ -273,7 +273,15 @@ mid-build. Reload the page and compile again.
 **"build never started — GitHub Actions did not create the run"** — the
 dispatch was accepted but no run carrying the request_id appeared within
 3 minutes. Usually a GitHub Actions incident (https://www.githubstatus.com);
-retry later.
+retry later. The page dispatches once more by itself before showing it.
+A Worker with run-id tracking (repo version) no longer reports this for a run
+that exists but is still waiting for a runner.
+
+**"GitHub Actions could not start the build"** (run conclusion
+`startup_failure`, "An unexpected error has occurred" on the run page) —
+GitHub failed to start the run; the workflow never ran, so it is not the
+Config.h. Seen 2026-11-11 for ~50 minutes while githubstatus.com still showed
+all green. The page retries once after 20 s, then reports it.
 
 **Build fails with "unsupported environment"** — the frontend sent a board
 string that the workflow doesn't recognize. Check that `COMPILE_ENV` in

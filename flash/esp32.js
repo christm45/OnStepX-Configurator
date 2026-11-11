@@ -58,8 +58,13 @@ export function supported() {
  * Flash an ESP32 or ESP8266 from a firmware bundle.
  *
  * The bundle shape determines the flash layout:
- *   - merged-firmware.bin at 0x0                         (ESP32, cleanest)
- *   - bootloader.bin + partitions.bin + boot_app0.bin + firmware.bin  (ESP32, classic)
+ *   - bootloader.bin + partitions.bin + boot_app0.bin + firmware.bin  (ESP32,
+ *     preferred: written at 0x1000 / 0x8000 / 0xe000 / 0x10000, exactly like an
+ *     Arduino IDE or PlatformIO upload, so the NVS partition at 0x9000 that
+ *     holds OnStepX's saved settings is left alone)
+ *   - merged-firmware.bin at 0x0                         (ESP32, only when the
+ *     separate parts are missing: its 0xFF padding between partitions.bin and
+ *     boot_app0.bin covers the NVS, so it wipes the saved settings every time)
  *   - firmware.bin at 0x0 (no bootloader.bin in bundle)  (ESP8266 — single image)
  *
  * files: {[filename]: Uint8Array}  (as returned by fetchFirmware)
@@ -76,7 +81,10 @@ export function supported() {
 export async function flash(files, log = console.log, opts = {}) {
   if (!supported()) throw new Error('Web Serial not supported — use Chrome, Edge, or Opera');
 
-  const useMerged = !!files['merged-firmware.bin'];
+  // Separate parts first: the merged image would erase the NVS (saved
+  // settings) on every flash and make the "erase entire flash" choice moot.
+  const haveParts = !!(files['bootloader.bin'] && files['partitions.bin'] && files['firmware.bin']);
+  const useMerged = !haveParts && !!files['merged-firmware.bin'];
   const useSingle = !useMerged && !files['bootloader.bin'] && !!files['firmware.bin'];
   if (!useMerged && !useSingle) {
     const required = ['firmware.bin', 'bootloader.bin', 'partitions.bin'];
@@ -167,6 +175,8 @@ export async function flash(files, log = console.log, opts = {}) {
 
     const eraseAll = opts.eraseAll === true;
     if (eraseAll) log('Erasing entire flash first (this wipes saved NV/EEPROM settings and takes ~10–30 s)…');
+    else if (useMerged) log('Note: this bundle only has the merged image, which also clears the saved settings (NVS).');
+    else if (!useSingle) log('Saved settings (NVS partition) are kept; tick "Erase entire flash" to reset them.');
     log(`Writing ${fileArray.length} file${fileArray.length === 1 ? '' : 's'}…`);
     await esploader.writeFlash({
       fileArray,
